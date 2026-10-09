@@ -1,0 +1,33 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "[0-9]*.[0-9]*.[0-9]*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - run: make test
+      - name: Build
+        run: |
+          make build VERSION="${GITHUB_REF_NAME}"
+          [ "$(bin/gitd -version)" = "${GITHUB_REF_NAME}" ]
+          mkdir -p dist
+          cp bin/gitd dist/dooservice-gitd-linux-amd64
+          sha256sum dist/dooservice-gitd-linux-amd64 | cut -d' ' -f1 > dist/dooservice-gitd-linux-amd64.sha256
+      - uses: softprops/action-gh-release@v2
+        with:
+          name: "${{ github.ref_name }}"
+          files: |
+            dist/dooservice-gitd-linux-amd64
+            dist/dooservice-gitd-linux-amd64.sha256

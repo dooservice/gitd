@@ -1,0 +1,17 @@
+socket = "/run/dooservice/gitd.sock"
+state = "/var/lib/dooservice/gitd"
+roots = ["/var/lib/dooservice/projects"]
+git = "git"
+metrics = ""
+
+[limits]
+fetches = 4
+writes = 8
+queued = 32
+queue_wait = "5m"
+operation = "30m"
+
+[housekeeping]
+every = "6h"
+retire_after = "720h"
+stale_lock = "1h"

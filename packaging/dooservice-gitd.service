@@ -1,0 +1,26 @@
+[Unit]
+Description=DooService gitd
+After=network-online.target
+Wants=network-online.target
+Before=dooservice-agent.service
+
+[Service]
+Type=simple
+# The same user as the agent and as the environments' files: what gitd checks out is
+# what Odoo reads, and the socket is reachable by the agent alone.
+User=dooservice
+ExecStart=/usr/local/bin/dooservice-gitd -config /etc/dooservice/gitd.toml
+Restart=always
+RestartSec=5
+RuntimeDirectory=dooservice
+RuntimeDirectoryPreserve=yes
+ProtectSystem=strict
+ReadWritePaths=/var/lib/dooservice/gitd /var/lib/dooservice/projects
+PrivateTmp=yes
+NoNewPrivileges=yes
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=dooservice-gitd
+
+[Install]
+WantedBy=multi-user.target

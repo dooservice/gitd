@@ -1,0 +1,274 @@
+syntax = "proto3";
+
+package gitd.v1;
+
+option go_package = "github.com/dooservice/gitd/gen/go/gitd/v1;gitdv1";
+
+// The copies of git repositories on one server: a pool per repository, which is the only
+// copy that talks to the network, and the workspaces checked out from it.
+//
+// Long operations stream their progress and end with their result. Every request that may
+// reach the network carries its own credentials; gitd keeps them in memory for that request
+// and never writes them down.
+
+service WorkspaceService {
+  // Create a workspace at a path, from the repository's pool, at a branch or a commit.
+  rpc Prepare(PrepareRequest) returns (stream PrepareResponse);
+  // Bring a workspace to the tip of its branch.
+  rpc Update(UpdateRequest) returns (stream UpdateResponse);
+  // Move a workspace to a commit it already had, as a rollback does.
+  rpc Checkout(CheckoutRequest) returns (stream CheckoutResponse);
+  // Check out every submodule the workspace declares, or one.
+  rpc SyncSubmodules(SyncSubmodulesRequest) returns (stream SyncSubmodulesResponse);
+  // What the workspace is on disk right now, without the network.
+  rpc Describe(DescribeRequest) returns (DescribeResponse);
+  // Delete a workspace. Its pool stays.
+  rpc Remove(RemoveRequest) returns (RemoveResponse);
+  // Take an existing clone in, linking it to a pool without fetching anything.
+  rpc Adopt(AdoptRequest) returns (stream AdoptResponse);
+  // Push what was committed in a workspace to a new branch, with the account's token, so a
+  // pull request can be opened from it. New commits of its submodules go first, each to a
+  // branch of the same name in its own repository.
+  rpc Publish(PublishRequest) returns (PublishResponse);
+}
+
+service RepositoryService {
+  // Whether a repository can be read with these credentials, and its branches.
+  rpc Probe(ProbeRequest) returns (ProbeResponse);
+}
+
+service ServerService {
+  // Which gitd answers, and on which git, so a client can tell whether it may use it.
+  rpc Info(InfoRequest) returns (InfoResponse);
+}
+
+// What opens repositories whose address starts with `url_prefix`,
+// e.g. `https://github.com/apiservicesac/`.
+message Credential {
+  string url_prefix = 1;
+  oneof secret {
+    // Sent as `Authorization: Basic x-access-token:<token>`. A repository this opens is
+    // read over HTTPS even when it was written as `git@`.
+    string https_token = 2;
+    // A private key that is already on this server.
+    string ssh_key_path = 3;
+  }
+}
+
+// Where a workspace points: a branch, or a commit, or the repository's default branch.
+message Revision {
+  oneof target {
+    string branch = 1;
+    string commit = 2;
+  }
+}
+
+message Progress {
+  // What git is doing: "Receiving objects", "Resolving deltas", "Submodule addons/web".
+  string phase = 1;
+  // 0 to 100, or -1 when git does not say.
+  int32 percent = 2;
+  // Which repository it is about, for an operation that touches several.
+  string repository = 3;
+}
+
+message SubmoduleState {
+  string path = 1;
+  string url = 2;
+  string commit = 3;
+  bool checked_out = 4;
+}
+
+// A submodule that could not be brought in, and why. The rest of the operation went on.
+message PendingSubmodule {
+  string url = 1;
+  string path = 2;
+  GitFailure failure = 3;
+}
+
+// Attached to every error as a detail.
+message GitFailure {
+  enum Reason {
+    REASON_UNSPECIFIED = 0;
+    REASON_AUTH_REQUIRED = 1;
+    REASON_AUTH_REFUSED = 2;
+    REASON_NOT_FOUND = 3;
+    REASON_BAD_ADDRESS = 4;
+    REASON_PATH_REFUSED = 5;
+    REASON_BUSY = 6;
+    REASON_TIMEOUT = 7;
+    REASON_CORRUPT = 8;
+    REASON_GIT_FAILED = 9;
+    REASON_NOTHING_NEW = 10;
+  }
+  Reason reason = 1;
+  // The last useful line git wrote, e.g. "remote: Repository not found.".
+  string git_said = 2;
+  // The repository the failure is about.
+  string repository = 3;
+}
+
+message PrepareRequest {
+  // The repository, written in any of the shapes git accepts.
+  string url = 1;
+  // An absolute path inside one of the roots gitd is configured with.
+  string path = 2;
+  Revision revision = 3;
+  bool with_submodules = 4;
+  repeated Credential credentials = 5;
+  // The repository's whole history, as a project's own repository wants for `git log`.
+  // Otherwise only what is checked out, without the history behind it; submodules are
+  // always so.
+  bool full_history = 6;
+}
+
+message PrepareResponse {
+  oneof event {
+    Progress progress = 1;
+    WorkspaceResult result = 2;
+  }
+}
+
+message WorkspaceResult {
+  string commit = 1;
+  string branch = 2;
+  repeated PendingSubmodule pending_submodules = 3;
+}
+
+message UpdateRequest {
+  string path = 1;
+  // Empty means the branch the workspace is on.
+  string branch = 2;
+  bool with_submodules = 3;
+  repeated Credential credentials = 4;
+}
+
+message UpdateResponse {
+  oneof event {
+    Progress progress = 1;
+    WorkspaceResult result = 2;
+  }
+}
+
+message CheckoutRequest {
+  string path = 1;
+  string commit = 2;
+  bool with_submodules = 3;
+  repeated Credential credentials = 4;
+}
+
+message CheckoutResponse {
+  oneof event {
+    Progress progress = 1;
+    WorkspaceResult result = 2;
+  }
+}
+
+message SyncSubmodulesRequest {
+  string path = 1;
+  // Only this submodule, by repository URL. Empty means all of them.
+  string only_url = 2;
+  repeated Credential credentials = 3;
+}
+
+message SyncSubmodulesResponse {
+  oneof event {
+    Progress progress = 1;
+    SyncSubmodulesResult result = 2;
+  }
+}
+
+message SyncSubmodulesResult {
+  repeated SubmoduleState submodules = 1;
+  repeated PendingSubmodule pending_submodules = 2;
+}
+
+message DescribeRequest {
+  string path = 1;
+}
+
+message DescribeResponse {
+  string url = 1;
+  string commit = 2;
+  string branch = 3;
+  // Whether something on disk differs from the commit, as a console may leave it.
+  bool modified = 4;
+  repeated SubmoduleState submodules = 5;
+}
+
+message RemoveRequest {
+  string path = 1;
+}
+
+message RemoveResponse {}
+
+message AdoptRequest {
+  string path = 1;
+}
+
+message AdoptResponse {
+  oneof event {
+    Progress progress = 1;
+    AdoptResult result = 2;
+  }
+}
+
+message AdoptResult {
+  // Disk the workspace no longer holds because its pool does.
+  int64 bytes_released = 1;
+}
+
+message PublishRequest {
+  string path = 1;
+  // A branch that does not exist yet: nothing is ever pushed over one that does.
+  string branch = 2;
+  repeated Credential credentials = 3;
+}
+
+message PublishedRepository {
+  string url = 1;
+  // Where it is in the workspace: empty for the workspace's own repository.
+  string path = 2;
+  string commit = 3;
+  // The subjects of the commits it brings, newest first: what a pull request is about.
+  repeated string subjects = 4;
+}
+
+message PublishResponse {
+  string branch = 1;
+  PublishedRepository repository = 2;
+  repeated PublishedRepository submodules = 3;
+}
+
+message ProbeRequest {
+  string url = 1;
+  repeated Credential credentials = 2;
+}
+
+message ProbeResponse {
+  enum Access {
+    ACCESS_UNSPECIFIED = 0;
+    // Read with nothing.
+    ACCESS_PUBLIC = 1;
+    // Read with the credentials given.
+    ACCESS_REACHABLE = 2;
+    // Not readable with what was given.
+    ACCESS_DENIED = 3;
+  }
+  Access access = 1;
+  repeated string branches = 2;
+  // The branch the repository's HEAD points at.
+  string default_branch = 3;
+  GitFailure failure = 4;
+}
+
+message InfoRequest {}
+
+message InfoResponse {
+  string version = 1;
+  // What `git version` says, e.g. "git version 2.48.1".
+  string git_version = 2;
+  // How many pools there are and the disk they take, as of the last maintenance round.
+  int32 pools = 3;
+  int64 pools_bytes = 4;
+}
