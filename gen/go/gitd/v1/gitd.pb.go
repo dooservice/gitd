@@ -1993,6 +1993,103 @@ func (x *ProbeResponse) GetFailure() *GitFailure {
 	return nil
 }
 
+type RetireRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// At least a day: a pool used moments ago is likely to be wanted again.
+	UnusedForSeconds int64 `protobuf:"varint,1,opt,name=unused_for_seconds,json=unusedForSeconds,proto3" json:"unused_for_seconds,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *RetireRequest) Reset() {
+	*x = RetireRequest{}
+	mi := &file_gitd_v1_gitd_proto_msgTypes[28]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RetireRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RetireRequest) ProtoMessage() {}
+
+func (x *RetireRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_gitd_v1_gitd_proto_msgTypes[28]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RetireRequest.ProtoReflect.Descriptor instead.
+func (*RetireRequest) Descriptor() ([]byte, []int) {
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{28}
+}
+
+func (x *RetireRequest) GetUnusedForSeconds() int64 {
+	if x != nil {
+		return x.UnusedForSeconds
+	}
+	return 0
+}
+
+type RetireResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Retired       int32                  `protobuf:"varint,1,opt,name=retired,proto3" json:"retired,omitempty"`
+	FreedBytes    int64                  `protobuf:"varint,2,opt,name=freed_bytes,json=freedBytes,proto3" json:"freed_bytes,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RetireResponse) Reset() {
+	*x = RetireResponse{}
+	mi := &file_gitd_v1_gitd_proto_msgTypes[29]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RetireResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RetireResponse) ProtoMessage() {}
+
+func (x *RetireResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_gitd_v1_gitd_proto_msgTypes[29]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RetireResponse.ProtoReflect.Descriptor instead.
+func (*RetireResponse) Descriptor() ([]byte, []int) {
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{29}
+}
+
+func (x *RetireResponse) GetRetired() int32 {
+	if x != nil {
+		return x.Retired
+	}
+	return 0
+}
+
+func (x *RetireResponse) GetFreedBytes() int64 {
+	if x != nil {
+		return x.FreedBytes
+	}
+	return 0
+}
+
 type InfoRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -2001,7 +2098,7 @@ type InfoRequest struct {
 
 func (x *InfoRequest) Reset() {
 	*x = InfoRequest{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[28]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2013,7 +2110,7 @@ func (x *InfoRequest) String() string {
 func (*InfoRequest) ProtoMessage() {}
 
 func (x *InfoRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[28]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2026,7 +2123,7 @@ func (x *InfoRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InfoRequest.ProtoReflect.Descriptor instead.
 func (*InfoRequest) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{28}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{30}
 }
 
 type InfoResponse struct {
@@ -2043,7 +2140,7 @@ type InfoResponse struct {
 
 func (x *InfoResponse) Reset() {
 	*x = InfoResponse{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[29]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2055,7 +2152,7 @@ func (x *InfoResponse) String() string {
 func (*InfoResponse) ProtoMessage() {}
 
 func (x *InfoResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[29]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2068,7 +2165,7 @@ func (x *InfoResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InfoResponse.ProtoReflect.Descriptor instead.
 func (*InfoResponse) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{29}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *InfoResponse) GetVersion() string {
@@ -2249,7 +2346,13 @@ const file_gitd_v1_gitd_proto_rawDesc = "" +
 	"\x12ACCESS_UNSPECIFIED\x10\x00\x12\x11\n" +
 	"\rACCESS_PUBLIC\x10\x01\x12\x14\n" +
 	"\x10ACCESS_REACHABLE\x10\x02\x12\x11\n" +
-	"\rACCESS_DENIED\x10\x03\"\r\n" +
+	"\rACCESS_DENIED\x10\x03\"=\n" +
+	"\rRetireRequest\x12,\n" +
+	"\x12unused_for_seconds\x18\x01 \x01(\x03R\x10unusedForSeconds\"K\n" +
+	"\x0eRetireResponse\x12\x18\n" +
+	"\aretired\x18\x01 \x01(\x05R\aretired\x12\x1f\n" +
+	"\vfreed_bytes\x18\x02 \x01(\x03R\n" +
+	"freedBytes\"\r\n" +
 	"\vInfoRequest\"\x80\x01\n" +
 	"\fInfoResponse\x12\x18\n" +
 	"\aversion\x18\x01 \x01(\tR\aversion\x12\x1f\n" +
@@ -2268,9 +2371,10 @@ const file_gitd_v1_gitd_proto_rawDesc = "" +
 	"\x05Adopt\x12\x15.gitd.v1.AdoptRequest\x1a\x16.gitd.v1.AdoptResponse0\x01\x12<\n" +
 	"\aPublish\x12\x17.gitd.v1.PublishRequest\x1a\x18.gitd.v1.PublishResponse2K\n" +
 	"\x11RepositoryService\x126\n" +
-	"\x05Probe\x12\x15.gitd.v1.ProbeRequest\x1a\x16.gitd.v1.ProbeResponse2D\n" +
+	"\x05Probe\x12\x15.gitd.v1.ProbeRequest\x1a\x16.gitd.v1.ProbeResponse2\x7f\n" +
 	"\rServerService\x123\n" +
-	"\x04Info\x12\x14.gitd.v1.InfoRequest\x1a\x15.gitd.v1.InfoResponseB2Z0github.com/dooservice/gitd/gen/go/gitd/v1;gitdv1b\x06proto3"
+	"\x04Info\x12\x14.gitd.v1.InfoRequest\x1a\x15.gitd.v1.InfoResponse\x129\n" +
+	"\x06Retire\x12\x16.gitd.v1.RetireRequest\x1a\x17.gitd.v1.RetireResponseB2Z0github.com/dooservice/gitd/gen/go/gitd/v1;gitdv1b\x06proto3"
 
 var (
 	file_gitd_v1_gitd_proto_rawDescOnce sync.Once
@@ -2285,7 +2389,7 @@ func file_gitd_v1_gitd_proto_rawDescGZIP() []byte {
 }
 
 var file_gitd_v1_gitd_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_gitd_v1_gitd_proto_msgTypes = make([]protoimpl.MessageInfo, 30)
+var file_gitd_v1_gitd_proto_msgTypes = make([]protoimpl.MessageInfo, 32)
 var file_gitd_v1_gitd_proto_goTypes = []any{
 	(GitFailure_Reason)(0),         // 0: gitd.v1.GitFailure.Reason
 	(ProbeResponse_Access)(0),      // 1: gitd.v1.ProbeResponse.Access
@@ -2317,8 +2421,10 @@ var file_gitd_v1_gitd_proto_goTypes = []any{
 	(*PublishResponse)(nil),        // 27: gitd.v1.PublishResponse
 	(*ProbeRequest)(nil),           // 28: gitd.v1.ProbeRequest
 	(*ProbeResponse)(nil),          // 29: gitd.v1.ProbeResponse
-	(*InfoRequest)(nil),            // 30: gitd.v1.InfoRequest
-	(*InfoResponse)(nil),           // 31: gitd.v1.InfoResponse
+	(*RetireRequest)(nil),          // 30: gitd.v1.RetireRequest
+	(*RetireResponse)(nil),         // 31: gitd.v1.RetireResponse
+	(*InfoRequest)(nil),            // 32: gitd.v1.InfoRequest
+	(*InfoResponse)(nil),           // 33: gitd.v1.InfoResponse
 }
 var file_gitd_v1_gitd_proto_depIdxs = []int32{
 	7,  // 0: gitd.v1.PendingSubmodule.failure:type_name -> gitd.v1.GitFailure
@@ -2357,19 +2463,21 @@ var file_gitd_v1_gitd_proto_depIdxs = []int32{
 	22, // 33: gitd.v1.WorkspaceService.Adopt:input_type -> gitd.v1.AdoptRequest
 	25, // 34: gitd.v1.WorkspaceService.Publish:input_type -> gitd.v1.PublishRequest
 	28, // 35: gitd.v1.RepositoryService.Probe:input_type -> gitd.v1.ProbeRequest
-	30, // 36: gitd.v1.ServerService.Info:input_type -> gitd.v1.InfoRequest
-	9,  // 37: gitd.v1.WorkspaceService.Prepare:output_type -> gitd.v1.PrepareResponse
-	12, // 38: gitd.v1.WorkspaceService.Update:output_type -> gitd.v1.UpdateResponse
-	14, // 39: gitd.v1.WorkspaceService.Checkout:output_type -> gitd.v1.CheckoutResponse
-	16, // 40: gitd.v1.WorkspaceService.SyncSubmodules:output_type -> gitd.v1.SyncSubmodulesResponse
-	19, // 41: gitd.v1.WorkspaceService.Describe:output_type -> gitd.v1.DescribeResponse
-	21, // 42: gitd.v1.WorkspaceService.Remove:output_type -> gitd.v1.RemoveResponse
-	23, // 43: gitd.v1.WorkspaceService.Adopt:output_type -> gitd.v1.AdoptResponse
-	27, // 44: gitd.v1.WorkspaceService.Publish:output_type -> gitd.v1.PublishResponse
-	29, // 45: gitd.v1.RepositoryService.Probe:output_type -> gitd.v1.ProbeResponse
-	31, // 46: gitd.v1.ServerService.Info:output_type -> gitd.v1.InfoResponse
-	37, // [37:47] is the sub-list for method output_type
-	27, // [27:37] is the sub-list for method input_type
+	32, // 36: gitd.v1.ServerService.Info:input_type -> gitd.v1.InfoRequest
+	30, // 37: gitd.v1.ServerService.Retire:input_type -> gitd.v1.RetireRequest
+	9,  // 38: gitd.v1.WorkspaceService.Prepare:output_type -> gitd.v1.PrepareResponse
+	12, // 39: gitd.v1.WorkspaceService.Update:output_type -> gitd.v1.UpdateResponse
+	14, // 40: gitd.v1.WorkspaceService.Checkout:output_type -> gitd.v1.CheckoutResponse
+	16, // 41: gitd.v1.WorkspaceService.SyncSubmodules:output_type -> gitd.v1.SyncSubmodulesResponse
+	19, // 42: gitd.v1.WorkspaceService.Describe:output_type -> gitd.v1.DescribeResponse
+	21, // 43: gitd.v1.WorkspaceService.Remove:output_type -> gitd.v1.RemoveResponse
+	23, // 44: gitd.v1.WorkspaceService.Adopt:output_type -> gitd.v1.AdoptResponse
+	27, // 45: gitd.v1.WorkspaceService.Publish:output_type -> gitd.v1.PublishResponse
+	29, // 46: gitd.v1.RepositoryService.Probe:output_type -> gitd.v1.ProbeResponse
+	33, // 47: gitd.v1.ServerService.Info:output_type -> gitd.v1.InfoResponse
+	31, // 48: gitd.v1.ServerService.Retire:output_type -> gitd.v1.RetireResponse
+	38, // [38:49] is the sub-list for method output_type
+	27, // [27:38] is the sub-list for method input_type
 	27, // [27:27] is the sub-list for extension type_name
 	27, // [27:27] is the sub-list for extension extendee
 	0,  // [0:27] is the sub-list for field type_name
@@ -2414,7 +2522,7 @@ func file_gitd_v1_gitd_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_gitd_v1_gitd_proto_rawDesc), len(file_gitd_v1_gitd_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   30,
+			NumMessages:   32,
 			NumExtensions: 0,
 			NumServices:   3,
 		},

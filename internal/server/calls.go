@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"time"
 
 	"connectrpc.com/connect"
 
@@ -47,6 +48,13 @@ func (server *Server) Info(
 		Pools:      int32(pools),
 		PoolsBytes: poolsBytes,
 	}), nil
+}
+
+func (server *Server) Retire(
+	ctx context.Context, request *connect.Request[gitdv1.RetireRequest],
+) (*connect.Response[gitdv1.RetireResponse], error) {
+	retired, freed := server.RetirePools(ctx, time.Duration(request.Msg.GetUnusedForSeconds())*time.Second)
+	return connect.NewResponse(&gitdv1.RetireResponse{Retired: int32(retired), FreedBytes: freed}), nil
 }
 
 func (server *Server) Publish(

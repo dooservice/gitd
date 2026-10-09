@@ -71,13 +71,14 @@ func run(path string) error {
 	go keeper.Run(ctx)
 
 	served := &server.Server{
-		Version:    version,
-		Workspaces: workspaces,
-		Pools:      pools,
-		Runner:     runner,
-		Metrics:    measured,
-		Operation:  limits.Operation,
-		Totals:     keeper.Totals,
+		Version:     version,
+		Workspaces:  workspaces,
+		Pools:       pools,
+		Runner:      runner,
+		Metrics:     measured,
+		Operation:   limits.Operation,
+		Totals:      keeper.Totals,
+		RetirePools: keeper.Retire,
 	}
 	return served.Serve(ctx, settings.Socket, settings.Metrics)
 }

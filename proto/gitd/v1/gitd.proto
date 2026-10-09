@@ -40,6 +40,9 @@ service RepositoryService {
 service ServerService {
   // Which gitd answers, and on which git, so a client can tell whether it may use it.
   rpc Info(InfoRequest) returns (InfoResponse);
+  // Remove now the pools no workspace borrows from and nothing has used for at least
+  // `unused_for_seconds`, as the maintenance round does after `retire_after`.
+  rpc Retire(RetireRequest) returns (RetireResponse);
 }
 
 // What opens repositories whose address starts with `url_prefix`,
@@ -260,6 +263,16 @@ message ProbeResponse {
   // The branch the repository's HEAD points at.
   string default_branch = 3;
   GitFailure failure = 4;
+}
+
+message RetireRequest {
+  // At least a day: a pool used moments ago is likely to be wanted again.
+  int64 unused_for_seconds = 1;
+}
+
+message RetireResponse {
+  int32 retired = 1;
+  int64 freed_bytes = 2;
 }
 
 message InfoRequest {}

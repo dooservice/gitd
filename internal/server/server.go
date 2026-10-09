@@ -28,13 +28,14 @@ import (
 // may take when its caller set no deadline, and Totals says how many pools there are and
 // the disk they take.
 type Server struct {
-	Version    string
-	Workspaces *workspace.Workspaces
-	Pools      *pool.Pools
-	Runner     *git.Runner
-	Metrics    *metrics.Metrics
-	Operation  time.Duration
-	Totals     func() (int, int64)
+	Version     string
+	Workspaces  *workspace.Workspaces
+	Pools       *pool.Pools
+	Runner      *git.Runner
+	Metrics     *metrics.Metrics
+	Operation   time.Duration
+	Totals      func() (int, int64)
+	RetirePools func(context.Context, time.Duration) (int, int64)
 }
 
 // Serve answers on the Unix socket until ctx ends, and serves the metrics at

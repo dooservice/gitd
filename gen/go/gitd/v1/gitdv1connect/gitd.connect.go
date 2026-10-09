@@ -62,6 +62,8 @@ const (
 	RepositoryServiceProbeProcedure = "/gitd.v1.RepositoryService/Probe"
 	// ServerServiceInfoProcedure is the fully-qualified name of the ServerService's Info RPC.
 	ServerServiceInfoProcedure = "/gitd.v1.ServerService/Info"
+	// ServerServiceRetireProcedure is the fully-qualified name of the ServerService's Retire RPC.
+	ServerServiceRetireProcedure = "/gitd.v1.ServerService/Retire"
 )
 
 // WorkspaceServiceClient is a client for the gitd.v1.WorkspaceService service.
@@ -412,6 +414,9 @@ func (UnimplementedRepositoryServiceHandler) Probe(context.Context, *connect.Req
 type ServerServiceClient interface {
 	// Which gitd answers, and on which git, so a client can tell whether it may use it.
 	Info(context.Context, *connect.Request[v1.InfoRequest]) (*connect.Response[v1.InfoResponse], error)
+	// Remove now the pools no workspace borrows from and nothing has used for at least
+	// `unused_for_seconds`, as the maintenance round does after `retire_after`.
+	Retire(context.Context, *connect.Request[v1.RetireRequest]) (*connect.Response[v1.RetireResponse], error)
 }
 
 // NewServerServiceClient constructs a client for the gitd.v1.ServerService service. By default, it
@@ -431,12 +436,19 @@ func NewServerServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			connect.WithSchema(serverServiceMethods.ByName("Info")),
 			connect.WithClientOptions(opts...),
 		),
+		retire: connect.NewClient[v1.RetireRequest, v1.RetireResponse](
+			httpClient,
+			baseURL+ServerServiceRetireProcedure,
+			connect.WithSchema(serverServiceMethods.ByName("Retire")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // serverServiceClient implements ServerServiceClient.
 type serverServiceClient struct {
-	info *connect.Client[v1.InfoRequest, v1.InfoResponse]
+	info   *connect.Client[v1.InfoRequest, v1.InfoResponse]
+	retire *connect.Client[v1.RetireRequest, v1.RetireResponse]
 }
 
 // Info calls gitd.v1.ServerService.Info.
@@ -444,10 +456,18 @@ func (c *serverServiceClient) Info(ctx context.Context, req *connect.Request[v1.
 	return c.info.CallUnary(ctx, req)
 }
 
+// Retire calls gitd.v1.ServerService.Retire.
+func (c *serverServiceClient) Retire(ctx context.Context, req *connect.Request[v1.RetireRequest]) (*connect.Response[v1.RetireResponse], error) {
+	return c.retire.CallUnary(ctx, req)
+}
+
 // ServerServiceHandler is an implementation of the gitd.v1.ServerService service.
 type ServerServiceHandler interface {
 	// Which gitd answers, and on which git, so a client can tell whether it may use it.
 	Info(context.Context, *connect.Request[v1.InfoRequest]) (*connect.Response[v1.InfoResponse], error)
+	// Remove now the pools no workspace borrows from and nothing has used for at least
+	// `unused_for_seconds`, as the maintenance round does after `retire_after`.
+	Retire(context.Context, *connect.Request[v1.RetireRequest]) (*connect.Response[v1.RetireResponse], error)
 }
 
 // NewServerServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -463,10 +483,18 @@ func NewServerServiceHandler(svc ServerServiceHandler, opts ...connect.HandlerOp
 		connect.WithSchema(serverServiceMethods.ByName("Info")),
 		connect.WithHandlerOptions(opts...),
 	)
+	serverServiceRetireHandler := connect.NewUnaryHandler(
+		ServerServiceRetireProcedure,
+		svc.Retire,
+		connect.WithSchema(serverServiceMethods.ByName("Retire")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/gitd.v1.ServerService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case ServerServiceInfoProcedure:
 			serverServiceInfoHandler.ServeHTTP(w, r)
+		case ServerServiceRetireProcedure:
+			serverServiceRetireHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -478,4 +506,8 @@ type UnimplementedServerServiceHandler struct{}
 
 func (UnimplementedServerServiceHandler) Info(context.Context, *connect.Request[v1.InfoRequest]) (*connect.Response[v1.InfoResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("gitd.v1.ServerService.Info is not implemented"))
+}
+
+func (UnimplementedServerServiceHandler) Retire(context.Context, *connect.Request[v1.RetireRequest]) (*connect.Response[v1.RetireResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("gitd.v1.ServerService.Retire is not implemented"))
 }
