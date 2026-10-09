@@ -67,29 +67,27 @@ func (pools *Pools) Push(
 	defer release()
 	staged := "refs/gitd/staging/" + branch
 	refspec := staged + ":refs/heads/" + branch
-	var reported *git.Failure
-	for _, access := range pools.keys.Attempts(repository, given, false) {
-		if !access.Offered || !strings.HasPrefix(access.URL, "https://") {
-			continue
-		}
-		_, err := pools.runner.Run(ctx, git.Cmd{Dir: pools.Path(repository), Env: access.Env, Args: []string{
-			"push", "--porcelain", "--end-of-options", access.URL, refspec,
-		}})
-		if err == nil {
-			_, err = pools.runner.Run(ctx, git.Cmd{Dir: pools.Path(repository), Args: []string{
-				"update-ref", "refs/gitd/published/" + branch, staged,
-			}})
-			return err
-		}
-		failure, _ := git.AsFailure(err)
+	access := pools.keys.For(repository, given)
+	if !access.Offered || !strings.HasPrefix(access.URL, "https://") {
+		failure := git.Fail(git.AuthRequired, "publishing takes the account's token, and none was given")
 		failure.Repository = repository.HTTPS()
-		failure.AccessRefused(true)
-		slog.Info("not published", "repository", failure.Repository, "via", access.Via, "git_said", failure.GitSaid)
-		reported = failure
+		return failure
 	}
-	if reported == nil {
-		reported = git.Fail(git.AuthRequired, "publishing takes the account's token, and none was given")
-		reported.Repository = repository.HTTPS()
+	_, err = pools.runner.Run(ctx, git.Cmd{Dir: pools.Path(repository), Env: access.Env, Args: []string{
+		"push", "--porcelain", "--end-of-options", access.URL, refspec,
+	}})
+	if err == nil {
+		_, err = pools.runner.Run(ctx, git.Cmd{Dir: pools.Path(repository), Args: []string{
+			"update-ref", "refs/gitd/published/" + branch, staged,
+		}})
+		return err
 	}
-	return reported
+	failure, ok := git.AsFailure(err)
+	if !ok {
+		return err
+	}
+	failure.Repository = repository.HTTPS()
+	failure.AccessRefused(true)
+	slog.Info("not published", "repository", failure.Repository, "via", access.Via, "git_said", failure.GitSaid)
+	return failure
 }

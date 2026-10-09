@@ -80,21 +80,27 @@ asks for, always inside one of the roots allowed by the configuration:
   which repository, and which branch it follows while a rollback has it detached.
 
 ### Credential
-What opens a private repository. It arrives with each request, bound to a **URL prefix**
-(`https://github.com/apiservicesac/`):
+What opens a repository. It arrives with each request, bound to a **URL prefix**
+(`https://github.com/apiservicesac/odoo-pos`, or empty for "any repository"). Which one a
+repository gets is decided by whoever sends the request, from what GitHub says about it:
 
-- **HTTPS token** (the OAuth token of the connected account, or whichever applies): handed
-  to git as an `Authorization` header through `GIT_CONFIG_*`, scoped to that one
-  repository. A repository it opens is read over HTTPS even when written as `git@`, so a
-  fork — which takes no deploy key — or a `.gitmodules` line with `git@` is read without
-  editing anything or installing a key.
-- **SSH key**: the path of a key already on the server (the deploy keys the agent generates
-  today). Used through `GIT_SSH_COMMAND` with `IdentitiesOnly=yes`, and the host checked
-  against GitHub's published keys, which are built into the binary.
+| Repository | Credential | Transport |
+|---|---|---|
+| Public | The project's key (empty prefix) | SSH |
+| Private, administered by the account | Its own deploy key | SSH |
+| Private, the account is only a collaborator | The account's token | HTTPS |
 
-To read a repository, the credentials that open it are tried from the most specific prefix
-to the most general, and then nothing. `Probe` starts with nothing: a public repository
-must never cost a credential.
+- **SSH key**: the path of a key already on the server (the deploy keys the agent
+  generates). Used through `GIT_SSH_COMMAND` with `IdentitiesOnly=yes`, and the host
+  checked against GitHub's published keys, which are built into the binary.
+- **HTTPS token** (the OAuth token of the connected account): handed to git as an
+  `Authorization` header through `GIT_CONFIG_*`, scoped to that one repository. A
+  repository it opens is read over HTTPS even when written as `git@`, so a `.gitmodules`
+  line with `git@` is read without editing anything.
+
+A repository is read with **the most specific credential that opens it, and with that one
+only** — or with nothing when none does. Nothing is tried in turn: a refusal is the
+answer, and it says which credential was refused.
 
 ---
 

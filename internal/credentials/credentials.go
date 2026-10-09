@@ -5,8 +5,9 @@
 // already on this server, handed to ssh through `GIT_SSH_COMMAND`.
 //
 // The transport follows from the credential: a token reads over HTTPS and a key over SSH,
-// whichever way the address was written. So a fork, which takes no deploy key, is read with
-// the token even when its `.gitmodules` line says `git@`.
+// whichever way the address was written. So a private repository somebody is only a
+// collaborator on, which takes no deploy key of theirs, is read with the account's token
+// even when its `.gitmodules` line says `git@`.
 package credentials
 
 import (

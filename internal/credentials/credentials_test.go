@@ -19,29 +19,28 @@ func TestThePrefixOfAKeyAndOfATokenAreWrittenTheSameWay(t *testing.T) {
 	}
 }
 
-func TestTheMostSpecificCredentialIsTriedFirstAndNothingLast(t *testing.T) {
+func TestARepositoryIsReadWithTheMostSpecificCredentialAndNoOther(t *testing.T) {
 	keys := &Keys{knownHosts: "/state/known_hosts"}
 	repository, _ := repo.Of("git@github.com:acme/web.git")
 	given := []Credential{
-		{Prefix: "https://github.com", Token: "account"},
+		{Prefix: "", Key: "/keys/project"},
 		{Prefix: "https://github.com/acme/web", Key: "/keys/web"},
-		{Prefix: "https://github.com/other", Token: "elsewhere"},
+		{Prefix: "https://github.com/other/web", Token: "elsewhere"},
 	}
-	attempts := keys.Attempts(repository, given, false)
-	if len(attempts) != 3 {
-		t.Fatalf("attempts = %d", len(attempts))
+	access := keys.For(repository, given)
+	if access.URL != "git@github.com:acme/web.git" || !strings.Contains(access.Env[0], "'/keys/web'") {
+		t.Errorf("own key = %+v", access)
 	}
-	if attempts[0].URL != "git@github.com:acme/web.git" || !strings.Contains(attempts[0].Env[0], "'/keys/web'") {
-		t.Errorf("first = %+v", attempts[0])
+	public, _ := repo.Of("git@github.com:OCA/web.git")
+	if access := keys.For(public, given); !strings.Contains(access.Env[0], "'/keys/project'") {
+		t.Errorf("project key = %+v", access)
 	}
-	if attempts[1].URL != "https://github.com/acme/web" || !attempts[1].Offered {
-		t.Errorf("second = %+v", attempts[1])
+	private, _ := repo.Of("git@github.com:other/web.git")
+	if access := keys.For(private, given); access.URL != "https://github.com/other/web" || !access.Offered {
+		t.Errorf("token = %+v", access)
 	}
-	if attempts[2].Offered || attempts[2].Env != nil {
-		t.Errorf("last = %+v", attempts[2])
-	}
-	if first := keys.Attempts(repository, given, true)[0]; first.Offered {
-		t.Errorf("anonymous was not first: %+v", first)
+	if access := keys.For(public, nil); access.Offered || access.Env != nil {
+		t.Errorf("nothing = %+v", access)
 	}
 }
 

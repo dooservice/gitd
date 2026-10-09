@@ -11,36 +11,29 @@ import (
 	"github.com/dooservice/gitd/internal/repo"
 )
 
-// Probe asks a repository whether it can be read, from the cheapest answer to the most
-// privileged: with nothing first, because a public repository should never cost anybody a
-// credential, and then with each credential that opens it. The same answer lists its
-// branches, so nobody has to type one from memory.
+// Probe asks a repository whether it can be read with the credential that opens it, or
+// with nothing when none was given. The same answer lists its branches, so nobody has to
+// type one from memory.
 func (pools *Pools) Probe(ctx context.Context, request *gitdv1.ProbeRequest) *gitdv1.ProbeResponse {
 	repository, ok := repo.Of(request.GetUrl())
 	if !ok {
 		return denied(git.Unnamed(request.GetUrl()))
 	}
-	var last *git.Failure
-	for _, access := range pools.keys.Attempts(repository, credentials.FromProto(request.GetCredentials()), true) {
-		out, err := pools.runner.Run(ctx, git.Cmd{Dir: "/", Env: access.Env, Args: []string{
-			"ls-remote", "--symref", "--end-of-options", access.URL, "HEAD", "refs/heads/*",
-		}})
-		if err == nil {
-			answer := listed(out)
-			answer.Access = gitdv1.ProbeResponse_ACCESS_PUBLIC
-			if access.Offered {
-				answer.Access = gitdv1.ProbeResponse_ACCESS_REACHABLE
-			}
-			return answer
+	access := pools.keys.For(repository, credentials.FromProto(request.GetCredentials()))
+	out, err := pools.runner.Run(ctx, git.Cmd{Dir: "/", Env: access.Env, Args: []string{
+		"ls-remote", "--symref", "--end-of-options", access.URL, "HEAD", "refs/heads/*",
+	}})
+	if err == nil {
+		answer := listed(out)
+		answer.Access = gitdv1.ProbeResponse_ACCESS_PUBLIC
+		if access.Offered {
+			answer.Access = gitdv1.ProbeResponse_ACCESS_REACHABLE
 		}
-		last, _ = git.AsFailure(err)
-		last.Repository = repository.HTTPS()
-		last.AccessRefused(access.Offered)
-		if last.Reason == git.Timeout {
-			break
-		}
+		return answer
 	}
-	return denied(last)
+	failure, _ := git.AsFailure(err)
+	failure.Repository = repository.HTTPS()
+	return denied(failure.AccessRefused(access.Offered))
 }
 
 func denied(failure *git.Failure) *gitdv1.ProbeResponse {
