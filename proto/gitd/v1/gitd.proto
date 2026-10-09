@@ -263,6 +263,8 @@ message ProbeResponse {
   // The branch the repository's HEAD points at.
   string default_branch = 3;
   GitFailure failure = 4;
+  // The commit each branch points at, by branch: what a submodule's gitlink is set to.
+  map<string, string> commits = 5;
 }
 
 message RetireRequest {

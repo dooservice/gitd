@@ -40,9 +40,10 @@ func denied(failure *git.Failure) *gitdv1.ProbeResponse {
 	return &gitdv1.ProbeResponse{Access: gitdv1.ProbeResponse_ACCESS_DENIED, Failure: failure.Proto()}
 }
 
-// listed reads `ls-remote --symref`: the branches, and the one HEAD points at.
+// listed reads `ls-remote --symref`: the branches, the commit each points at, and the one
+// HEAD points at.
 func listed(out string) *gitdv1.ProbeResponse {
-	answer := &gitdv1.ProbeResponse{}
+	answer := &gitdv1.ProbeResponse{Commits: map[string]string{}}
 	for line := range strings.Lines(out) {
 		left, ref, ok := strings.Cut(strings.TrimSpace(line), "\t")
 		if !ok {
@@ -52,6 +53,7 @@ func listed(out string) *gitdv1.ProbeResponse {
 			answer.DefaultBranch = strings.TrimPrefix(target, "refs/heads/")
 		} else if branch, isBranch := strings.CutPrefix(ref, "refs/heads/"); isBranch {
 			answer.Branches = append(answer.Branches, branch)
+			answer.Commits[branch] = left
 		}
 	}
 	slices.Sort(answer.Branches)

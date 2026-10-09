@@ -1931,6 +1931,8 @@ type ProbeResponse struct {
 	// The branch the repository's HEAD points at.
 	DefaultBranch string      `protobuf:"bytes,3,opt,name=default_branch,json=defaultBranch,proto3" json:"default_branch,omitempty"`
 	Failure       *GitFailure `protobuf:"bytes,4,opt,name=failure,proto3" json:"failure,omitempty"`
+	// The commit each branch points at, by branch: what a submodule's gitlink is set to.
+	Commits       map[string]string `protobuf:"bytes,5,rep,name=commits,proto3" json:"commits,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1989,6 +1991,13 @@ func (x *ProbeResponse) GetDefaultBranch() string {
 func (x *ProbeResponse) GetFailure() *GitFailure {
 	if x != nil {
 		return x.Failure
+	}
+	return nil
+}
+
+func (x *ProbeResponse) GetCommits() map[string]string {
+	if x != nil {
+		return x.Commits
 	}
 	return nil
 }
@@ -2336,12 +2345,16 @@ const file_gitd_v1_gitd_proto_rawDesc = "" +
 	"submodules\"W\n" +
 	"\fProbeRequest\x12\x10\n" +
 	"\x03url\x18\x01 \x01(\tR\x03url\x125\n" +
-	"\vcredentials\x18\x02 \x03(\v2\x13.gitd.v1.CredentialR\vcredentials\"\x96\x02\n" +
+	"\vcredentials\x18\x02 \x03(\v2\x13.gitd.v1.CredentialR\vcredentials\"\x91\x03\n" +
 	"\rProbeResponse\x125\n" +
 	"\x06access\x18\x01 \x01(\x0e2\x1d.gitd.v1.ProbeResponse.AccessR\x06access\x12\x1a\n" +
 	"\bbranches\x18\x02 \x03(\tR\bbranches\x12%\n" +
 	"\x0edefault_branch\x18\x03 \x01(\tR\rdefaultBranch\x12-\n" +
-	"\afailure\x18\x04 \x01(\v2\x13.gitd.v1.GitFailureR\afailure\"\\\n" +
+	"\afailure\x18\x04 \x01(\v2\x13.gitd.v1.GitFailureR\afailure\x12=\n" +
+	"\acommits\x18\x05 \x03(\v2#.gitd.v1.ProbeResponse.CommitsEntryR\acommits\x1a:\n" +
+	"\fCommitsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\\\n" +
 	"\x06Access\x12\x16\n" +
 	"\x12ACCESS_UNSPECIFIED\x10\x00\x12\x11\n" +
 	"\rACCESS_PUBLIC\x10\x01\x12\x14\n" +
@@ -2389,7 +2402,7 @@ func file_gitd_v1_gitd_proto_rawDescGZIP() []byte {
 }
 
 var file_gitd_v1_gitd_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_gitd_v1_gitd_proto_msgTypes = make([]protoimpl.MessageInfo, 32)
+var file_gitd_v1_gitd_proto_msgTypes = make([]protoimpl.MessageInfo, 33)
 var file_gitd_v1_gitd_proto_goTypes = []any{
 	(GitFailure_Reason)(0),         // 0: gitd.v1.GitFailure.Reason
 	(ProbeResponse_Access)(0),      // 1: gitd.v1.ProbeResponse.Access
@@ -2425,6 +2438,7 @@ var file_gitd_v1_gitd_proto_goTypes = []any{
 	(*RetireResponse)(nil),         // 31: gitd.v1.RetireResponse
 	(*InfoRequest)(nil),            // 32: gitd.v1.InfoRequest
 	(*InfoResponse)(nil),           // 33: gitd.v1.InfoResponse
+	nil,                            // 34: gitd.v1.ProbeResponse.CommitsEntry
 }
 var file_gitd_v1_gitd_proto_depIdxs = []int32{
 	7,  // 0: gitd.v1.PendingSubmodule.failure:type_name -> gitd.v1.GitFailure
@@ -2454,33 +2468,34 @@ var file_gitd_v1_gitd_proto_depIdxs = []int32{
 	2,  // 24: gitd.v1.ProbeRequest.credentials:type_name -> gitd.v1.Credential
 	1,  // 25: gitd.v1.ProbeResponse.access:type_name -> gitd.v1.ProbeResponse.Access
 	7,  // 26: gitd.v1.ProbeResponse.failure:type_name -> gitd.v1.GitFailure
-	8,  // 27: gitd.v1.WorkspaceService.Prepare:input_type -> gitd.v1.PrepareRequest
-	11, // 28: gitd.v1.WorkspaceService.Update:input_type -> gitd.v1.UpdateRequest
-	13, // 29: gitd.v1.WorkspaceService.Checkout:input_type -> gitd.v1.CheckoutRequest
-	15, // 30: gitd.v1.WorkspaceService.SyncSubmodules:input_type -> gitd.v1.SyncSubmodulesRequest
-	18, // 31: gitd.v1.WorkspaceService.Describe:input_type -> gitd.v1.DescribeRequest
-	20, // 32: gitd.v1.WorkspaceService.Remove:input_type -> gitd.v1.RemoveRequest
-	22, // 33: gitd.v1.WorkspaceService.Adopt:input_type -> gitd.v1.AdoptRequest
-	25, // 34: gitd.v1.WorkspaceService.Publish:input_type -> gitd.v1.PublishRequest
-	28, // 35: gitd.v1.RepositoryService.Probe:input_type -> gitd.v1.ProbeRequest
-	32, // 36: gitd.v1.ServerService.Info:input_type -> gitd.v1.InfoRequest
-	30, // 37: gitd.v1.ServerService.Retire:input_type -> gitd.v1.RetireRequest
-	9,  // 38: gitd.v1.WorkspaceService.Prepare:output_type -> gitd.v1.PrepareResponse
-	12, // 39: gitd.v1.WorkspaceService.Update:output_type -> gitd.v1.UpdateResponse
-	14, // 40: gitd.v1.WorkspaceService.Checkout:output_type -> gitd.v1.CheckoutResponse
-	16, // 41: gitd.v1.WorkspaceService.SyncSubmodules:output_type -> gitd.v1.SyncSubmodulesResponse
-	19, // 42: gitd.v1.WorkspaceService.Describe:output_type -> gitd.v1.DescribeResponse
-	21, // 43: gitd.v1.WorkspaceService.Remove:output_type -> gitd.v1.RemoveResponse
-	23, // 44: gitd.v1.WorkspaceService.Adopt:output_type -> gitd.v1.AdoptResponse
-	27, // 45: gitd.v1.WorkspaceService.Publish:output_type -> gitd.v1.PublishResponse
-	29, // 46: gitd.v1.RepositoryService.Probe:output_type -> gitd.v1.ProbeResponse
-	33, // 47: gitd.v1.ServerService.Info:output_type -> gitd.v1.InfoResponse
-	31, // 48: gitd.v1.ServerService.Retire:output_type -> gitd.v1.RetireResponse
-	38, // [38:49] is the sub-list for method output_type
-	27, // [27:38] is the sub-list for method input_type
-	27, // [27:27] is the sub-list for extension type_name
-	27, // [27:27] is the sub-list for extension extendee
-	0,  // [0:27] is the sub-list for field type_name
+	34, // 27: gitd.v1.ProbeResponse.commits:type_name -> gitd.v1.ProbeResponse.CommitsEntry
+	8,  // 28: gitd.v1.WorkspaceService.Prepare:input_type -> gitd.v1.PrepareRequest
+	11, // 29: gitd.v1.WorkspaceService.Update:input_type -> gitd.v1.UpdateRequest
+	13, // 30: gitd.v1.WorkspaceService.Checkout:input_type -> gitd.v1.CheckoutRequest
+	15, // 31: gitd.v1.WorkspaceService.SyncSubmodules:input_type -> gitd.v1.SyncSubmodulesRequest
+	18, // 32: gitd.v1.WorkspaceService.Describe:input_type -> gitd.v1.DescribeRequest
+	20, // 33: gitd.v1.WorkspaceService.Remove:input_type -> gitd.v1.RemoveRequest
+	22, // 34: gitd.v1.WorkspaceService.Adopt:input_type -> gitd.v1.AdoptRequest
+	25, // 35: gitd.v1.WorkspaceService.Publish:input_type -> gitd.v1.PublishRequest
+	28, // 36: gitd.v1.RepositoryService.Probe:input_type -> gitd.v1.ProbeRequest
+	32, // 37: gitd.v1.ServerService.Info:input_type -> gitd.v1.InfoRequest
+	30, // 38: gitd.v1.ServerService.Retire:input_type -> gitd.v1.RetireRequest
+	9,  // 39: gitd.v1.WorkspaceService.Prepare:output_type -> gitd.v1.PrepareResponse
+	12, // 40: gitd.v1.WorkspaceService.Update:output_type -> gitd.v1.UpdateResponse
+	14, // 41: gitd.v1.WorkspaceService.Checkout:output_type -> gitd.v1.CheckoutResponse
+	16, // 42: gitd.v1.WorkspaceService.SyncSubmodules:output_type -> gitd.v1.SyncSubmodulesResponse
+	19, // 43: gitd.v1.WorkspaceService.Describe:output_type -> gitd.v1.DescribeResponse
+	21, // 44: gitd.v1.WorkspaceService.Remove:output_type -> gitd.v1.RemoveResponse
+	23, // 45: gitd.v1.WorkspaceService.Adopt:output_type -> gitd.v1.AdoptResponse
+	27, // 46: gitd.v1.WorkspaceService.Publish:output_type -> gitd.v1.PublishResponse
+	29, // 47: gitd.v1.RepositoryService.Probe:output_type -> gitd.v1.ProbeResponse
+	33, // 48: gitd.v1.ServerService.Info:output_type -> gitd.v1.InfoResponse
+	31, // 49: gitd.v1.ServerService.Retire:output_type -> gitd.v1.RetireResponse
+	39, // [39:50] is the sub-list for method output_type
+	28, // [28:39] is the sub-list for method input_type
+	28, // [28:28] is the sub-list for extension type_name
+	28, // [28:28] is the sub-list for extension extendee
+	0,  // [0:28] is the sub-list for field type_name
 }
 
 func init() { file_gitd_v1_gitd_proto_init() }
@@ -2522,7 +2537,7 @@ func file_gitd_v1_gitd_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_gitd_v1_gitd_proto_rawDesc), len(file_gitd_v1_gitd_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   32,
+			NumMessages:   33,
 			NumExtensions: 0,
 			NumServices:   3,
 		},
