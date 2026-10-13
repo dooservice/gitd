@@ -39,12 +39,19 @@ func (workspaces *Workspaces) bringUp(ctx context.Context, work job) (Result, []
 	}
 	if _, err := workspaces.runner.Run(ctx, git.Cmd{
 		Dir: work.path, Local: true, Progress: reporter(work.report, work.repository),
-		Args: []string{
-			"fetch", "--no-tags", "--progress", "--end-of-options", workspaces.pools.Path(work.repository),
-			"+refs/heads/*:refs/remotes/origin/*", "+refs/tags/*:refs/tags/*",
-		},
+		Args: fromPool(workspaces.pools.Path(work.repository)),
 	}); err != nil {
 		return Result{}, nil, git.About(err, work.repository.HTTPS())
 	}
 	return workspaces.settle(ctx, work)
+}
+
+// fromPool fetches a workspace's branches and tags from its pool, and nothing into its
+// submodules: their pools may not hold the commits the new branches pin until bringIn
+// brings them, and git's own on-demand fetch of them fails the whole update.
+func fromPool(pool string) []string {
+	return []string{
+		"fetch", "--no-tags", "--recurse-submodules=no", "--progress", "--end-of-options", pool,
+		"+refs/heads/*:refs/remotes/origin/*", "+refs/tags/*:refs/tags/*",
+	}
 }
