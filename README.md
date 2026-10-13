@@ -1,8 +1,14 @@
 # gitd
 
-The service that keeps the local copies of git repositories on a dooservice server: one
-**pool** per repository, which is the only copy that talks to the network, and the
-**workspaces** of each environment, which borrow their objects from the pool.
+The service that keeps the local copies of git repositories on a
+[dooservice](https://dooservice.sh) server: one **pool** per repository, which is the only
+copy that talks to the network, and the **workspaces** of each environment, which borrow
+their objects from the pool. Ten environments of the same repository take the disk of one
+clone, and a repository is fetched once however many of them use it.
+
+It clones, updates, checks out branches and commits, handles submodules, adopts clones
+that already exist, and pushes what an environment committed, each with the one
+credential that opens that repository: a token or an SSH key, never on a command line.
 
 It speaks ConnectRPC (gRPC, gRPC-Web and Connect) on a Unix socket. The contract is in
 [`proto/gitd/v1/gitd.proto`](proto/gitd/v1/gitd.proto) and the design in
@@ -46,3 +52,12 @@ buf curl --http2-prior-knowledge --unix-socket /run/dooservice/gitd.sock --schem
 
 Credentials travel in the request body: pass it on stdin (`-d @-`), never on the command
 line.
+
+## Contributing and security
+
+See [CONTRIBUTING.md](CONTRIBUTING.md). To report a vulnerability, do not open an issue:
+follow [SECURITY.md](SECURITY.md).
+
+## License
+
+[GNU Affero General Public License v3.0](LICENSE).
