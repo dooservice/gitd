@@ -1,0 +1,32 @@
+name: benchmark
+
+# N agents on one repository: N `git clone`s against N `gitd prepare`s, in time and disk.
+# By hand, on a GitHub runner, so anyone can run it again and get comparable numbers.
+on:
+  workflow_dispatch:
+    inputs:
+      repository:
+        description: "The repository"
+        default: "https://github.com/kubernetes/kubernetes"
+      agents:
+        description: "How many agents"
+        default: "10"
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+
+      # Ten full clones of a large repository need more disk than a runner starts with.
+      - name: Make room
+        run: sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /opt/hostedtoolcache/CodeQL
+
+      - name: Build the image
+        run: docker build -t gitd:bench .
+
+      - name: Run
+        run: benchmarks/agents.sh "${{ inputs.repository }}" "${{ inputs.agents }}" | tee results.md
+
+      - name: Summary
+        run: cat results.md >> "$GITHUB_STEP_SUMMARY"
