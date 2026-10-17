@@ -47,7 +47,15 @@ func auditCommand(app *app) *cobra.Command {
 // was pushed or why it was refused.
 func auditLine(out io.Writer, entry *gitdv1.AuditEntry) {
 	when := entry.GetTime().AsTime().UTC().Format(time.DateTime)
+	if change := entry.GetChange(); change != nil {
+		action := strings.ReplaceAll(strings.ToLower(strings.TrimPrefix(change.GetAction().String(), "ACTION_")), "_", " ")
+		fmt.Fprintf(out, "%s  %s  %s  %s\n", when, action, change.GetSubject(), shownPrefix(change.GetUrlPrefix()))
+		return
+	}
 	fmt.Fprintf(out, "%s  %s  %s  %s\n", when, entry.GetBranch(), entry.GetUrl(), entry.GetWorkspace())
+	if requester := entry.GetRequestedBy(); requester != "" {
+		fmt.Fprintf(out, "  requested by %s\n", requester)
+	}
 	if refusal := entry.GetRefusal(); refusal != nil {
 		reason := strings.TrimPrefix(refusal.GetReason().String(), "REASON_")
 		fmt.Fprintf(out, "  refused, %s: %s\n", reason, refusal.GetGitSaid())
@@ -56,5 +64,17 @@ func auditLine(out io.Writer, entry *gitdv1.AuditEntry) {
 	published := append([]*gitdv1.PublishedRepository{entry.GetRepository()}, entry.GetSubmodules()...)
 	for _, pushed := range published {
 		fmt.Fprintf(out, "  published %s %s: %s\n", pushed.GetUrl(), short(pushed.GetCommit()), strings.Join(pushed.GetSubjects(), "; "))
+	}
+	pullRequestLine(out, entry.GetPullRequest(), entry.GetPullRequestFailure())
+}
+
+// pullRequestLine says what pull request a publish opened, or why it could not.
+func pullRequestLine(out io.Writer, opened *gitdv1.OpenedPullRequest, failure *gitdv1.GitFailure) {
+	switch {
+	case opened != nil:
+		fmt.Fprintf(out, "  pull request #%d: %s\n", opened.GetNumber(), opened.GetUrl())
+	case failure != nil:
+		reason := strings.TrimPrefix(failure.GetReason().String(), "REASON_")
+		fmt.Fprintf(out, "  no pull request, %s: %s\n", reason, failure.GetGitSaid())
 	}
 }
