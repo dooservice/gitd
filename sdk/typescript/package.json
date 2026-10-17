@@ -1,0 +1,52 @@
+{
+  "name": "gitd-client",
+  "version": "0.7.0",
+  "description": "Client for gitd: instant, secretless git checkouts for agent sandboxes",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dooservice/gitd.git",
+    "directory": "sdk/typescript"
+  },
+  "homepage": "https://github.com/dooservice/gitd",
+  "keywords": [
+    "git",
+    "ai-agents",
+    "sandbox",
+    "workspace",
+    "connectrpc"
+  ],
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "generate": "buf generate --template buf.gen.yaml ../../proto",
+    "build": "tsc -p tsconfig.json",
+    "prepublishOnly": "npm run build",
+    "example": "tsx examples/agent.ts"
+  },
+  "dependencies": {
+    "@bufbuild/protobuf": "^2.16.0",
+    "@connectrpc/connect": "^2.2.0",
+    "@connectrpc/connect-node": "^2.2.0"
+  },
+  "devDependencies": {
+    "@bufbuild/buf": "^1.74.0",
+    "@bufbuild/protoc-gen-es": "^2.16.0",
+    "@types/node": "^26.6.5",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  }
+}
