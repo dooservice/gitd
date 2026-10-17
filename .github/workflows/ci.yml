@@ -25,6 +25,6 @@ jobs:
           buf generate
           git diff --exit-code gen
       - run: make build
-      # Mounting an overlay takes root; these tests skip without it.
+      # Mounting takes root; these tests skip without it.
       - name: overlay tests, as root
-        run: sudo -E env "PATH=$PATH" go test -count=1 ./internal/strategy/
+        run: sudo -E env "PATH=$PATH" go test -count=1 ./internal/strategy/ ./internal/mounthelper/

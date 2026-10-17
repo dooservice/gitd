@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"os"
 
 	"github.com/dooservice/gitd/internal/config"
 	"github.com/dooservice/gitd/internal/credentials"
@@ -13,6 +14,7 @@ import (
 	"github.com/dooservice/gitd/internal/housekeeping"
 	"github.com/dooservice/gitd/internal/lock"
 	"github.com/dooservice/gitd/internal/metrics"
+	"github.com/dooservice/gitd/internal/mounthelper"
 	"github.com/dooservice/gitd/internal/pool"
 	"github.com/dooservice/gitd/internal/server"
 	"github.com/dooservice/gitd/internal/strategy"
@@ -60,7 +62,7 @@ func Run(ctx context.Context, path, socket, version string) error {
 	if want == "auto" {
 		want = ""
 	}
-	maker, why := strategy.Detect(want, settings.State, settings.Roots, strategy.Kernel{})
+	maker, why := strategy.Detect(want, settings.State, settings.Roots, mounters(settings.Workspaces.MountHelper)...)
 	workspaces.UseTemplates(templates, maker)
 	made := strategy.Copy
 	if maker != nil {
@@ -82,4 +84,17 @@ func Run(ctx context.Context, path, socket, version string) error {
 		RetirePools: keeper.Retire,
 	}
 	return served.Serve(ctx, settings.Socket, settings.Metrics)
+}
+
+// mounters are who may mount an overlay, in the order they are tried: the kernel itself,
+// when gitd runs with the privilege to, then gitd-mount, when its socket is there.
+func mounters(helper string) []strategy.Mounter {
+	tried := []strategy.Mounter{strategy.Kernel{}}
+	if helper == "" {
+		helper = config.DefaultMountHelper
+	}
+	if _, err := os.Stat(helper); err == nil {
+		tried = append(tried, mounthelper.Client{Socket: helper})
+	}
+	return tried
 }

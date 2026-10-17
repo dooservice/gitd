@@ -57,7 +57,13 @@ type Credential struct {
 // and "copy" ask for one, and "reflink" clones the template to save disk, not time.
 type Workspaces struct {
 	Strategy string `toml:"strategy"`
+	// MountHelper is the socket of gitd-mount, which mounts overlays for a gitd that may
+	// not; the default is used when it exists.
+	MountHelper string `toml:"mount_helper"`
 }
+
+// DefaultMountHelper is where gitd-mount answers unless the configuration says otherwise.
+const DefaultMountHelper = "/run/gitd-mount/gitd-mount.sock"
 
 // Limits bound how much gitd does at once and for how long: fetches and writes running,
 // operations queued behind them and for how long, and how long one call may take.

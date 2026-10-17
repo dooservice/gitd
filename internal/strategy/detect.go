@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"syscall"
 
 	"golang.org/x/sys/unix"
@@ -14,8 +15,10 @@ import (
 // the workspace package writes the files, as it always has. Nothing fails here: a strategy
 // that cannot run falls back to copy, with the reason.
 //
-// state is where templates and layers live; roots are where workspaces are made.
-func Detect(want Name, state string, roots []string, mounter Mounter) (Maker, string) {
+// state is where templates and layers live; roots are where workspaces are made; mounters
+// are tried in order — the kernel's own, then gitd-mount — and the first that mounts a
+// probe overlay in those very places is the one used.
+func Detect(want Name, state string, roots []string, mounters ...Mounter) (Maker, string) {
 	switch want {
 	case Copy:
 		return nil, "configured"
@@ -25,24 +28,50 @@ func Detect(want Name, state string, roots []string, mounter Mounter) (Maker, st
 		}
 		return ReflinkMaker{}, "configured"
 	}
-	if err := probeOverlay(state, mounter); err != nil {
-		return nil, "overlay cannot run here: " + err.Error()
+	if onOverlay(state) {
+		return nil, "overlay cannot run here: " + state + " is itself on an overlay, as a container's own filesystem is: put it on a volume or a host directory"
 	}
-	return &OverlayMaker{Layers: filepath.Join(state, "layers"), Mounter: mounter}, "an overlay mounts here"
+	var reasons []string
+	for _, mounter := range mounters {
+		if err := probeOverlay(state, roots, mounter); err != nil {
+			reasons = append(reasons, fmt.Sprintf("%T: %v", mounter, err))
+			continue
+		}
+		return &OverlayMaker{Layers: filepath.Join(state, "layers"), Mounter: mounter}, fmt.Sprintf("an overlay mounts here, by %T", mounter)
+	}
+	return nil, "overlay cannot run here: " + strings.Join(reasons, "; ")
 }
 
-// probeOverlay mounts a small overlay under state, writes through it and reads it back.
-func probeOverlay(state string, mounter Mounter) error {
-	if onOverlay(state) {
-		return fmt.Errorf("%s is itself on an overlay, as a container's own filesystem is: put it on a volume or a host directory", state)
+// probeOverlay mounts a small overlay where real ones go — its lower layer among the
+// templates, its upper and work among the layers, its target in the first root — writes
+// through it and reads it back.
+func probeOverlay(state string, roots []string, mounter Mounter) error {
+	if len(roots) == 0 {
+		return fmt.Errorf("no root to mount a workspace in")
 	}
-	probe, err := os.MkdirTemp(state, "overlay-probe-")
+	templates, layers := filepath.Join(state, "templates"), filepath.Join(state, "layers")
+	for _, dir := range append([]string{templates, layers}, roots[0]) {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			return err
+		}
+	}
+	lower, err := os.MkdirTemp(templates, ".probe-")
 	if err != nil {
 		return err
 	}
-	defer os.RemoveAll(probe)
-	lower, upper, work, merged := filepath.Join(probe, "lower"), filepath.Join(probe, "upper"), filepath.Join(probe, "work"), filepath.Join(probe, "merged")
-	for _, dir := range []string{lower, upper, work, merged} {
+	defer os.RemoveAll(lower)
+	layer, err := os.MkdirTemp(layers, ".probe-")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(layer)
+	merged, err := os.MkdirTemp(roots[0], ".gitd-probe-")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(merged)
+	upper, work := filepath.Join(layer, "upper"), filepath.Join(layer, "work")
+	for _, dir := range []string{upper, work} {
 		if err := os.Mkdir(dir, 0o755); err != nil {
 			return err
 		}

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -103,19 +104,22 @@ func TestAMountThatFailsLeavesNothingBehind(t *testing.T) {
 }
 
 func TestDetectionPicksOverlayWhenItMountsAndCopyWithTheReasonOtherwise(t *testing.T) {
-	state := t.TempDir()
-	if maker, reason := Detect("", state, nil, copyMounter{}); maker == nil || maker.Name() != Overlay {
-		t.Errorf("Detect = %v, %q; want overlay", maker, reason)
+	state, root := t.TempDir(), t.TempDir()
+	refusing := copyMounter{fail: errors.New("operation not permitted")}
+	if maker, reason := Detect("", state, []string{root}, refusing, copyMounter{}); maker == nil || maker.Name() != Overlay {
+		t.Errorf("Detect = %v, %q; want overlay by the second mounter", maker, reason)
 	}
-	maker, reason := Detect("", state, nil, copyMounter{fail: errors.New("operation not permitted")})
-	if maker != nil || reason == "" {
+	maker, reason := Detect("", state, []string{root}, refusing)
+	if maker != nil || !strings.Contains(reason, "operation not permitted") {
 		t.Errorf("Detect = %v, %q; want copy and why", maker, reason)
 	}
-	if maker, reason := Detect(Copy, state, nil, copyMounter{}); maker != nil || reason != "configured" {
+	if maker, reason := Detect(Copy, state, []string{root}, copyMounter{}); maker != nil || reason != "configured" {
 		t.Errorf("Detect(copy) = %v, %q", maker, reason)
 	}
-	if entries, _ := os.ReadDir(state); len(entries) != 0 {
-		t.Errorf("the probes left %v", entries)
+	for _, dir := range []string{filepath.Join(state, "templates"), filepath.Join(state, "layers"), root} {
+		if entries, _ := os.ReadDir(dir); len(entries) != 0 {
+			t.Errorf("the probes left %v in %s", entries, dir)
+		}
 	}
 }
 
