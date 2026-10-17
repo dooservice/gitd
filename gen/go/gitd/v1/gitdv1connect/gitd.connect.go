@@ -62,6 +62,11 @@ const (
 	// WorkspaceServicePublishProcedure is the fully-qualified name of the WorkspaceService's Publish
 	// RPC.
 	WorkspaceServicePublishProcedure = "/gitd.v1.WorkspaceService/Publish"
+	// WorkspaceServiceChangesProcedure is the fully-qualified name of the WorkspaceService's Changes
+	// RPC.
+	WorkspaceServiceChangesProcedure = "/gitd.v1.WorkspaceService/Changes"
+	// WorkspaceServiceDiffProcedure is the fully-qualified name of the WorkspaceService's Diff RPC.
+	WorkspaceServiceDiffProcedure = "/gitd.v1.WorkspaceService/Diff"
 	// RepositoryServiceProbeProcedure is the fully-qualified name of the RepositoryService's Probe RPC.
 	RepositoryServiceProbeProcedure = "/gitd.v1.RepositoryService/Probe"
 	// ServerServiceInfoProcedure is the fully-qualified name of the ServerService's Info RPC.
@@ -135,6 +140,12 @@ type WorkspaceServiceClient interface {
 	// branch of the same name in its own repository. The branch must start with the
 	// configured prefix, if there is one; every publish, done or refused, is in the audit log.
 	Publish(context.Context, *connect.Request[v1.PublishRequest]) (*connect.Response[v1.PublishResponse], error)
+	// What was changed in a workspace since gitd last put it on a commit — committed or not:
+	// each file added, modified or deleted, with its lines. On an overlay workspace it is read
+	// from the agent's own layer, and no git runs in the workspace.
+	Changes(context.Context, *connect.Request[v1.ChangesRequest]) (*connect.Response[v1.ChangesResponse], error)
+	// The unified diff of a workspace's changes, of some files or all, cut short at a size.
+	Diff(context.Context, *connect.Request[v1.DiffRequest]) (*connect.Response[v1.DiffResponse], error)
 }
 
 // NewWorkspaceServiceClient constructs a client for the gitd.v1.WorkspaceService service. By
@@ -196,6 +207,18 @@ func NewWorkspaceServiceClient(httpClient connect.HTTPClient, baseURL string, op
 			connect.WithSchema(workspaceServiceMethods.ByName("Publish")),
 			connect.WithClientOptions(opts...),
 		),
+		changes: connect.NewClient[v1.ChangesRequest, v1.ChangesResponse](
+			httpClient,
+			baseURL+WorkspaceServiceChangesProcedure,
+			connect.WithSchema(workspaceServiceMethods.ByName("Changes")),
+			connect.WithClientOptions(opts...),
+		),
+		diff: connect.NewClient[v1.DiffRequest, v1.DiffResponse](
+			httpClient,
+			baseURL+WorkspaceServiceDiffProcedure,
+			connect.WithSchema(workspaceServiceMethods.ByName("Diff")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -209,6 +232,8 @@ type workspaceServiceClient struct {
 	remove         *connect.Client[v1.RemoveRequest, v1.RemoveResponse]
 	adopt          *connect.Client[v1.AdoptRequest, v1.AdoptResponse]
 	publish        *connect.Client[v1.PublishRequest, v1.PublishResponse]
+	changes        *connect.Client[v1.ChangesRequest, v1.ChangesResponse]
+	diff           *connect.Client[v1.DiffRequest, v1.DiffResponse]
 }
 
 // Prepare calls gitd.v1.WorkspaceService.Prepare.
@@ -251,6 +276,16 @@ func (c *workspaceServiceClient) Publish(ctx context.Context, req *connect.Reque
 	return c.publish.CallUnary(ctx, req)
 }
 
+// Changes calls gitd.v1.WorkspaceService.Changes.
+func (c *workspaceServiceClient) Changes(ctx context.Context, req *connect.Request[v1.ChangesRequest]) (*connect.Response[v1.ChangesResponse], error) {
+	return c.changes.CallUnary(ctx, req)
+}
+
+// Diff calls gitd.v1.WorkspaceService.Diff.
+func (c *workspaceServiceClient) Diff(ctx context.Context, req *connect.Request[v1.DiffRequest]) (*connect.Response[v1.DiffResponse], error) {
+	return c.diff.CallUnary(ctx, req)
+}
+
 // WorkspaceServiceHandler is an implementation of the gitd.v1.WorkspaceService service.
 type WorkspaceServiceHandler interface {
 	// Create a workspace at a path, from the repository's pool, at a branch or a commit.
@@ -272,6 +307,12 @@ type WorkspaceServiceHandler interface {
 	// branch of the same name in its own repository. The branch must start with the
 	// configured prefix, if there is one; every publish, done or refused, is in the audit log.
 	Publish(context.Context, *connect.Request[v1.PublishRequest]) (*connect.Response[v1.PublishResponse], error)
+	// What was changed in a workspace since gitd last put it on a commit — committed or not:
+	// each file added, modified or deleted, with its lines. On an overlay workspace it is read
+	// from the agent's own layer, and no git runs in the workspace.
+	Changes(context.Context, *connect.Request[v1.ChangesRequest]) (*connect.Response[v1.ChangesResponse], error)
+	// The unified diff of a workspace's changes, of some files or all, cut short at a size.
+	Diff(context.Context, *connect.Request[v1.DiffRequest]) (*connect.Response[v1.DiffResponse], error)
 }
 
 // NewWorkspaceServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -329,6 +370,18 @@ func NewWorkspaceServiceHandler(svc WorkspaceServiceHandler, opts ...connect.Han
 		connect.WithSchema(workspaceServiceMethods.ByName("Publish")),
 		connect.WithHandlerOptions(opts...),
 	)
+	workspaceServiceChangesHandler := connect.NewUnaryHandler(
+		WorkspaceServiceChangesProcedure,
+		svc.Changes,
+		connect.WithSchema(workspaceServiceMethods.ByName("Changes")),
+		connect.WithHandlerOptions(opts...),
+	)
+	workspaceServiceDiffHandler := connect.NewUnaryHandler(
+		WorkspaceServiceDiffProcedure,
+		svc.Diff,
+		connect.WithSchema(workspaceServiceMethods.ByName("Diff")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/gitd.v1.WorkspaceService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case WorkspaceServicePrepareProcedure:
@@ -347,6 +400,10 @@ func NewWorkspaceServiceHandler(svc WorkspaceServiceHandler, opts ...connect.Han
 			workspaceServiceAdoptHandler.ServeHTTP(w, r)
 		case WorkspaceServicePublishProcedure:
 			workspaceServicePublishHandler.ServeHTTP(w, r)
+		case WorkspaceServiceChangesProcedure:
+			workspaceServiceChangesHandler.ServeHTTP(w, r)
+		case WorkspaceServiceDiffProcedure:
+			workspaceServiceDiffHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -386,6 +443,14 @@ func (UnimplementedWorkspaceServiceHandler) Adopt(context.Context, *connect.Requ
 
 func (UnimplementedWorkspaceServiceHandler) Publish(context.Context, *connect.Request[v1.PublishRequest]) (*connect.Response[v1.PublishResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("gitd.v1.WorkspaceService.Publish is not implemented"))
+}
+
+func (UnimplementedWorkspaceServiceHandler) Changes(context.Context, *connect.Request[v1.ChangesRequest]) (*connect.Response[v1.ChangesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("gitd.v1.WorkspaceService.Changes is not implemented"))
+}
+
+func (UnimplementedWorkspaceServiceHandler) Diff(context.Context, *connect.Request[v1.DiffRequest]) (*connect.Response[v1.DiffResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("gitd.v1.WorkspaceService.Diff is not implemented"))
 }
 
 // RepositoryServiceClient is a client for the gitd.v1.RepositoryService service.

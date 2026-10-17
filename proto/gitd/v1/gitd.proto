@@ -33,6 +33,12 @@ service WorkspaceService {
   // branch of the same name in its own repository. The branch must start with the
   // configured prefix, if there is one; every publish, done or refused, is in the audit log.
   rpc Publish(PublishRequest) returns (PublishResponse);
+  // What was changed in a workspace since gitd last put it on a commit — committed or not:
+  // each file added, modified or deleted, with its lines. On an overlay workspace it is read
+  // from the agent's own layer, and no git runs in the workspace.
+  rpc Changes(ChangesRequest) returns (ChangesResponse);
+  // The unified diff of a workspace's changes, of some files or all, cut short at a size.
+  rpc Diff(DiffRequest) returns (DiffResponse);
 }
 
 service RepositoryService {
@@ -387,6 +393,55 @@ message PublishResponse {
   // Why the pull request could not be opened, when it was to be. The branch is published
   // all the same.
   GitFailure pull_request_failure = 5;
+}
+
+message ChangesRequest {
+  string path = 1;
+  // Files the base commit's .gitignore ignores, such as node_modules, are left out unless
+  // asked for.
+  bool include_ignored = 2;
+}
+
+message ChangedFile {
+  enum Kind {
+    KIND_UNSPECIFIED = 0;
+    KIND_ADDED = 1;
+    KIND_MODIFIED = 2;
+    KIND_DELETED = 3;
+  }
+  // Relative to the workspace, with `/`.
+  string path = 1;
+  Kind kind = 2;
+  int32 added_lines = 3;
+  int32 removed_lines = 4;
+  // A binary file, whose lines are not counted.
+  bool binary = 5;
+}
+
+message ChangesResponse {
+  // The commit gitd last put the workspace on, which the changes are read against.
+  string base = 1;
+  repeated ChangedFile files = 2;
+  // Read from the agent's own layer, with no git run in the workspace; otherwise read by
+  // git in the workspace, which its sandbox should not be writing meanwhile.
+  bool from_layer = 3;
+}
+
+message DiffRequest {
+  string path = 1;
+  // Only these files, relative to the workspace; all the changes when empty.
+  repeated string files = 2;
+  // At most this many bytes of diff: 512 KiB when unset, never more than 8 MiB.
+  int64 max_bytes = 3;
+  bool include_ignored = 4;
+}
+
+message DiffResponse {
+  string base = 1;
+  // The unified diff, with `a/` and `b/` before each path, as git writes it.
+  string diff = 2;
+  // Cut short at max_bytes.
+  bool truncated = 3;
 }
 
 message ProbeRequest {

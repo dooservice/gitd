@@ -978,6 +978,175 @@
           ]
         },
         {
+          "name": "ChangesRequest",
+          "field": [
+            {
+              "name": "path",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "path"
+            },
+            {
+              "name": "include_ignored",
+              "number": 2,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_BOOL",
+              "jsonName": "includeIgnored"
+            }
+          ]
+        },
+        {
+          "name": "ChangedFile",
+          "field": [
+            {
+              "name": "path",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "path"
+            },
+            {
+              "name": "kind",
+              "number": 2,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_ENUM",
+              "typeName": ".gitd.v1.ChangedFile.Kind",
+              "jsonName": "kind"
+            },
+            {
+              "name": "added_lines",
+              "number": 3,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_INT32",
+              "jsonName": "addedLines"
+            },
+            {
+              "name": "removed_lines",
+              "number": 4,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_INT32",
+              "jsonName": "removedLines"
+            },
+            {
+              "name": "binary",
+              "number": 5,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_BOOL",
+              "jsonName": "binary"
+            }
+          ],
+          "enumType": [
+            {
+              "name": "Kind",
+              "value": [
+                {
+                  "name": "KIND_UNSPECIFIED",
+                  "number": 0
+                },
+                {
+                  "name": "KIND_ADDED",
+                  "number": 1
+                },
+                {
+                  "name": "KIND_MODIFIED",
+                  "number": 2
+                },
+                {
+                  "name": "KIND_DELETED",
+                  "number": 3
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "ChangesResponse",
+          "field": [
+            {
+              "name": "base",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "base"
+            },
+            {
+              "name": "files",
+              "number": 2,
+              "label": "LABEL_REPEATED",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".gitd.v1.ChangedFile",
+              "jsonName": "files"
+            },
+            {
+              "name": "from_layer",
+              "number": 3,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_BOOL",
+              "jsonName": "fromLayer"
+            }
+          ]
+        },
+        {
+          "name": "DiffRequest",
+          "field": [
+            {
+              "name": "path",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "path"
+            },
+            {
+              "name": "files",
+              "number": 2,
+              "label": "LABEL_REPEATED",
+              "type": "TYPE_STRING",
+              "jsonName": "files"
+            },
+            {
+              "name": "max_bytes",
+              "number": 3,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_INT64",
+              "jsonName": "maxBytes"
+            },
+            {
+              "name": "include_ignored",
+              "number": 4,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_BOOL",
+              "jsonName": "includeIgnored"
+            }
+          ]
+        },
+        {
+          "name": "DiffResponse",
+          "field": [
+            {
+              "name": "base",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "base"
+            },
+            {
+              "name": "diff",
+              "number": 2,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "diff"
+            },
+            {
+              "name": "truncated",
+              "number": 3,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_BOOL",
+              "jsonName": "truncated"
+            }
+          ]
+        },
+        {
           "name": "ProbeRequest",
           "field": [
             {
@@ -2149,6 +2318,16 @@
               "name": "Publish",
               "inputType": ".gitd.v1.PublishRequest",
               "outputType": ".gitd.v1.PublishResponse"
+            },
+            {
+              "name": "Changes",
+              "inputType": ".gitd.v1.ChangesRequest",
+              "outputType": ".gitd.v1.ChangesResponse"
+            },
+            {
+              "name": "Diff",
+              "inputType": ".gitd.v1.DiffRequest",
+              "outputType": ".gitd.v1.DiffResponse"
             }
           ]
         },
