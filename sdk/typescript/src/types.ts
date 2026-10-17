@@ -1,4 +1,5 @@
 import type { Progress } from "./gen/gitd/v1/gitd_pb.js";
+import type { OpenedPullRequest } from "./publishing-types.js";
 
 /** How a workspace was made: a layer on a shared template, a block clone, or every file written. */
 export type StrategyName = "overlay" | "reflink" | "copy";
@@ -50,10 +51,21 @@ export interface Submodule {
   checkedOut: boolean;
 }
 
-/** What a publish pushed: the workspace's repository first, then each submodule. */
+/** Why gitd refused something: its reason (POLICY_REFUSED, AUTH_REQUIRED, …) and what was said. */
+export interface Refusal {
+  reason: string;
+  said: string;
+}
+
+/**
+ * What a publish pushed: the workspace's repository first, then each submodule; the pull
+ * request it opened, or why it could not, the branch being published either way.
+ */
 export interface Published {
   branch: string;
   repositories: PublishedRepository[];
+  pullRequest?: OpenedPullRequest;
+  pullRequestRefused?: Refusal;
 }
 
 export interface PublishedRepository {
@@ -87,7 +99,16 @@ export interface Probe {
   denied?: string;
 }
 
-/** One publish, done or refused, as the audit log keeps it. */
+/** A change to the credentials or publishing settings, as the audit log keeps it. */
+export interface ConfigurationChange {
+  /** connection_added, connection_removed, settings_set or settings_removed. */
+  action: string;
+  /** The credential's id, or the settings' prefix. */
+  subject: string;
+  urlPrefix: string;
+}
+
+/** One publish, done or refused, or one change to credentials or settings, as the audit log keeps it. */
 export interface AuditEntry {
   time: Date;
   /** The workspace's path, as the caller gave it. */
@@ -98,7 +119,12 @@ export interface AuditEntry {
   /** What was pushed, the workspace's repository first; empty when refused. */
   repositories: PublishedRepository[];
   /** Why it was refused, when it was. */
-  refused?: { reason: string; said: string };
+  refused?: Refusal;
+  /** Who asked for the work, as the publish said. */
+  requestedBy: string;
+  pullRequest?: OpenedPullRequest;
+  pullRequestRefused?: Refusal;
+  change?: ConfigurationChange;
 }
 
 export interface AuditOptions {

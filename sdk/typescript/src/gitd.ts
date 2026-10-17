@@ -2,11 +2,21 @@ import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { createConnectTransport } from "@connectrpc/connect-node";
 
-import { RepositoryService, ServerService, WorkspaceService } from "./gen/gitd/v1/gitd_pb.js";
+import {
+  ConnectionService,
+  PublishingService,
+  RepositoryService,
+  ServerService,
+  WorkspaceService,
+} from "./gen/gitd/v1/gitd_pb.js";
 import { call, drain } from "./calls.js";
+import { Credentials } from "./credentials.js";
+import { pullRequestOptionsProto } from "./publishing-convert.js";
+import { Publishing } from "./publishing.js";
+import type { PublishOptions } from "./publishing-types.js";
 import {
   accessName,
-  pushedOf,
+  publishedOf,
   revisionOf,
   strategyName,
   strategyProto,
@@ -36,10 +46,15 @@ export interface GitdOptions {
 const defaultSocket = "/run/gitd/gitd.sock";
 
 /**
- * A gitd on its Unix socket. No call takes a credential: gitd reads and publishes with the
- * ones it keeps.
+ * A gitd on its Unix socket. No call on workspaces takes a credential: gitd reads and
+ * publishes with the ones it keeps, which a platform manages through `credentials`, and
+ * publishing follows the rules it sets through `publishing`.
  */
 export class Gitd {
+  /** The credentials gitd keeps, and connecting GitHub. */
+  readonly credentials: Credentials;
+  /** The rules publishing follows, per repository prefix. */
+  readonly publishing: Publishing;
   private readonly workspaces: Client<typeof WorkspaceService>;
   private readonly repositories: Client<typeof RepositoryService>;
   private readonly server: Client<typeof ServerService>;
@@ -49,6 +64,8 @@ export class Gitd {
     this.workspaces = createClient(WorkspaceService, transport);
     this.repositories = createClient(RepositoryService, transport);
     this.server = createClient(ServerService, transport);
+    this.credentials = new Credentials(createClient(ConnectionService, transport));
+    this.publishing = new Publishing(createClient(PublishingService, transport));
   }
 
   /** Which gitd answers, and how it makes workspaces here and why. */
@@ -124,10 +141,20 @@ export class Gitd {
     };
   }
 
-  /** Pushes what was committed in a workspace to a new branch, with the token gitd keeps. */
-  async publish(path: string, branch: string): Promise<Published> {
-    const answer = await call(() => this.workspaces.publish({ path, branch }));
-    return { branch: answer.branch, repositories: pushedOf(answer.repository, answer.submodules) };
+  /**
+   * Pushes what was committed in a workspace to a new branch, with the credential gitd
+   * keeps, and opens its pull request when the publishing settings or the options say so.
+   */
+  async publish(path: string, branch: string, options: PublishOptions = {}): Promise<Published> {
+    const answer = await call(() =>
+      this.workspaces.publish({
+        path,
+        branch,
+        requestedBy: options.requestedBy ?? "",
+        pullRequest: pullRequestOptionsProto(options.pullRequest),
+      }),
+    );
+    return publishedOf(answer);
   }
 
   /** The audit log: every publish, done or refused, newest first. */
