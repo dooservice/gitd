@@ -23,7 +23,10 @@ import (
 func (pools *Pools) fetch(
 	ctx context.Context, dir string, access credentials.Access, want Want, creating bool, report progress.Report,
 ) error {
-	head := pools.remoteHead(ctx, dir, access)
+	head, err := pools.remoteHead(ctx, dir, access)
+	if err != nil {
+		return err
+	}
 	if head != "" {
 		_, _ = pools.runner.Run(ctx, git.Cmd{Dir: dir, Args: []string{"symbolic-ref", "HEAD", "refs/heads/" + head}})
 	}
@@ -55,23 +58,25 @@ func (pools *Pools) fetch(
 		}
 	}
 	args = append(append(args, "--end-of-options", access.URL), refspecs...)
-	_, err := pools.runner.Run(ctx, git.Cmd{Dir: dir, Env: access.Env, Progress: report, Args: args})
+	_, err = pools.runner.Run(ctx, git.Cmd{Dir: dir, Env: access.Env, Progress: report, Args: args})
 	return err
 }
 
-// remoteHead is the branch the remote's HEAD points at, or "" when it does not say.
-func (pools *Pools) remoteHead(ctx context.Context, dir string, access credentials.Access) string {
+// remoteHead is the branch the remote's HEAD points at, or "" when it does not say. A
+// remote that cannot be read is an error: what git said about it is the answer, where the
+// fetch after it would only fail the same way.
+func (pools *Pools) remoteHead(ctx context.Context, dir string, access credentials.Access) (string, error) {
 	out, err := pools.runner.Run(ctx, git.Cmd{Dir: dir, Env: access.Env, Args: []string{
 		"ls-remote", "--symref", "--end-of-options", access.URL, "HEAD",
 	}})
 	if err != nil {
-		return ""
+		return "", err
 	}
 	for line := range strings.Lines(out) {
 		target, ref, symbolic := strings.Cut(strings.TrimPrefix(strings.TrimSpace(line), "ref: "), "\t")
 		if branch, isBranch := strings.CutPrefix(target, "refs/heads/"); symbolic && ref == "HEAD" && isBranch {
-			return branch
+			return branch, nil
 		}
 	}
-	return ""
+	return "", nil
 }
