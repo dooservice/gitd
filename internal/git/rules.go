@@ -26,6 +26,13 @@ func subcommands() map[string]bool {
 		"commit-graph":     true,
 		"fsck":             true,
 		"version":          true,
+		// What an agent changed and how two works differ, read without running anything of
+		// theirs: diff (with --no-index on files gitd copied aside), check-ignore and cat-file
+		// in templates and pools, merge-tree in pools.
+		"diff":         true,
+		"check-ignore": true,
+		"cat-file":     true,
+		"merge-tree":   true,
 	}
 }
 

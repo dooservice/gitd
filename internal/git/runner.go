@@ -39,12 +39,16 @@ func (runner *Runner) Running() int64 {
 // Cmd is one git invocation. Args starts with the subcommand; Env is added to the closed
 // environment, as a request's credentials are; Local lets git read a repository on this
 // disk, which only a pool is.
+//
+// Differences says that git ending with status 1 found differences — as diff and
+// merge-tree do — and answered, rather than failed.
 type Cmd struct {
-	Dir      string
-	Args     []string
-	Env      []string
-	Local    bool
-	Progress progress.Report
+	Dir         string
+	Args        []string
+	Env         []string
+	Local       bool
+	Progress    progress.Report
+	Differences bool
 }
 
 // Run runs git and returns its stdout, or a failure with what git said.
@@ -69,6 +73,10 @@ func (runner *Runner) Run(ctx context.Context, command Cmd) (string, error) {
 	runner.running.Add(1)
 	err := process.Run()
 	runner.running.Add(-1)
+	var exit *exec.ExitError
+	if err != nil && command.Differences && errors.As(err, &exit) && exit.ExitCode() == 1 && ctx.Err() == nil {
+		return stdout.String(), nil
+	}
 	if err != nil {
 		return stdout.String(), failed(ctx, command.Args[0], err, stderr.Lines())
 	}
