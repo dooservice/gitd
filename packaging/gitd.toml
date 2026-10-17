@@ -57,8 +57,8 @@ known_hosts = []
 # gitd's public GitHub App, which people sign in through with `gitd connect github`. Its
 # client ID is not a secret. A GitHub Enterprise Server needs an App registered there.
 [github]
-login_client_id = ""             # gitd's public App on github.com, once registered
-login_app = "gitd"
+login_client_id = "Iv23liZ9GnNz5Y4Uerrs"   # gitd-app, gitd's public App on github.com
+login_app = "gitd-app"
 
 [publish]
 # Every published branch must start with this; empty allows any new branch. Publishing never

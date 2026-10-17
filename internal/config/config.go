@@ -76,9 +76,12 @@ type GitHub struct {
 	LoginApp      string `toml:"login_app"`
 }
 
-// DefaultGitHubLoginClientID is gitd's public App on github.com; empty until it is
-// registered, which leaves signing in unoffered.
-const DefaultGitHubLoginClientID = ""
+// gitd's public App on github.com, gitd-app, by its client ID, which is not a secret, and
+// its name in addresses (github.com/apps/gitd-app).
+const (
+	DefaultGitHubLoginClientID = "Iv23liZ9GnNz5Y4Uerrs"
+	DefaultGitHubLoginApp      = "gitd-app"
+)
 
 // Workspaces is how new workspaces are made. Strategy "" (or "auto") lets gitd pick: an
 // overlay on a shared template when one can be mounted, else every file written; "overlay"
@@ -171,7 +174,7 @@ func Default() Config {
 		State:  "/var/lib/gitd",
 		Roots:  []string{"/var/lib/gitd/workspaces"},
 		Git:    "git",
-		GitHub: GitHub{LoginClientID: DefaultGitHubLoginClientID, LoginApp: "gitd"},
+		GitHub: GitHub{LoginClientID: DefaultGitHubLoginClientID, LoginApp: DefaultGitHubLoginApp},
 		Audit: Audit{
 			RotateBytes: 16 << 20,
 			Keep:        365 * 24 * time.Hour,
