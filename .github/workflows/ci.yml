@@ -46,3 +46,20 @@ jobs:
           sudo mkdir -p /mnt/xfs && sudo mount -o loop "$RUNNER_TEMP/xfs.img" /mnt/xfs
       - name: conformance, as root
         run: sudo -E env "PATH=$PATH" GITD_CONFORMANCE_XFS=/mnt/xfs go test -count=1 -v ./internal/conformance/
+
+  # The sandboxes example, as gitd is deployed: unprivileged gitd, gitd-mount with its
+  # unit's capabilities only. The one test where gitd-mount runs without full root.
+  sandboxes:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - name: Run the example
+        run: |
+          set -o pipefail
+          examples/sandboxes/demo.sh | tee demo.log
+          grep -q "workspaces made by overlay" demo.log
+          [ "$(grep -c "made by overlay$" demo.log)" -eq 2 ]
+          grep -q "agent-1 was here" demo.log
+      - name: Clean up
+        if: always()
+        run: examples/sandboxes/demo.sh down

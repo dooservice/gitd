@@ -1,22 +1,66 @@
-# Two agent sandboxes, each with its own workspace of the same repository. gitd fetches it
-# once into a pool; each workspace borrows its objects, and each sandbox mounts the pools
-# read only, at the same path, which is where the workspace's alternates point. No sandbox
-# holds a credential: publishing goes through gitd.
+# Two agent sandboxes, each with its own copy-on-write workspace of the same repository.
 #
-#   docker compose up -d gitd
-#   docker compose exec gitd gitd prepare https://github.com/OCA/web /var/lib/gitd/workspaces/agent-1
-#   docker compose exec gitd gitd prepare https://github.com/OCA/web /var/lib/gitd/workspaces/agent-2
-#   docker compose run --rm agent-1 git log -1
+# - gitd runs unprivileged. It fetches the repository once into a pool, checks it out once
+#   into a template, and makes each workspace an overlay on that template: a new workspace
+#   takes milliseconds and almost no disk.
+# - gitd-mount, the only privileged part, mounts the overlays gitd asks for, within the
+#   directories gitd-mount.conf fixes. It holds what mounting an overlay takes and nothing
+#   else: CAP_SYS_ADMIN to mount, and CAP_DAC_OVERRIDE, CAP_FOWNER and CAP_CHOWN, as the
+#   kernel writes an overlay's layers with its mounter's credentials.
+# - Each sandbox sees its own workspace, read-write, and its repository's pool, read-only, at
+#   the path the workspace borrows objects from. No sandbox sees the socket, gitd's state or
+#   a credential: publishing goes through gitd.
 #
-# ./demo.sh runs it all.
+# gitd's state is ./state, a directory of this host, so that the overlays gitd-mount mounts
+# reach gitd and the sandboxes (bind propagation). Linux only: run ./demo.sh.
+#
+# The sandboxes run as uid 1000, gitd's user in its image, so they can write the files gitd
+# checks out; each is a container of its own, with nothing of gitd's but its workspace.
+
+x-state: &state
+  type: bind
+  source: ./state
+  target: /var/lib/gitd
+  bind:
+    propagation: rslave
+    create_host_path: true
+
 services:
-  gitd:
+  gitd-mount:
     build: ../..
     image: ghcr.io/dooservice/gitd:latest
+    user: "0"
+    cap_drop: [ALL]
+    cap_add: [SYS_ADMIN, CHOWN, DAC_OVERRIDE, FOWNER]
+    security_opt: ["apparmor:unconfined"]
+    # Its configuration must be root's; the state directory, gitd's.
+    entrypoint:
+      - sh
+      - -c
+      - install -D -m 0644 /config/gitd-mount.conf /etc/gitd/gitd-mount.conf &&
+        chown gitd:gitd /var/lib/gitd &&
+        exec gitd-mount --config /etc/gitd/gitd-mount.conf
+    healthcheck:
+      test: ["CMD", "test", "-S", "/run/gitd-mount/gitd-mount.sock"]
+      interval: 1s
+      retries: 30
+    volumes:
+      - ./gitd-mount.conf:/config/gitd-mount.conf:ro
+      - <<: *state
+        bind:
+          propagation: rshared
+          create_host_path: true
+      - mount-socket:/run/gitd-mount
+
+  gitd:
+    image: ghcr.io/dooservice/gitd:latest
+    depends_on:
+      gitd-mount:
+        condition: service_healthy
     volumes:
       - ./gitd.toml:/etc/gitd/gitd.toml:ro
-      - pools:/var/lib/gitd
-      - workspaces:/var/lib/gitd/workspaces
+      - *state
+      - mount-socket:/run/gitd-mount
     environment:
       GITD_TOKEN: ${GITD_TOKEN:-}
 
@@ -32,15 +76,14 @@ services:
       GIT_COMMITTER_NAME: agent-1
       GIT_COMMITTER_EMAIL: agent-1@example.com
     volumes:
-      - type: volume
-        source: pools
-        target: /var/lib/gitd
-        read_only: true
-      - type: volume
-        source: workspaces
+      - type: bind
+        source: ./state/workspaces/agent-1
         target: /work
-        volume:
-          subpath: agent-1
+        bind: {propagation: rslave}
+      - type: bind
+        source: ./state/pools/${POOL:-github.com/oca/web.git}
+        target: /var/lib/gitd/pools/${POOL:-github.com/oca/web.git}
+        read_only: true
 
   agent-2:
     <<: *agent
@@ -50,16 +93,14 @@ services:
       GIT_COMMITTER_NAME: agent-2
       GIT_COMMITTER_EMAIL: agent-2@example.com
     volumes:
-      - type: volume
-        source: pools
-        target: /var/lib/gitd
-        read_only: true
-      - type: volume
-        source: workspaces
+      - type: bind
+        source: ./state/workspaces/agent-2
         target: /work
-        volume:
-          subpath: agent-2
+        bind: {propagation: rslave}
+      - type: bind
+        source: ./state/pools/${POOL:-github.com/oca/web.git}
+        target: /var/lib/gitd/pools/${POOL:-github.com/oca/web.git}
+        read_only: true
 
 volumes:
-  pools:
-  workspaces:
+  mount-socket:
