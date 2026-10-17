@@ -43,4 +43,4 @@ behaviour to [soporte@apiservicesac.com](mailto:soporte@apiservicesac.com).
 ## License
 
 By contributing, you agree that your contribution is licensed under the
-[AGPL-3.0](LICENSE), like the rest of the repository.
+[Apache License 2.0](LICENSE), like the rest of the repository.
