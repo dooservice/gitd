@@ -90,19 +90,7 @@ func (keys *Keys) Address(repository repo.Repo) string {
 // repository and purpose. One that cannot reach the repository reads it as nothing would,
 // so a public repository still reads, and refuses anything else.
 func (keys *Keys) Access(ctx context.Context, repository repo.Repo, given []Credential, purpose Purpose) (Access, error) {
-	candidates := append(append([]Credential(nil), given...), keys.stored...)
-	for _, source := range keys.sources {
-		candidates = append(candidates, source.Credentials()...)
-	}
-	var chosen *Credential
-	for index, credential := range candidates {
-		if !credential.carries() || !credential.opens(repository) {
-			continue
-		}
-		if chosen == nil || len(credential.Prefix) > len(chosen.Prefix) {
-			chosen = &candidates[index]
-		}
-	}
+	chosen := keys.choose(repository, given)
 	if chosen == nil {
 		return Access{URL: keys.Address(repository), Via: "nothing"}, nil
 	}
@@ -121,6 +109,51 @@ func (keys *Keys) Access(ctx context.Context, repository repo.Repo, given []Cred
 		return access, nil
 	}
 	return keys.access(repository, *chosen), nil
+}
+
+// choose is the most specific credential that opens a repository, the request's before
+// those gitd keeps, or none.
+func (keys *Keys) choose(repository repo.Repo, given []Credential) *Credential {
+	candidates := append(append([]Credential(nil), given...), keys.stored...)
+	for _, source := range keys.sources {
+		candidates = append(candidates, source.Credentials()...)
+	}
+	var chosen *Credential
+	for index, credential := range candidates {
+		if !credential.carries() || !credential.opens(repository) {
+			continue
+		}
+		if chosen == nil || len(credential.Prefix) > len(chosen.Prefix) {
+			chosen = &candidates[index]
+		}
+	}
+	return chosen
+}
+
+// APIToken is the token a host's API takes for a repository and a purpose, from the same
+// credential Access would choose: a token, or one made for this repository and purpose.
+// Minted says it was made by a GitHub App or a sign-in, which only GitHub issues. A key, or
+// no credential, has no token for an API.
+func (keys *Keys) APIToken(ctx context.Context, repository repo.Repo, given []Credential, purpose Purpose) (APIToken, error) {
+	chosen := keys.choose(repository, given)
+	switch {
+	case chosen == nil || chosen.Token == "" && chosen.Minter == nil:
+		return APIToken{}, errors.New("no token opens it: a host's API takes a token, not a key")
+	case chosen.Minter != nil:
+		token, err := chosen.Minter.Token(ctx, repository, purpose)
+		if err != nil {
+			return APIToken{}, fmt.Errorf("%s, for %s: %w", chosen.Label, purpose, err)
+		}
+		return APIToken{Token: token, Minted: true}, nil
+	default:
+		return APIToken{Token: chosen.Token}, nil
+	}
+}
+
+// APIToken is a token for a host's API, and whether a GitHub App or a sign-in made it.
+type APIToken struct {
+	Token  string
+	Minted bool
 }
 
 func (keys *Keys) access(repository repo.Repo, credential Credential) Access {

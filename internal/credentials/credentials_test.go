@@ -300,3 +300,24 @@ func TestARepositoryAMintedCredentialCannotReachIsReadAsNothingWouldAndNeverWrit
 		t.Errorf("write = %v", err)
 	}
 }
+
+func TestTheAPITokenComesFromTheCredentialThatOpensTheRepository(t *testing.T) {
+	keys, err := NewKeys(t.TempDir(), nil, nil, []Credential{KeptToken("https://gitlab.com/acme", "glpat", "")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	keys.AlsoKeep(&changing{credentials: []Credential{KeptMinter("https://github.com/acme", &fixedMinter{reaches: true}, "GitHub App 7")}})
+	ctx := context.Background()
+	github, _ := repo.Of("https://github.com/acme/web")
+	if token, err := keys.APIToken(ctx, github, nil, PullRequests); err != nil || token.Token != "ghs_made" || !token.Minted {
+		t.Errorf("GitHub = %+v, %v", token, err)
+	}
+	gitlab, _ := repo.Of("https://gitlab.com/acme/tools")
+	if token, err := keys.APIToken(ctx, gitlab, nil, PullRequests); err != nil || token.Token != "glpat" || token.Minted {
+		t.Errorf("GitLab = %+v, %v", token, err)
+	}
+	other, _ := repo.Of("https://github.com/other/web")
+	if _, err := keys.APIToken(ctx, other, []Credential{{Key: "/keys/other"}}, PullRequests); err == nil {
+		t.Error("a key gave a token")
+	}
+}
