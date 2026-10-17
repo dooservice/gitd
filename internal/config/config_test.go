@@ -96,10 +96,16 @@ func TestPublishSettingsAndTheSecretsKeyAreRead(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "gitd.toml")
 	text := `secrets_key_file = "/run/credentials/gitd.service/secrets"
 
+[[publish.presets]]
+name = "strict"
+protected_paths = ["deploy/**"]
+max_changed_files = 20
+
 [[publish.settings]]
 prefix = "https://github.com/acme"
 preset = "recommended"
 protected_paths = ["deploy/**"]
+allowed_paths = [".gitmodules"]
 max_changed_files = 50
 branch_prefix = "agents/"
 pull_requests = { open = "always", draft = true, labels = ["agent"], request_review_from_requester = true }
@@ -114,7 +120,10 @@ pull_requests = { open = "always", draft = true, labels = ["agent"], request_rev
 	if settings.SecretsKeyFile != "/run/credentials/gitd.service/secrets" {
 		t.Errorf("secrets_key_file = %q", settings.SecretsKeyFile)
 	}
-	if len(settings.Publish.Settings) != 1 {
+	if presets := settings.Publish.Presets; len(presets) != 1 || presets[0].Name != "strict" || *presets[0].MaxChangedFiles != 20 {
+		t.Errorf("presets = %+v", presets)
+	}
+	if len(settings.Publish.Settings) != 1 || settings.Publish.Settings[0].AllowedPaths[0] != ".gitmodules" {
 		t.Fatalf("settings = %+v", settings.Publish.Settings)
 	}
 	setting := settings.Publish.Settings[0]

@@ -98,22 +98,34 @@ type Workspaces struct {
 // Publish is the rules of publishing. BranchPrefix, when set, is what every published
 // branch must start with, e.g. "agents/": with publishing already limited to new branches
 // and never forced, it keeps agents off every branch people use. Settings are the rules of
-// the repositories under a prefix, as the API's PublishingService sets them; those of the
-// file are shown by the API and never changed through it.
+// the repositories under a prefix, and Presets the named sets of rules settings take, as
+// the API's PublishingService sets them; those of the file are shown by the API and never
+// changed through it.
 type Publish struct {
 	BranchPrefix string           `toml:"branch_prefix"`
+	Presets      []PublishPreset  `toml:"presets"`
 	Settings     []PublishSetting `toml:"settings"`
 }
 
+// PublishPreset is a named set of rules: paths a publish may not change, paths it may not
+// delete, and at most how many files it may change. One named "recommended" replaces gitd's.
+type PublishPreset struct {
+	Name            string   `toml:"name"`
+	ProtectedPaths  []string `toml:"protected_paths"`
+	KeptPaths       []string `toml:"kept_paths"`
+	MaxChangedFiles *int32   `toml:"max_changed_files"`
+}
+
 // PublishSetting is the rules of publishing for the repositories under Prefix (empty for
-// every one): a Preset ("recommended"), paths a publish may not change and paths it may
-// not delete, as git's glob pathspecs, at most how many files it may change, the branch
-// prefix, and how pull requests are opened.
+// every one): the Preset it takes, by name, paths a publish may not change and paths it may
+// not delete, as git's glob pathspecs, paths its own rules leave free, at most how many
+// files it may change, the branch prefix, and how pull requests are opened.
 type PublishSetting struct {
 	Prefix          string       `toml:"prefix"`
 	Preset          string       `toml:"preset"`
 	ProtectedPaths  []string     `toml:"protected_paths"`
 	KeptPaths       []string     `toml:"kept_paths"`
+	AllowedPaths    []string     `toml:"allowed_paths"`
 	MaxChangedFiles *int32       `toml:"max_changed_files"`
 	BranchPrefix    string       `toml:"branch_prefix"`
 	PullRequests    PullRequests `toml:"pull_requests"`
