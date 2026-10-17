@@ -12,6 +12,7 @@ import (
 	"github.com/dooservice/gitd/internal/config"
 	"github.com/dooservice/gitd/internal/connections"
 	"github.com/dooservice/gitd/internal/credentials"
+	"github.com/dooservice/gitd/internal/events"
 	"github.com/dooservice/gitd/internal/git"
 	"github.com/dooservice/gitd/internal/housekeeping"
 	"github.com/dooservice/gitd/internal/lock"
@@ -92,6 +93,8 @@ func Run(ctx context.Context, path, socket, version string) error {
 	if err != nil {
 		return err
 	}
+	bus := events.NewBus()
+	workspaces.UseEvents(bus)
 	workspaces.UsePublishing(workspace.Publishing{
 		Settings: publishingSettings, PullRequests: pullrequests.New(keys, github), Recorder: auditLog,
 	})
@@ -114,6 +117,7 @@ func Run(ctx context.Context, path, socket, version string) error {
 	keeper.Sweep()
 	keeper.Remount(ctx)
 	go keeper.Run(ctx)
+	go workspaces.WatchLayers(ctx)
 
 	served := &server.Server{
 		Version:        version,
@@ -132,6 +136,7 @@ func Run(ctx context.Context, path, socket, version string) error {
 		Connections:     kept,
 		FileConnections: connections.ShownFromFile(settings.Credentials),
 		Publishing:      publishingSettings,
+		Events:          bus,
 	}
 	return served.Serve(ctx, settings.Socket, settings.Metrics)
 }

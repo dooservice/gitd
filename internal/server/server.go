@@ -21,6 +21,7 @@ import (
 	"github.com/dooservice/gitd/gen/go/gitd/v1/gitdv1connect"
 	"github.com/dooservice/gitd/internal/audit"
 	"github.com/dooservice/gitd/internal/connections"
+	"github.com/dooservice/gitd/internal/events"
 	"github.com/dooservice/gitd/internal/git"
 	"github.com/dooservice/gitd/internal/metrics"
 	"github.com/dooservice/gitd/internal/pool"
@@ -54,6 +55,8 @@ type Server struct {
 	FileConnections []*gitdv1.Connection
 	// Publishing is the publishing settings, the file's and those set through the API.
 	Publishing *publishing.Store
+	// Events carry what happens to workspaces to Watch.
+	Events *events.Bus
 }
 
 // Serve answers on the Unix socket until ctx ends, and serves the metrics at

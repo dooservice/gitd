@@ -29,22 +29,47 @@ func (server *Server) Diff(
 	return connect.NewResponse(answer), nil
 }
 
-// Compare, Conflicts and Watch come with their own changes; until then they answer that
-// they are not implemented.
 func (server *Server) Compare(
-	context.Context, *connect.Request[gitdv1.CompareRequest],
+	ctx context.Context, request *connect.Request[gitdv1.CompareRequest],
 ) (*connect.Response[gitdv1.CompareResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("comparing is not done yet"))
+	answer, err := server.Workspaces.Compare(ctx, request.Msg)
+	if err != nil {
+		return nil, server.refuse(err)
+	}
+	return connect.NewResponse(answer), nil
 }
 
 func (server *Server) Conflicts(
-	context.Context, *connect.Request[gitdv1.ConflictsRequest],
+	ctx context.Context, request *connect.Request[gitdv1.ConflictsRequest],
 ) (*connect.Response[gitdv1.ConflictsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("conflicts are not read yet"))
+	answer, err := server.Workspaces.Conflicts(ctx, request.Msg)
+	if err != nil {
+		return nil, server.refuse(err)
+	}
+	return connect.NewResponse(answer), nil
 }
 
+// Watch streams what happens to the workspaces asked for, or to every one, until the
+// caller goes or falls too far behind.
 func (server *Server) Watch(
-	context.Context, *connect.Request[gitdv1.WatchRequest], *connect.ServerStream[gitdv1.WatchResponse],
+	ctx context.Context, request *connect.Request[gitdv1.WatchRequest], stream *connect.ServerStream[gitdv1.WatchResponse],
 ) error {
-	return connect.NewError(connect.CodeUnimplemented, errors.New("watching is not done yet"))
+	if server.Events == nil {
+		return connect.NewError(connect.CodeUnimplemented, errors.New("this gitd tells no events"))
+	}
+	watcher := server.Events.Watch(request.Msg.GetPaths())
+	defer server.Events.Stop(watcher)
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		case event, open := <-watcher.Events:
+			if !open {
+				return connect.NewError(connect.CodeResourceExhausted, errors.New("the watch fell too far behind"))
+			}
+			if err := stream.Send(event); err != nil {
+				return err
+			}
+		}
+	}
 }
