@@ -6,13 +6,10 @@ import (
 	"connectrpc.com/connect"
 
 	gitdv1 "github.com/dooservice/gitd/gen/go/gitd/v1"
-	"github.com/dooservice/gitd/gen/go/gitd/v1/gitdv1connect"
 )
 
-// publishingHandlers answers PublishingService. Presets come with their own changes; until
-// then those calls answer that they are not implemented.
+// publishingHandlers answers PublishingService.
 type publishingHandlers struct {
-	gitdv1connect.UnimplementedPublishingServiceHandler
 	server *Server
 }
 
@@ -42,4 +39,32 @@ func (handlers *publishingHandlers) RemoveSettings(
 	}
 	handlers.server.recordChange(gitdv1.ConfigurationChange_ACTION_SETTINGS_REMOVED, prefix, prefix)
 	return connect.NewResponse(&gitdv1.RemoveSettingsResponse{}), nil
+}
+
+func (handlers *publishingHandlers) ListPresets(
+	context.Context, *connect.Request[gitdv1.ListPresetsRequest],
+) (*connect.Response[gitdv1.ListPresetsResponse], error) {
+	return connect.NewResponse(&gitdv1.ListPresetsResponse{Presets: handlers.server.Publishing.Presets()}), nil
+}
+
+func (handlers *publishingHandlers) SetPreset(
+	_ context.Context, request *connect.Request[gitdv1.SetPresetRequest],
+) (*connect.Response[gitdv1.SetPresetResponse], error) {
+	set, err := handlers.server.Publishing.SetPreset(request.Msg.GetPreset())
+	if err != nil {
+		return nil, refuseChange(err)
+	}
+	handlers.server.recordChange(gitdv1.ConfigurationChange_ACTION_PRESET_SET, set.GetName(), "")
+	return connect.NewResponse(&gitdv1.SetPresetResponse{Preset: set}), nil
+}
+
+func (handlers *publishingHandlers) RemovePreset(
+	_ context.Context, request *connect.Request[gitdv1.RemovePresetRequest],
+) (*connect.Response[gitdv1.RemovePresetResponse], error) {
+	name := request.Msg.GetName()
+	if err := handlers.server.Publishing.RemovePreset(name); err != nil {
+		return nil, refuseChange(err)
+	}
+	handlers.server.recordChange(gitdv1.ConfigurationChange_ACTION_PRESET_REMOVED, name, "")
+	return connect.NewResponse(&gitdv1.RemovePresetResponse{}), nil
 }

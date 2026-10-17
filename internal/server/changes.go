@@ -18,7 +18,7 @@ func refuseChange(err error) error {
 	case errors.Is(err, connections.ErrInvalid), errors.Is(err, publishing.ErrInvalid):
 		return connect.NewError(connect.CodeInvalidArgument, err)
 	case errors.Is(err, connections.ErrFromFile), errors.Is(err, publishing.ErrFromFile),
-		errors.Is(err, connections.ErrUnavailable):
+		errors.Is(err, connections.ErrUnavailable), errors.Is(err, publishing.ErrInUse):
 		return connect.NewError(connect.CodeFailedPrecondition, err)
 	case errors.Is(err, connections.ErrNotFound), errors.Is(err, publishing.ErrNotFound):
 		return connect.NewError(connect.CodeNotFound, err)

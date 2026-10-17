@@ -56,3 +56,40 @@ func TestSettingsAreSetAndRemovedThroughTheAPIAndRecorded(t *testing.T) {
 		t.Errorf("audit = %v", entries)
 	}
 }
+
+func TestPresetsAreListedSetAndRemovedThroughTheAPIAndRecorded(t *testing.T) {
+	server := connectionsServer(t)
+	var err error
+	server.Publishing, err = publishing.Open(t.TempDir(), publishing.File{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	handlers := &publishingHandlers{server: server}
+	ctx := context.Background()
+	listed, err := handlers.ListPresets(ctx, connect.NewRequest(&gitdv1.ListPresetsRequest{}))
+	if err != nil || len(listed.Msg.GetPresets()) != 1 || listed.Msg.GetPresets()[0].GetOrigin() != gitdv1.Preset_ORIGIN_BUILT_IN {
+		t.Fatalf("listed = %v, %v", listed.Msg, err)
+	}
+	if _, err := handlers.SetPreset(ctx, connect.NewRequest(&gitdv1.SetPresetRequest{Preset: &gitdv1.Preset{
+		Name: "strict", ProtectedPaths: []string{"deploy/**"},
+	}})); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := handlers.SetSettings(ctx, connect.NewRequest(&gitdv1.SetSettingsRequest{Settings: &gitdv1.PublishSettings{
+		Preset: "strict",
+	}})); err != nil {
+		t.Fatal(err)
+	}
+	var refused *connect.Error
+	if _, err := handlers.RemovePreset(ctx, connect.NewRequest(&gitdv1.RemovePresetRequest{Name: "strict"})); !errors.As(err, &refused) ||
+		refused.Code() != connect.CodeFailedPrecondition {
+		t.Errorf("removing a preset in use: %v", err)
+	}
+	entries, err := server.AuditLog.Read(audit.Filter{Limit: 10})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 2 || entries[1].GetChange().GetAction() != gitdv1.ConfigurationChange_ACTION_PRESET_SET {
+		t.Errorf("audit = %v", entries)
+	}
+}
