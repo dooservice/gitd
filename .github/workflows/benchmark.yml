@@ -26,7 +26,9 @@ jobs:
         run: docker build -t gitd:bench .
 
       - name: Run
-        run: benchmarks/agents.sh "${{ inputs.repository }}" "${{ inputs.agents }}" | tee results.md
+        run: |
+          set -o pipefail
+          benchmarks/agents.sh "${{ inputs.repository }}" "${{ inputs.agents }}" | tee results.md
 
       - name: Summary
         run: cat results.md >> "$GITHUB_STEP_SUMMARY"

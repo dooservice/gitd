@@ -23,6 +23,9 @@ jobs:
       - name: Tools
         run: sudo apt-get update -qq && sudo apt-get install -qq -y xfsprogs fuse-overlayfs >/dev/null
       - name: Run
-        run: sudo benchmarks/cow-spike.sh "${{ inputs.repository }}" "${{ inputs.agents }}" "${{ inputs.branch }}" | tee results.md
+        run: |
+          set -o pipefail
+          sudo benchmarks/cow-spike.sh "${{ inputs.repository }}" "${{ inputs.agents }}" "${{ inputs.branch }}" | tee results.md
       - name: Summary
+        if: always()
         run: cat results.md >> "$GITHUB_STEP_SUMMARY"

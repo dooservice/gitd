@@ -8,6 +8,7 @@ set -euo pipefail
 repo="${1:-https://github.com/kubernetes/kubernetes}"
 agents="${2:-100}"
 branch="${3:-master}"
+export branch
 base=/mnt/spike
 user="${SUDO_USER:-runner}"
 
@@ -20,6 +21,9 @@ row() { printf '| %s | %s | %s | %s | %s |\n' "$@"; }
 
 # git as gitd runs it: no global configuration, no hooks.
 export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
+# The spike's repositories change owner between root and the unprivileged user (for
+# fuse-overlayfs); command-line configuration is where git takes safe.directory from.
+export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=safe.directory GIT_CONFIG_VALUE_0='*'
 export GIT_AUTHOR_NAME=agent GIT_AUTHOR_EMAIL=agent@example.com
 export GIT_COMMITTER_NAME=agent GIT_COMMITTER_EMAIL=agent@example.com
 
@@ -103,7 +107,7 @@ for i in $(seq "$agents"); do umount "overlay/$i/merged"; done
 
 # --- fuse-overlayfs, unprivileged ---------------------------------------------------------
 if command -v fuse-overlayfs >/dev/null; then
-  mkdir -p fuse && chown "$user" fuse
+  mkdir -p fuse && chown -R "$user" fuse template pool.git
   start=$(now)
   sudo -u "$user" bash -c '
     for i in $(seq "$1"); do
@@ -112,7 +116,6 @@ if command -v fuse-overlayfs >/dev/null; then
     done' _ "$agents" "$base"
   fuse_total=$(since "$start")
   fuse_each=$(awk -v total="$fuse_total" -v n="$agents" 'BEGIN {printf "%.3f", total / n}')
-  chmod -R a+rwX template pool.git
   fuse_status=$(sudo -u "$user" -E bash -c "$(declare -f now since first_status configure); configure fuse/2/merged; first_status fuse/2/merged")
   fuse_git=$(sudo -u "$user" -E bash -c "$(declare -f check); check fuse/3/merged" 2>&1 | tail -1)
   fuse_mb=$(mb fuse/*/upper | awk -v n="$agents" '{printf "%.2f", $1 / n}')
