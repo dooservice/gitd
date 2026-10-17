@@ -52,6 +52,22 @@ isolated() {
     [ "$(git -C "$second" rev-parse HEAD)" != "$(git -C "$first" rev-parse HEAD)" ] && echo yes || echo NO
 }
 
+# changes_against_status: with one file changed in a workspace, how long `gitd changes`
+# takes — reading the agent's layer — against `git status` walking the whole tree, each the
+# average of five runs.
+changes_against_status() {
+  local ws start runs=5 changes status
+  ws=$(agent 3)
+  echo "changed by an agent" >> "$ws/README.md"
+  git -C "$ws" status --porcelain >/dev/null
+  start=$(now); for _ in $(seq $runs); do gitd changes --socket "$socket" "$ws" >/dev/null; done
+  changes=$(divide "$(seconds_since "$start")" $runs)
+  start=$(now); for _ in $(seq $runs); do git -C "$ws" status --porcelain >/dev/null; done
+  status=$(divide "$(seconds_since "$start")" $runs)
+  local listed; listed=$(gitd changes --socket "$socket" "$ws" | head -1)
+  echo "${changes}s for \`gitd changes\` ($listed) against ${status}s for \`git status\`"
+}
+
 measure_gitd() {
   start_gitd
   local start first sequential each statuses
@@ -67,6 +83,7 @@ measure_gitd() {
   disk_layers=$(megabytes /var/lib/gitd/layers)
   per_workspace=$(divide "$disk_layers" "$agents")
   local kept_apart; kept_apart=$(isolated)
+  local changes_timing; changes_timing=$(changes_against_status)
 
   for i in $(seq 2 "$agents"); do remove "$i"; done
   start=$(now)
@@ -80,6 +97,7 @@ measure_gitd() {
   echo
   echo "- Clean checkouts as git sees them: ${clean_count} of ${agents} (a first \`git status\` takes ${statuses}s on average)."
   echo "- An agent's commit stays in its workspace, the others untouched: ${kept_apart}."
+  echo "- One file changed in a workspace: ${changes_timing}."
   echo "- Removing all ${agents} workspaces: ${removed}s."
 }
 
