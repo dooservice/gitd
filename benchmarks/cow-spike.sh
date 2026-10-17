@@ -122,7 +122,7 @@ if command -v fuse-overlayfs >/dev/null; then
     || fuse_status="failed: $(tail -1 "$base/fuse.err")"
   fuse_git=$(sudo -u "$user" -E bash -c "$(declare -f check); check fuse/3/merged" 2>&1 | tail -1) || true
   # What fuse-overlayfs refuses, and where, for the record.
-  fuse_diagnosis=$(sudo -u "$user" bash -c 'touch fuse/4/merged/probe-root 2>&1 && echo "root: writable"; touch fuse/4/merged/.git/probe-git 2>&1 && echo ".git: writable"; mkdir fuse/4/merged/.git/probe-dir 2>&1 && echo ".git: mkdir ok"' 2>&1 | tr '\n' ';')
+  fuse_diagnosis=$(sudo -u "$user" bash -c 'touch fuse/4/merged/probe-root 2>&1 && echo "root: writable"; touch fuse/4/merged/.git/probe-git 2>&1 && echo ".git: writable"; mkdir fuse/4/merged/.git/probe-dir 2>&1 && echo ".git: mkdir ok"' 2>&1 | tr '\n' ';') || true
   fuse_mb=$(mb fuse/*/upper | awk -v n="$agents" '{printf "%.2f", $1 / n}')
   row "fuse-overlayfs (no privilege)" "${fuse_each}s (${agents} in ${fuse_total}s)" "${fuse_mb} MB" "– / ${fuse_status}" "$fuse_git"
   for i in $(seq "$agents"); do sudo -u "$user" fusermount3 -u "fuse/$i/merged" 2>/dev/null || fusermount -u "fuse/$i/merged"; done
