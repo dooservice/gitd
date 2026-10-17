@@ -64,3 +64,25 @@ func (pools *Pools) Touched(ctx context.Context, repository repo.Repo, branch st
 	slices.Sort(touched)
 	return touched, nil
 }
+
+// ChangedBetween lists the paths that differ between two commits of a repository.
+func (pools *Pools) ChangedBetween(ctx context.Context, repository repo.Repo, from, to string) ([]string, error) {
+	out, err := pools.runner.Run(ctx, git.Cmd{Dir: pools.Path(repository), Args: []string{
+		"diff", "--no-renames", "--name-only", "-z", "--end-of-options", from, to,
+	}})
+	if err != nil {
+		return nil, git.About(err, repository.HTTPS())
+	}
+	return splitNull(out), nil
+}
+
+// splitNull splits git's -z output into its names.
+func splitNull(out string) []string {
+	var names []string
+	for name := range strings.SplitSeq(out, "\x00") {
+		if name != "" {
+			names = append(names, name)
+		}
+	}
+	return names
+}

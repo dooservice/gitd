@@ -27,6 +27,19 @@ func (runner *Runner) Resolve(ctx context.Context, dir, revision string) (string
 	return strings.TrimSpace(out), true, nil
 }
 
+// ResolveObject is the object a revision names in the repository at dir — a blob as
+// `<commit>:<path>` — and false when it names none.
+func (runner *Runner) ResolveObject(ctx context.Context, dir, revision string) (string, bool, error) {
+	out, err := runner.Run(ctx, Cmd{Dir: dir, Args: []string{"rev-parse", "--verify", "--quiet", "--end-of-options", revision}})
+	if failure, ok := AsFailure(err); ok && failure.ExitCode == 1 {
+		return "", false, nil
+	}
+	if err != nil {
+		return "", false, err
+	}
+	return strings.TrimSpace(out), true, nil
+}
+
 // Branch is the branch the repository at dir is on, and false when it is on none.
 func (runner *Runner) Branch(ctx context.Context, dir string) (string, bool) {
 	out, err := runner.Run(ctx, Cmd{Dir: dir, Args: []string{"symbolic-ref", "--quiet", "--short", "HEAD"}})
