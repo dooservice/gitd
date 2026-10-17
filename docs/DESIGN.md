@@ -139,10 +139,15 @@ What opens a repository, bound to a **URL prefix** (`https://github.com/acme/web
 a key only, empty for "any repository": a token's prefix must name its host, or it would go
 to any host a submodule names). Two kinds:
 
-- **Kept by gitd**, in `[[credentials]]` of its configuration, which names where each
-  secret is — `token_file`, `token_env` or `ssh_key` — never the secret. They are read once
-  at start, and one that cannot be read stops it. This is what lets an agent, a sandbox or
-  the command line ask for a workspace or a branch holding nothing.
+- **Kept by gitd**, either in `[[credentials]]` of its configuration, which names where each
+  secret is — `token_file`, `token_env`, `ssh_key` or a `github_app`'s key file — never the
+  secret, read at start; or as **connections** a platform makes through `ConnectionService`
+  (a token, the organisation's own GitHub App created from a manifest, a platform's App, a
+  person signed in by GitHub's device flow), kept one file each under `<state>/connections`,
+  sealed by `secrets_key_file` when given, and applied at the next operation: `Keys` asks
+  its sources for their credentials every time. A secret that cannot be read stops the
+  start. This is what lets an agent, a sandbox or the command line ask for a workspace or a
+  branch holding nothing.
 - **Sent with a request**, when its caller decides which opens what from what the host
   says about it (a deploy key for one repository, an account's token for the rest of its
   owner's, a key with an empty prefix for anything public).
@@ -163,6 +168,14 @@ Both kinds are candidates, and a request's wins over a kept one of the same pref
   name sent with it is the credential's (`https_user`, `token_user`), or when empty the one
   the host expects: `oauth2` on gitlab.com, `x-token-auth` on
   bitbucket.org, `x-access-token` anywhere else (GitHub; Gitea and Forgejo take any).
+
+- **Minted**: a GitHub App or a sign-in makes a token for each operation
+  (`credentials.Minter`). An App's token is an installation token limited to the one
+  repository and to the operation's **purpose** — read to fetch, write to push, pull
+  requests to open one — kept in memory until five minutes before it expires; a sign-in's
+  is the person's, renewed with a renewal token gitd keeps sealed and replaces each time. A
+  repository a minted credential cannot reach is read as nothing would read it, and never
+  written.
 
 A repository is read with **the most specific credential that opens it, and with that one
 only** — or with nothing when none does. A prefix is compared without its port and in any
@@ -321,14 +334,30 @@ gitd owns the configuration, never in the copy somebody else could write, so an
 `http.proxy` or an `insteadOf` left there cannot see where the token goes. Only a token
 publishes — deploy keys are read only — the push is never forced, and nothing is pushed
 when the workspace's own repository brings no new commit (`NOTHING_NEW`). What comes back
-carries each repository's new commit subjects, for the client to title the requests it
-opens; gitd opens none.
+carries each repository's new commit subjects.
 
-**Rules and record.** With `[publish] branch_prefix` set (`"agents/"`), a branch that does
-not start with it is refused (`BRANCH_REFUSED`) before anything is staged: with pushes
-already limited to new branches and never forced, agents stay off every branch people use.
+**Rules.** The **publishing settings** of every prefix that opens a repository — those of
+`[[publish.settings]]` and `[publish] branch_prefix`, and those a platform sets through
+`PublishingService` — make what publishing it must follow (`publishing.Effective`): their
+paths added up, the smallest file limit, the most specific branch prefix and pull request
+choices. A branch outside the prefix is refused (`BRANCH_REFUSED`) before anything is
+staged. Once staged, the commits to push are read in the pool, each on its own, with
+`git log --no-renames --diff-merges=remerge` (`pool.Touched`): a protected path changed, a
+kept path deleted or renamed away, or more files changed than allowed refuses the publish
+(`POLICY_REFUSED`) before anything is pushed; a merge counts only what it brings beyond its
+parents. Submodules are checked against their own settings.
+
+**Pull requests.** When the settings open them always, or the publish asks, gitd opens one
+after the push, through the host's API with the credential that pushed (GitHub; another
+host answers `UNSUPPORTED`): titled after the newest commit unless told, a draft and
+labelled as the settings say, the requester asked to review when they say so, and its body
+saying what gitd checked (`pullrequests.Body`). If it cannot be opened, the branch stays
+published and the answer carries `pull_request_failure`.
+
+**Record.**
 Every publish, done or refused, is recorded in the **audit log** — when, the workspace, its
-repository, the branch, and what was pushed or why it was refused — as one `AuditEntry` per
+repository, the branch, who asked for it, what was pushed or why it was refused, and its
+pull request — and so is every change to connections and settings, as one `AuditEntry` per
 line, in its JSON form, in `<state>/audit/publishes.jsonl`, synced before the call
 answers. The file is rotated at `[audit] rotate_bytes` and rotated files are deleted after
 `keep`; a line a crash left half written is skipped and never joins the next. `Audit`
