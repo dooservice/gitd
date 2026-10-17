@@ -3,9 +3,11 @@
 from .client import Gitd
 from .connection import DEFAULT_SOCKET, SOCKET_VARIABLE
 from .errors import GitdError
+from .kept_credentials import AppToCreate, Connected, CredentialKind, KeptCredential, SignIn
 from .models import (
     Access,
     AuditEntry,
+    ConfigurationChange,
     Description,
     Info,
     Layers,
@@ -19,8 +21,28 @@ from .models import (
     Submodule,
     Workspace,
 )
+from .publishing_settings import (
+    OpenedPullRequest,
+    Opening,
+    Preset,
+    PublishSettings,
+    PullRequestOptions,
+    PullRequestSettings,
+)
 
 __all__ = [
+    "AppToCreate",
+    "ConfigurationChange",
+    "Connected",
+    "CredentialKind",
+    "KeptCredential",
+    "OpenedPullRequest",
+    "Opening",
+    "Preset",
+    "PublishSettings",
+    "PullRequestOptions",
+    "PullRequestSettings",
+    "SignIn",
     "DEFAULT_SOCKET",
     "SOCKET_VARIABLE",
     "Access",

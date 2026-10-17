@@ -7,13 +7,17 @@ from typing import Any
 
 from . import messages, methods
 from .connection import Connection, OnProgress
+from .credentials_calls import Credentials
 from .models import AuditEntry, Description, Info, Probe, Published, Strategy, Workspace
+from .publishing_calls import Publishing
+from .publishing_settings import PullRequestOptions
 from .timestamps import Timestamp
 
 
 class Gitd:
-    """A gitd on its Unix socket. No call takes a credential: gitd reads and publishes with
-    the ones it keeps.
+    """A gitd on its Unix socket. No call on workspaces takes a credential: gitd reads and
+    publishes with the ones it keeps, which a platform manages through gitd.credentials, and
+    publishing follows the rules it sets through gitd.publishing.
 
         with Gitd() as gitd:
             workspace = gitd.prepare("https://github.com/acme/web", "/var/lib/gitd/workspaces/agent-1")
@@ -21,6 +25,8 @@ class Gitd:
 
     def __init__(self, socket: str | None = None, *, timeout: float | None = None) -> None:
         self.connection = Connection(socket, timeout)
+        self.credentials = Credentials(self.connection)
+        self.publishing = Publishing(self.connection)
 
     def __enter__(self) -> Gitd:
         return self
@@ -99,10 +105,21 @@ class Gitd:
         response = self.connection.call(methods.DESCRIBE, messages.DescribeRequest(path=path))
         return Description.from_message(response)
 
-    def publish(self, path: str, branch: str) -> Published:
-        """Pushes what was committed in a workspace to a new branch, with the token gitd keeps."""
-        response = self.connection.call(methods.PUBLISH, messages.PublishRequest(path=path, branch=branch))
-        return Published.from_message(response)
+    def publish(
+        self,
+        path: str,
+        branch: str,
+        *,
+        requested_by: str = "",
+        pull_request: PullRequestOptions | None = None,
+    ) -> Published:
+        """Pushes what was committed in a workspace to a new branch, with the credential gitd
+        keeps, and opens its pull request when the publishing settings or pull_request say
+        so. requested_by is who asked for the work, as their account on the host."""
+        request: Any = messages.PublishRequest(path=path, branch=branch, requested_by=requested_by)
+        if pull_request is not None:
+            request.pull_request.CopyFrom(pull_request.to_message())
+        return Published.from_message(self.connection.call(methods.PUBLISH, request))
 
     def remove(self, path: str) -> None:
         """Deletes a workspace; its pool stays."""

@@ -9,9 +9,11 @@ from enum import StrEnum
 from typing import Any
 
 from . import messages
+from .publishing_settings import OpenedPullRequest
 from .timestamps import Timestamp
 
 STRATEGY_PREFIX = "STRATEGY_"
+ACTION_PREFIX = "ACTION_"
 ACCESS_PREFIX = "ACCESS_"
 REASON_PREFIX = "REASON_"
 
@@ -198,10 +200,13 @@ class Refusal:
 
 @dataclass(frozen=True)
 class Published:
-    """What a publish pushed: the workspace's repository first, then each submodule."""
+    """What a publish pushed: the workspace's repository first, then each submodule; the
+    pull request it opened, or why it could not, the branch being published either way."""
 
     branch: str
     repositories: list[PublishedRepository]
+    pull_request: OpenedPullRequest | None = None
+    pull_request_refused: Refusal | None = None
 
     @classmethod
     def from_message(cls, response: Any) -> Published:
@@ -209,6 +214,16 @@ class Published:
         return cls(
             branch=response.branch,
             repositories=[PublishedRepository.from_message(repository) for repository in pushed],
+            pull_request=(
+                OpenedPullRequest.from_message(response.pull_request)
+                if response.HasField("pull_request")
+                else None
+            ),
+            pull_request_refused=(
+                Refusal.from_message(response.pull_request_failure)
+                if response.HasField("pull_request_failure")
+                else None
+            ),
         )
 
 
@@ -260,10 +275,27 @@ class Probe:
 
 
 @dataclass(frozen=True)
+class ConfigurationChange:
+    """A change to the credentials or publishing settings: connection_added,
+    connection_removed, settings_set or settings_removed; subject is the credential's id or
+    the settings' prefix."""
+
+    action: str
+    subject: str
+    url_prefix: str
+
+    @classmethod
+    def from_message(cls, change: Any) -> ConfigurationChange:
+        action = messages.CHANGE_ACTION.name(change.action).removeprefix(ACTION_PREFIX).lower()
+        return cls(action=action, subject=change.subject, url_prefix=change.url_prefix)
+
+
+@dataclass(frozen=True)
 class AuditEntry:
-    """One publish, done or refused, as the audit log keeps it. url is the workspace's
-    repository, empty when the workspace could not be opened; repositories is what was
-    pushed, the workspace's repository first, empty when refused."""
+    """One publish, done or refused, or one change to credentials or settings, as the audit
+    log keeps it. url is the workspace's repository, empty when the workspace could not be
+    opened; repositories is what was pushed, the workspace's repository first, empty when
+    refused; requested_by and the pull request are as the publish said and did."""
 
     time: datetime
     workspace: str
@@ -271,6 +303,10 @@ class AuditEntry:
     branch: str
     repositories: list[PublishedRepository] = field(default_factory=list)
     refused: Refusal | None = None
+    requested_by: str = ""
+    pull_request: OpenedPullRequest | None = None
+    pull_request_refused: Refusal | None = None
+    change: ConfigurationChange | None = None
 
     @classmethod
     def from_message(cls, entry: Any) -> AuditEntry:
@@ -282,4 +318,14 @@ class AuditEntry:
             branch=entry.branch,
             repositories=[PublishedRepository.from_message(repository) for repository in pushed],
             refused=Refusal.from_message(entry.refusal) if entry.HasField("refusal") else None,
+            requested_by=entry.requested_by,
+            pull_request=OpenedPullRequest.from_message(entry.pull_request)
+            if entry.HasField("pull_request")
+            else None,
+            pull_request_refused=(
+                Refusal.from_message(entry.pull_request_failure)
+                if entry.HasField("pull_request_failure")
+                else None
+            ),
+            change=ConfigurationChange.from_message(entry.change) if entry.HasField("change") else None,
         )
