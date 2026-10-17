@@ -181,7 +181,9 @@ ssh_port = 2222       # its key goes in known_hosts as [git.example.com]:2222 ss
 
 gitd speaks ConnectRPC (gRPC, gRPC-Web and Connect over HTTP) on its Unix socket; the
 contract is [`proto/gitd/v1/gitd.proto`](proto/gitd/v1/gitd.proto). Any language with a
-Connect or gRPC client can call it, and `buf curl` can too.
+Connect or gRPC client can call it, and `buf curl` can too. There are clients for
+[Python](sdk/python) (`pip install gitd`) and [TypeScript](sdk/typescript)
+(`npm install gitd-client`).
 
 ## Install
 
@@ -200,7 +202,7 @@ Connect or gRPC client can call it, and `buf curl` can too.
 - **From source:** `make build` (Go, the version in `go.mod`); `make test`, `make lint`;
   `make generate` regenerates `gen/` from the `.proto` with `buf`.
 
-Pushing a tag such as `0.6.0` releases the binaries and the image.
+Pushing a tag such as `0.6.0` releases the binaries, the image and both clients.
 
 ## Contributing and security
 
