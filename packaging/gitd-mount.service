@@ -7,9 +7,13 @@ Before=gitd.service
 [Service]
 Type=simple
 ExecStart=/usr/local/bin/gitd-mount --config /etc/gitd/gitd-mount.conf
-# Root, holding the one capability mounting takes, and nothing else.
+# Root, holding the capabilities mounting an overlay takes, and nothing else.
 User=root
-CapabilityBoundingSet=CAP_SYS_ADMIN
+# CAP_SYS_ADMIN mounts. The kernel then writes each overlay's upper and work directories,
+# which are gitd's, with the credentials of whoever mounted it: without CAP_DAC_OVERRIDE,
+# CAP_FOWNER and CAP_CHOWN the overlay comes up read-only, or cannot copy a file up keeping
+# its owner. Nothing else.
+CapabilityBoundingSet=CAP_SYS_ADMIN CAP_DAC_OVERRIDE CAP_FOWNER CAP_CHOWN
 AmbientCapabilities=
 NoNewPrivileges=yes
 RestrictAddressFamilies=AF_UNIX

@@ -74,10 +74,12 @@ func listen(path string, uid int) (*net.UnixListener, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := os.Chown(path, uid, -1); err != nil {
+	// Mode first, while the socket is still root's: once it is uid's, a root without
+	// CAP_FOWNER may no longer change it.
+	if err := os.Chmod(path, 0o600); err != nil {
 		return nil, err
 	}
-	return listener, os.Chmod(path, 0o600)
+	return listener, os.Chown(path, uid, -1)
 }
 
 func dirOf(path string) string {

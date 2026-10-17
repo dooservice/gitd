@@ -36,18 +36,9 @@ func (maker *OverlayMaker) Make(_ context.Context, template, dest string) error 
 	if _, err := os.Lstat(dest); err == nil {
 		return fmt.Errorf("%s already exists", dest)
 	}
-	// The layers are reached only by gitd and gitd-mount: what a sandbox writes into its
-	// workspace lands in its upper directory, and no other user may reach it there.
-	if err := os.MkdirAll(maker.Layers, 0o700); err != nil {
-		return err
-	}
-	if err := os.Chmod(maker.Layers, 0o700); err != nil {
-		return err
-	}
+	// The layers keep the mode gitd-mount expects; a setuid file a sandbox leaves in its upper
+	// directory is kept harmless by the nosuid filesystem the threat model asks for.
 	layer := maker.layer(dest)
-	if err := os.Mkdir(layer, 0o700); err != nil && !os.IsExist(err) {
-		return err
-	}
 	upper, work := filepath.Join(layer, "upper"), filepath.Join(layer, "work")
 	for _, dir := range []string{upper, work, dest} {
 		if err := os.MkdirAll(dir, 0o755); err != nil {

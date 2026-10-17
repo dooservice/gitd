@@ -55,17 +55,17 @@ func probeOverlay(state string, roots []string, mounter Mounter) error {
 			return err
 		}
 	}
-	lower, err := os.MkdirTemp(templates, ".probe-")
+	lower, err := probeDir(templates, ".probe-")
 	if err != nil {
 		return err
 	}
 	defer os.RemoveAll(lower)
-	layer, err := os.MkdirTemp(layers, ".probe-")
+	layer, err := probeDir(layers, ".probe-")
 	if err != nil {
 		return err
 	}
 	defer os.RemoveAll(layer)
-	merged, err := os.MkdirTemp(roots[0], ".gitd-probe-")
+	merged, err := probeDir(roots[0], ".gitd-probe-")
 	if err != nil {
 		return err
 	}
@@ -93,6 +93,20 @@ func probeOverlay(state string, roots []string, mounter Mounter) error {
 		return fmt.Errorf("a write reached the template")
 	}
 	return nil
+}
+
+// probeDir makes a directory for the probe with the mode real layers have: gitd-mount, root
+// without CAP_DAC_READ_SEARCH, cannot enter the private directory os.MkdirTemp makes.
+func probeDir(parent, pattern string) (string, error) {
+	dir, err := os.MkdirTemp(parent, pattern)
+	if err != nil {
+		return "", err
+	}
+	if err := os.Chmod(dir, 0o755); err != nil {
+		_ = os.Remove(dir)
+		return "", err
+	}
+	return dir, nil
 }
 
 // probeReflink clones a file under state, and wants every root on state's filesystem:
