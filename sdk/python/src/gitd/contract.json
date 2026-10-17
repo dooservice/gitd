@@ -1,0 +1,1128 @@
+{
+  "file": [
+    {
+      "name": "gitd/v1/gitd.proto",
+      "package": "gitd.v1",
+      "messageType": [
+        {
+          "name": "Credential",
+          "field": [
+            {
+              "name": "url_prefix",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "urlPrefix"
+            },
+            {
+              "name": "https_token",
+              "number": 2,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "oneofIndex": 0,
+              "jsonName": "httpsToken"
+            },
+            {
+              "name": "ssh_key_path",
+              "number": 3,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "oneofIndex": 0,
+              "jsonName": "sshKeyPath"
+            },
+            {
+              "name": "https_user",
+              "number": 4,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "httpsUser"
+            }
+          ],
+          "oneofDecl": [
+            {
+              "name": "secret"
+            }
+          ]
+        },
+        {
+          "name": "Revision",
+          "field": [
+            {
+              "name": "branch",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "oneofIndex": 0,
+              "jsonName": "branch"
+            },
+            {
+              "name": "commit",
+              "number": 2,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "oneofIndex": 0,
+              "jsonName": "commit"
+            }
+          ],
+          "oneofDecl": [
+            {
+              "name": "target"
+            }
+          ]
+        },
+        {
+          "name": "Progress",
+          "field": [
+            {
+              "name": "phase",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "phase"
+            },
+            {
+              "name": "percent",
+              "number": 2,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_INT32",
+              "jsonName": "percent"
+            },
+            {
+              "name": "repository",
+              "number": 3,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "repository"
+            }
+          ]
+        },
+        {
+          "name": "SubmoduleState",
+          "field": [
+            {
+              "name": "path",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "path"
+            },
+            {
+              "name": "url",
+              "number": 2,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "url"
+            },
+            {
+              "name": "commit",
+              "number": 3,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "commit"
+            },
+            {
+              "name": "checked_out",
+              "number": 4,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_BOOL",
+              "jsonName": "checkedOut"
+            }
+          ]
+        },
+        {
+          "name": "PendingSubmodule",
+          "field": [
+            {
+              "name": "url",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "url"
+            },
+            {
+              "name": "path",
+              "number": 2,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "path"
+            },
+            {
+              "name": "failure",
+              "number": 3,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".gitd.v1.GitFailure",
+              "jsonName": "failure"
+            }
+          ]
+        },
+        {
+          "name": "GitFailure",
+          "field": [
+            {
+              "name": "reason",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_ENUM",
+              "typeName": ".gitd.v1.GitFailure.Reason",
+              "jsonName": "reason"
+            },
+            {
+              "name": "git_said",
+              "number": 2,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "gitSaid"
+            },
+            {
+              "name": "repository",
+              "number": 3,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "repository"
+            }
+          ],
+          "enumType": [
+            {
+              "name": "Reason",
+              "value": [
+                {
+                  "name": "REASON_UNSPECIFIED",
+                  "number": 0
+                },
+                {
+                  "name": "REASON_AUTH_REQUIRED",
+                  "number": 1
+                },
+                {
+                  "name": "REASON_AUTH_REFUSED",
+                  "number": 2
+                },
+                {
+                  "name": "REASON_NOT_FOUND",
+                  "number": 3
+                },
+                {
+                  "name": "REASON_BAD_ADDRESS",
+                  "number": 4
+                },
+                {
+                  "name": "REASON_PATH_REFUSED",
+                  "number": 5
+                },
+                {
+                  "name": "REASON_BUSY",
+                  "number": 6
+                },
+                {
+                  "name": "REASON_TIMEOUT",
+                  "number": 7
+                },
+                {
+                  "name": "REASON_CORRUPT",
+                  "number": 8
+                },
+                {
+                  "name": "REASON_GIT_FAILED",
+                  "number": 9
+                },
+                {
+                  "name": "REASON_NOTHING_NEW",
+                  "number": 10
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "PrepareRequest",
+          "field": [
+            {
+              "name": "url",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "url"
+            },
+            {
+              "name": "path",
+              "number": 2,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "path"
+            },
+            {
+              "name": "revision",
+              "number": 3,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".gitd.v1.Revision",
+              "jsonName": "revision"
+            },
+            {
+              "name": "with_submodules",
+              "number": 4,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_BOOL",
+              "jsonName": "withSubmodules"
+            },
+            {
+              "name": "credentials",
+              "number": 5,
+              "label": "LABEL_REPEATED",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".gitd.v1.Credential",
+              "jsonName": "credentials"
+            },
+            {
+              "name": "full_history",
+              "number": 6,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_BOOL",
+              "jsonName": "fullHistory"
+            },
+            {
+              "name": "strategy",
+              "number": 7,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_ENUM",
+              "typeName": ".gitd.v1.Strategy",
+              "jsonName": "strategy"
+            }
+          ]
+        },
+        {
+          "name": "Layers",
+          "field": [
+            {
+              "name": "lower",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "lower"
+            },
+            {
+              "name": "upper",
+              "number": 2,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "upper"
+            },
+            {
+              "name": "work",
+              "number": 3,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "work"
+            }
+          ]
+        },
+        {
+          "name": "PrepareResponse",
+          "field": [
+            {
+              "name": "progress",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".gitd.v1.Progress",
+              "oneofIndex": 0,
+              "jsonName": "progress"
+            },
+            {
+              "name": "result",
+              "number": 2,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".gitd.v1.WorkspaceResult",
+              "oneofIndex": 0,
+              "jsonName": "result"
+            }
+          ],
+          "oneofDecl": [
+            {
+              "name": "event"
+            }
+          ]
+        },
+        {
+          "name": "WorkspaceResult",
+          "field": [
+            {
+              "name": "commit",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "commit"
+            },
+            {
+              "name": "branch",
+              "number": 2,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "branch"
+            },
+            {
+              "name": "pending_submodules",
+              "number": 3,
+              "label": "LABEL_REPEATED",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".gitd.v1.PendingSubmodule",
+              "jsonName": "pendingSubmodules"
+            },
+            {
+              "name": "strategy",
+              "number": 4,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_ENUM",
+              "typeName": ".gitd.v1.Strategy",
+              "jsonName": "strategy"
+            },
+            {
+              "name": "layers",
+              "number": 5,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".gitd.v1.Layers",
+              "jsonName": "layers"
+            }
+          ]
+        },
+        {
+          "name": "UpdateRequest",
+          "field": [
+            {
+              "name": "path",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "path"
+            },
+            {
+              "name": "branch",
+              "number": 2,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "branch"
+            },
+            {
+              "name": "with_submodules",
+              "number": 3,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_BOOL",
+              "jsonName": "withSubmodules"
+            },
+            {
+              "name": "credentials",
+              "number": 4,
+              "label": "LABEL_REPEATED",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".gitd.v1.Credential",
+              "jsonName": "credentials"
+            }
+          ]
+        },
+        {
+          "name": "UpdateResponse",
+          "field": [
+            {
+              "name": "progress",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".gitd.v1.Progress",
+              "oneofIndex": 0,
+              "jsonName": "progress"
+            },
+            {
+              "name": "result",
+              "number": 2,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".gitd.v1.WorkspaceResult",
+              "oneofIndex": 0,
+              "jsonName": "result"
+            }
+          ],
+          "oneofDecl": [
+            {
+              "name": "event"
+            }
+          ]
+        },
+        {
+          "name": "CheckoutRequest",
+          "field": [
+            {
+              "name": "path",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "path"
+            },
+            {
+              "name": "commit",
+              "number": 2,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "commit"
+            },
+            {
+              "name": "with_submodules",
+              "number": 3,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_BOOL",
+              "jsonName": "withSubmodules"
+            },
+            {
+              "name": "credentials",
+              "number": 4,
+              "label": "LABEL_REPEATED",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".gitd.v1.Credential",
+              "jsonName": "credentials"
+            }
+          ]
+        },
+        {
+          "name": "CheckoutResponse",
+          "field": [
+            {
+              "name": "progress",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".gitd.v1.Progress",
+              "oneofIndex": 0,
+              "jsonName": "progress"
+            },
+            {
+              "name": "result",
+              "number": 2,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".gitd.v1.WorkspaceResult",
+              "oneofIndex": 0,
+              "jsonName": "result"
+            }
+          ],
+          "oneofDecl": [
+            {
+              "name": "event"
+            }
+          ]
+        },
+        {
+          "name": "SyncSubmodulesRequest",
+          "field": [
+            {
+              "name": "path",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "path"
+            },
+            {
+              "name": "only_url",
+              "number": 2,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "onlyUrl"
+            },
+            {
+              "name": "credentials",
+              "number": 3,
+              "label": "LABEL_REPEATED",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".gitd.v1.Credential",
+              "jsonName": "credentials"
+            }
+          ]
+        },
+        {
+          "name": "SyncSubmodulesResponse",
+          "field": [
+            {
+              "name": "progress",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".gitd.v1.Progress",
+              "oneofIndex": 0,
+              "jsonName": "progress"
+            },
+            {
+              "name": "result",
+              "number": 2,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".gitd.v1.SyncSubmodulesResult",
+              "oneofIndex": 0,
+              "jsonName": "result"
+            }
+          ],
+          "oneofDecl": [
+            {
+              "name": "event"
+            }
+          ]
+        },
+        {
+          "name": "SyncSubmodulesResult",
+          "field": [
+            {
+              "name": "submodules",
+              "number": 1,
+              "label": "LABEL_REPEATED",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".gitd.v1.SubmoduleState",
+              "jsonName": "submodules"
+            },
+            {
+              "name": "pending_submodules",
+              "number": 2,
+              "label": "LABEL_REPEATED",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".gitd.v1.PendingSubmodule",
+              "jsonName": "pendingSubmodules"
+            }
+          ]
+        },
+        {
+          "name": "DescribeRequest",
+          "field": [
+            {
+              "name": "path",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "path"
+            }
+          ]
+        },
+        {
+          "name": "DescribeResponse",
+          "field": [
+            {
+              "name": "url",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "url"
+            },
+            {
+              "name": "commit",
+              "number": 2,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "commit"
+            },
+            {
+              "name": "branch",
+              "number": 3,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "branch"
+            },
+            {
+              "name": "modified",
+              "number": 4,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_BOOL",
+              "jsonName": "modified"
+            },
+            {
+              "name": "submodules",
+              "number": 5,
+              "label": "LABEL_REPEATED",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".gitd.v1.SubmoduleState",
+              "jsonName": "submodules"
+            },
+            {
+              "name": "strategy",
+              "number": 6,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_ENUM",
+              "typeName": ".gitd.v1.Strategy",
+              "jsonName": "strategy"
+            },
+            {
+              "name": "layers",
+              "number": 7,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".gitd.v1.Layers",
+              "jsonName": "layers"
+            }
+          ]
+        },
+        {
+          "name": "RemoveRequest",
+          "field": [
+            {
+              "name": "path",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "path"
+            }
+          ]
+        },
+        {
+          "name": "RemoveResponse"
+        },
+        {
+          "name": "AdoptRequest",
+          "field": [
+            {
+              "name": "path",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "path"
+            }
+          ]
+        },
+        {
+          "name": "AdoptResponse",
+          "field": [
+            {
+              "name": "progress",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".gitd.v1.Progress",
+              "oneofIndex": 0,
+              "jsonName": "progress"
+            },
+            {
+              "name": "result",
+              "number": 2,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".gitd.v1.AdoptResult",
+              "oneofIndex": 0,
+              "jsonName": "result"
+            }
+          ],
+          "oneofDecl": [
+            {
+              "name": "event"
+            }
+          ]
+        },
+        {
+          "name": "AdoptResult",
+          "field": [
+            {
+              "name": "bytes_released",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_INT64",
+              "jsonName": "bytesReleased"
+            }
+          ]
+        },
+        {
+          "name": "PublishRequest",
+          "field": [
+            {
+              "name": "path",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "path"
+            },
+            {
+              "name": "branch",
+              "number": 2,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "branch"
+            },
+            {
+              "name": "credentials",
+              "number": 3,
+              "label": "LABEL_REPEATED",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".gitd.v1.Credential",
+              "jsonName": "credentials"
+            }
+          ]
+        },
+        {
+          "name": "PublishedRepository",
+          "field": [
+            {
+              "name": "url",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "url"
+            },
+            {
+              "name": "path",
+              "number": 2,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "path"
+            },
+            {
+              "name": "commit",
+              "number": 3,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "commit"
+            },
+            {
+              "name": "subjects",
+              "number": 4,
+              "label": "LABEL_REPEATED",
+              "type": "TYPE_STRING",
+              "jsonName": "subjects"
+            }
+          ]
+        },
+        {
+          "name": "PublishResponse",
+          "field": [
+            {
+              "name": "branch",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "branch"
+            },
+            {
+              "name": "repository",
+              "number": 2,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".gitd.v1.PublishedRepository",
+              "jsonName": "repository"
+            },
+            {
+              "name": "submodules",
+              "number": 3,
+              "label": "LABEL_REPEATED",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".gitd.v1.PublishedRepository",
+              "jsonName": "submodules"
+            }
+          ]
+        },
+        {
+          "name": "ProbeRequest",
+          "field": [
+            {
+              "name": "url",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "url"
+            },
+            {
+              "name": "credentials",
+              "number": 2,
+              "label": "LABEL_REPEATED",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".gitd.v1.Credential",
+              "jsonName": "credentials"
+            }
+          ]
+        },
+        {
+          "name": "ProbeResponse",
+          "field": [
+            {
+              "name": "access",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_ENUM",
+              "typeName": ".gitd.v1.ProbeResponse.Access",
+              "jsonName": "access"
+            },
+            {
+              "name": "branches",
+              "number": 2,
+              "label": "LABEL_REPEATED",
+              "type": "TYPE_STRING",
+              "jsonName": "branches"
+            },
+            {
+              "name": "default_branch",
+              "number": 3,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "defaultBranch"
+            },
+            {
+              "name": "failure",
+              "number": 4,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".gitd.v1.GitFailure",
+              "jsonName": "failure"
+            },
+            {
+              "name": "commits",
+              "number": 5,
+              "label": "LABEL_REPEATED",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".gitd.v1.ProbeResponse.CommitsEntry",
+              "jsonName": "commits"
+            }
+          ],
+          "nestedType": [
+            {
+              "name": "CommitsEntry",
+              "field": [
+                {
+                  "name": "key",
+                  "number": 1,
+                  "label": "LABEL_OPTIONAL",
+                  "type": "TYPE_STRING",
+                  "jsonName": "key"
+                },
+                {
+                  "name": "value",
+                  "number": 2,
+                  "label": "LABEL_OPTIONAL",
+                  "type": "TYPE_STRING",
+                  "jsonName": "value"
+                }
+              ],
+              "options": {
+                "mapEntry": true
+              }
+            }
+          ],
+          "enumType": [
+            {
+              "name": "Access",
+              "value": [
+                {
+                  "name": "ACCESS_UNSPECIFIED",
+                  "number": 0
+                },
+                {
+                  "name": "ACCESS_PUBLIC",
+                  "number": 1
+                },
+                {
+                  "name": "ACCESS_REACHABLE",
+                  "number": 2
+                },
+                {
+                  "name": "ACCESS_DENIED",
+                  "number": 3
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "RetireRequest",
+          "field": [
+            {
+              "name": "unused_for_seconds",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_INT64",
+              "jsonName": "unusedForSeconds"
+            }
+          ]
+        },
+        {
+          "name": "RetireResponse",
+          "field": [
+            {
+              "name": "retired",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_INT32",
+              "jsonName": "retired"
+            },
+            {
+              "name": "freed_bytes",
+              "number": 2,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_INT64",
+              "jsonName": "freedBytes"
+            }
+          ]
+        },
+        {
+          "name": "InfoRequest"
+        },
+        {
+          "name": "InfoResponse",
+          "field": [
+            {
+              "name": "version",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "version"
+            },
+            {
+              "name": "git_version",
+              "number": 2,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "gitVersion"
+            },
+            {
+              "name": "pools",
+              "number": 3,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_INT32",
+              "jsonName": "pools"
+            },
+            {
+              "name": "pools_bytes",
+              "number": 4,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_INT64",
+              "jsonName": "poolsBytes"
+            },
+            {
+              "name": "strategy",
+              "number": 5,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_ENUM",
+              "typeName": ".gitd.v1.Strategy",
+              "jsonName": "strategy"
+            },
+            {
+              "name": "strategy_reason",
+              "number": 6,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "strategyReason"
+            },
+            {
+              "name": "templates",
+              "number": 7,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_INT32",
+              "jsonName": "templates"
+            },
+            {
+              "name": "templates_bytes",
+              "number": 8,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_INT64",
+              "jsonName": "templatesBytes"
+            }
+          ]
+        }
+      ],
+      "enumType": [
+        {
+          "name": "Strategy",
+          "value": [
+            {
+              "name": "STRATEGY_UNSPECIFIED",
+              "number": 0
+            },
+            {
+              "name": "STRATEGY_COPY",
+              "number": 1
+            },
+            {
+              "name": "STRATEGY_OVERLAY",
+              "number": 2
+            },
+            {
+              "name": "STRATEGY_REFLINK",
+              "number": 3
+            }
+          ]
+        }
+      ],
+      "service": [
+        {
+          "name": "WorkspaceService",
+          "method": [
+            {
+              "name": "Prepare",
+              "inputType": ".gitd.v1.PrepareRequest",
+              "outputType": ".gitd.v1.PrepareResponse",
+              "serverStreaming": true
+            },
+            {
+              "name": "Update",
+              "inputType": ".gitd.v1.UpdateRequest",
+              "outputType": ".gitd.v1.UpdateResponse",
+              "serverStreaming": true
+            },
+            {
+              "name": "Checkout",
+              "inputType": ".gitd.v1.CheckoutRequest",
+              "outputType": ".gitd.v1.CheckoutResponse",
+              "serverStreaming": true
+            },
+            {
+              "name": "SyncSubmodules",
+              "inputType": ".gitd.v1.SyncSubmodulesRequest",
+              "outputType": ".gitd.v1.SyncSubmodulesResponse",
+              "serverStreaming": true
+            },
+            {
+              "name": "Describe",
+              "inputType": ".gitd.v1.DescribeRequest",
+              "outputType": ".gitd.v1.DescribeResponse"
+            },
+            {
+              "name": "Remove",
+              "inputType": ".gitd.v1.RemoveRequest",
+              "outputType": ".gitd.v1.RemoveResponse"
+            },
+            {
+              "name": "Adopt",
+              "inputType": ".gitd.v1.AdoptRequest",
+              "outputType": ".gitd.v1.AdoptResponse",
+              "serverStreaming": true
+            },
+            {
+              "name": "Publish",
+              "inputType": ".gitd.v1.PublishRequest",
+              "outputType": ".gitd.v1.PublishResponse"
+            }
+          ]
+        },
+        {
+          "name": "RepositoryService",
+          "method": [
+            {
+              "name": "Probe",
+              "inputType": ".gitd.v1.ProbeRequest",
+              "outputType": ".gitd.v1.ProbeResponse"
+            }
+          ]
+        },
+        {
+          "name": "ServerService",
+          "method": [
+            {
+              "name": "Info",
+              "inputType": ".gitd.v1.InfoRequest",
+              "outputType": ".gitd.v1.InfoResponse"
+            },
+            {
+              "name": "Retire",
+              "inputType": ".gitd.v1.RetireRequest",
+              "outputType": ".gitd.v1.RetireResponse"
+            }
+          ]
+        }
+      ],
+      "options": {
+        "goPackage": "github.com/dooservice/gitd/gen/go/gitd/v1;gitdv1"
+      },
+      "syntax": "proto3"
+    }
+  ]
+}

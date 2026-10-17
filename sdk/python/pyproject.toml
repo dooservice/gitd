@@ -1,0 +1,34 @@
+[build-system]
+requires = ["hatchling>=1.32.4"]
+build-backend = "hatchling.build"
+
+[project]
+name = "gitd"
+version = "0.7.0"
+description = "Client for gitd: instant, secretless git checkouts for agent sandboxes"
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.11"
+keywords = ["git", "ai-agents", "sandbox", "workspace", "grpc"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Operating System :: POSIX :: Linux",
+  "Topic :: Software Development :: Version Control :: Git",
+]
+dependencies = [
+  "grpcio>=1.84.0",
+  "grpcio-status>=1.84.0",
+  "protobuf>=7.36.2",
+]
+
+[project.urls]
+Homepage = "https://github.com/dooservice/gitd"
+Source = "https://github.com/dooservice/gitd/tree/main/sdk/python"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/gitd"]
+
+[tool.ruff]
+line-length = 110
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "N", "SIM"]

@@ -7,8 +7,10 @@ build:
 	CGO_ENABLED=0 go build -trimpath -ldflags "$(LDFLAGS)" -o bin/gitd ./cmd/gitd
 	CGO_ENABLED=0 go build -trimpath -ldflags "$(LDFLAGS)" -o bin/gitd-mount ./cmd/gitd-mount
 
+# gen/ for Go, and the contract the Python client reads at run time, as indented JSON.
 generate:
 	buf generate
+	buf build --exclude-source-info --as-file-descriptor-set -o -#format=json | python3 -m json.tool --indent 2 > sdk/python/src/gitd/contract.json
 
 lint:
 	buf lint
