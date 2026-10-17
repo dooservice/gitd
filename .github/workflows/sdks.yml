@@ -1,0 +1,50 @@
+name: sdks
+
+# Publishes the clients with each release: gitd on PyPI, gitd-client on npm. Both registries
+# trust this workflow by OIDC (trusted publishing), so no token is kept anywhere.
+on:
+  push:
+    tags:
+      - "[0-9]*.[0-9]*.[0-9]*"
+
+jobs:
+  python:
+    runs-on: ubuntu-24.04
+    environment: pypi
+    permissions:
+      contents: read
+      id-token: write
+    defaults:
+      run:
+        working-directory: sdk/python
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: The package's version is the release's
+        run: grep -qx "version = \"${GITHUB_REF_NAME}\"" pyproject.toml
+      - run: pip install build && python -m build
+      - uses: pypa/gh-action-pypi-publish@v1.14.2
+        with:
+          packages-dir: sdk/python/dist
+
+  typescript:
+    runs-on: ubuntu-24.04
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write
+    defaults:
+      run:
+        working-directory: sdk/typescript
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          registry-url: https://registry.npmjs.org
+      - name: The package's version is the release's
+        run: '[ "$(node -p "require(\"./package.json\").version")" = "${GITHUB_REF_NAME}" ]'
+      - run: npm ci
+      - run: npm publish --access public
