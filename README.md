@@ -8,15 +8,16 @@ copy and publish a branch; they never see your token.
 Give ten AI agents, CI jobs or preview environments the same repository and you usually get
 ten full clones, ten fetches over the network, and a token inside every sandbox. gitd
 fetches each repository once into a **pool** and makes **workspaces** that borrow its
-objects: a new workspace takes about half a second, holds no copy of the history, and
-holds no credential. When an agent is done it asks gitd to **publish** its commits as a new
+objects: a new workspace needs no download, holds no copy of the history, and holds no
+credential. When an agent is done it asks gitd to **publish** its commits as a new
 branch, and gitd pushes from the pool with the token it keeps.
 
 - **Secretless.** Credentials live in gitd, never in a workspace, a sandbox, an agent's
   context or a command line. Pushing happens from the pool, so a hostile `insteadOf` or
   `http.proxy` left in a workspace never sees where the token goes.
-- **Instant.** After the first fetch, a workspace is ready in about half a second, whatever
-  the size of the repository.
+- **Fast.** The repository is fetched once; every workspace after that only writes its
+  files: half a second for a small repository, under three seconds for kubernetes (see the
+  [benchmark](#benchmark)), against twelve for a clone.
 - **Made for sandboxes.** A workspace mounts into a container next to the pools, read only:
   each sandbox sees its own checkout and nothing else.
 - **Any git host.** GitHub, GitLab (nested groups included), Bitbucket, Gitea, Forgejo,

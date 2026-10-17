@@ -1,7 +1,8 @@
 # gitd — design
 
 `gitd` gives **instant, secretless git checkouts to agent sandboxes**: AI agents, CI jobs
-or preview environments get a workspace of a repository in about half a second, work in it
+or preview environments get a workspace of a repository in the seconds it takes to write
+its files, with no download, work in it
 with plain git, and have their commits published as a branch, without ever holding the
 credential. To do so it keeps, on one server, a cache of each repository (its pool), the
 workspaces that borrow from it, their submodules, and the credentials they are read and
