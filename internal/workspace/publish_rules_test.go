@@ -106,13 +106,25 @@ func TestAWorkspaceThatRenamesItsRepositoryIsNotOneGitdMade(t *testing.T) {
 // one upstream with one commit on main, and templates made by treeMounter.
 func newTestWorkspaces(t *testing.T, repositories ...repo.Repo) (*Workspaces, string) {
 	t.Helper()
+	return newTestWorkspacesOf(t, map[string]string{"README.md": "hi\n"}, repositories...)
+}
+
+// newTestWorkspacesOf are newTestWorkspaces whose upstream's first commit holds files.
+func newTestWorkspacesOf(t *testing.T, files map[string]string, repositories ...repo.Repo) (*Workspaces, string) {
+	t.Helper()
 	root := t.TempDir()
 	upstream, pools, roots := filepath.Join(root, "upstream"), filepath.Join(root, "pools"), filepath.Join(root, "workspaces")
 	run(t, root, "init", "-q", "-b", "main", upstream)
-	if err := os.WriteFile(filepath.Join(upstream, "README.md"), []byte("hi\n"), 0o644); err != nil {
-		t.Fatal(err)
+	for name, content := range files {
+		file := filepath.Join(upstream, filepath.FromSlash(name))
+		if err := os.MkdirAll(filepath.Dir(file), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(file, []byte(content), 0o644); err != nil {
+			t.Fatal(err)
+		}
 	}
-	run(t, upstream, "add", "README.md")
+	run(t, upstream, "add", "-A")
 	run(t, upstream, "commit", "-q", "-m", "first")
 	for _, repository := range repositories {
 		run(t, root, "clone", "-q", "--bare", upstream, repository.Dir(pools))
