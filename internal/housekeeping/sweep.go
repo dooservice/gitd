@@ -21,10 +21,14 @@ func (keeper *Keeper) Sweep() {
 	}
 	if keeper.templates != nil {
 		keeper.templates.Sweep()
+		keeper.templates.SweepWarm()
 	}
 	if keeper.overlay != nil && keeper.templates != nil {
-		// Layers whose workspace is gone free their templates for retirement.
+		// Layers whose workspace is gone free their templates and warm layers for retirement.
 		for _, record := range keeper.overlay.Sweep() {
+			if record.Warm != "" {
+				_ = keeper.templates.LetWarm(context.Background(), record.Warm, record.Workspace)
+			}
 			if key, ok := keeper.templates.KeyOf(record.Template); ok {
 				_ = keeper.templates.Let(context.Background(), key, record.Workspace)
 			}

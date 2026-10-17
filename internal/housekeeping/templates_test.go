@@ -103,4 +103,4 @@ func TestTheSweepFreesTheTemplateOfAWorkspaceThatIsGoneAndProbesLeftBehind(t *te
 type noMounter struct{}
 
 func (noMounter) MountOverlay([]string, string, string, string) error { return nil }
-func (noMounter) Unmount(string) error                              { return nil }
+func (noMounter) Unmount(string) error                                { return nil }

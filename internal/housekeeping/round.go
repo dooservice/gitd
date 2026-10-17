@@ -13,6 +13,8 @@ func (keeper *Keeper) round(ctx context.Context) {
 	keeper.Remount(ctx)
 	// Templates first: one retired lets go of its pools, which may then retire this round.
 	if keeper.templates != nil {
+		// A warm layer took installing dependencies to make: kept as long as a pool is.
+		keeper.templates.RetireWarm(ctx, keeper.settings.RetireAfter)
 		keeper.templates.Retire(ctx, keeper.settings.TemplateGrace)
 		var count, bytes int64
 		for _, key := range keeper.templates.All() {
