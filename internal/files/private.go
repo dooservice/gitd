@@ -1,14 +1,15 @@
-package connections
+// Package files writes the files gitd keeps for itself under its state directory.
+package files
 
 import (
 	"os"
 	"path/filepath"
 )
 
-// writeAtomically writes data to path so that a crash leaves the old file or the new one,
+// WritePrivate writes data to path so that a crash leaves the old file or the new one,
 // never half of either: written aside, synced, moved into place, and the directory synced.
 // The file is readable by gitd's user only.
-func writeAtomically(path string, data []byte) error {
+func WritePrivate(path string, data []byte) error {
 	directory := filepath.Dir(path)
 	aside, err := os.CreateTemp(directory, ".writing-*")
 	if err != nil {

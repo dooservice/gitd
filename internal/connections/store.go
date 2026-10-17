@@ -13,6 +13,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/dooservice/gitd/internal/files"
 	"github.com/dooservice/gitd/internal/secrets"
 )
 
@@ -107,7 +108,7 @@ func (store *Store) keep(record Record, secret []byte) error {
 	if err != nil {
 		return err
 	}
-	if err := writeAtomically(store.path(record.ID), data); err != nil {
+	if err := files.WritePrivate(store.path(record.ID), data); err != nil {
 		return fmt.Errorf("connections: %w", err)
 	}
 	store.guard.Lock()
