@@ -3,6 +3,9 @@
 **Instant, secretless git checkouts for agent sandboxes.** Your agents work in their own
 copy and publish a branch; they never see your token.
 
+**[gitd.dev](https://gitd.dev)** · [Get started](#quick-start) · [Benchmark](#benchmark) ·
+[Threat model](docs/THREAT_MODEL.md) · [Roadmap](docs/ROADMAP.md)
+
 ![Without gitd, three sandboxes each clone the repository and hold a token; with gitd, one pool and one template are shared, each sandbox's workspace is a thin copy-on-write layer, and gitd keeps the token and publishes the branch](docs/gitd.svg)
 
 Give a hundred AI agents, CI jobs or preview environments the same repository and you
