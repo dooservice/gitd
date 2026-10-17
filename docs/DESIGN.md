@@ -215,15 +215,15 @@ and a server stream is a POST whose answer is a sequence of length-prefixed JSON
 ### Command line and MCP
 The same binary is its own client: `gitd` alone (or `gitd serve`) serves, and `gitd
 prepare`, `update`, `checkout`, `submodules`, `describe`, `publish`, `remove`, `adopt`,
-`probe`, `info` and `retire` call the gitd that serves, with progress on a terminal and
-`--json` for scripts. A command brings a credential only from an environment variable or a
+`probe`, `info`, `retire` and `audit` call the gitd that serves, with progress on a
+terminal and `--json` for scripts. A command brings a credential only from an environment variable or a
 key path, never on its own command line. The single-dash flags of units written before
 the command line (`-config`, `-socket`, `-version`) still read.
 
-`gitd mcp` answers the Model Context Protocol over stdio with seven tools —
+`gitd mcp` answers the Model Context Protocol over stdio with eight tools —
 `prepare_workspace`, `update_workspace`, `checkout_commit`, `describe_workspace`,
-`publish_branch`, `remove_workspace`, `probe_repository` — each saying whether it only
-reads or destroys. **No tool takes a credential**, and a test keeps it so: an agent deals
+`publish_branch`, `remove_workspace`, `probe_repository`, `read_audit_log` — each saying
+whether it only reads or destroys. **No tool takes a credential**, and a test keeps it so: an agent deals
 in paths, commits and branches, and gitd in secrets.
 
 ---
@@ -310,6 +310,18 @@ when the workspace's own repository brings no new commit (`NOTHING_NEW`). What c
 carries each repository's new commit subjects, for the client to title the requests it
 opens; gitd opens none.
 
+**Rules and record.** With `[publish] branch_prefix` set (`"agents/"`), a branch that does
+not start with it is refused (`BRANCH_REFUSED`) before anything is staged: with pushes
+already limited to new branches and never forced, agents stay off every branch people use.
+Every publish, done or refused, is recorded in the **audit log** — when, the workspace, its
+repository, the branch, and what was pushed or why it was refused — as one `AuditEntry` per
+line, in its JSON form, in `<state>/audit/publishes.jsonl`, synced before the call
+answers. The file is rotated at `[audit] rotate_bytes` and rotated files are deleted after
+`keep`; a line a crash left half written is skipped and never joins the next. `Audit`
+reads it newest first, by time and repository, as `gitd audit` and `read_audit_log` do. A
+publish is done by the time it is recorded, so an entry that cannot be written is logged
+as an error rather than answered as one.
+
 ### Remove (`Remove`)
 Deletes a workspace. Its pool stays; when no workspace borrows from it for a configurable
 time, maintenance retires it.
@@ -372,6 +384,7 @@ Connect codes with a typed detail (`GitFailure`) saying what happened and what g
 | `TIMEOUT` | git did not finish in time | `DEADLINE_EXCEEDED` |
 | `CORRUPT` | `fsck` found missing objects | `DATA_LOSS` |
 | `NOTHING_NEW` | `Publish` found no new commit to push | `FAILED_PRECONDITION` |
+| `BRANCH_REFUSED` | `Publish` to a branch outside `[publish] branch_prefix` | `PERMISSION_DENIED` |
 | `GIT_FAILED` | Any other git failure | `INTERNAL` |
 
 A call cancelled or out of time without git failing answers `CANCELED` or
@@ -388,6 +401,7 @@ A client tells its users what happened from the reason, never by parsing the mes
   `gitd_pool_bytes` by repository, and `gitd_git_processes`.
 - **Logs** per call, with the repository, the operation and what git said; never
   credentials.
+- **The audit log**: every publish, done or refused (see *Publish*).
 
 ---
 

@@ -73,6 +73,7 @@ instance in Claude Code's `.mcp.json` or Cursor's `mcp.json`:
 | `publish_branch` | Its commits pushed to a new branch, for a pull request |
 | `remove_workspace` | Deleted; its pool stays |
 | `probe_repository` | Whether it can be read, its default branch and branches |
+| `read_audit_log` | The publishes done or refused, newest first |
 
 No tool takes a credential, and each says whether it only reads or destroys.
 
@@ -87,6 +88,7 @@ gitd describe PATH                   gitd publish PATH BRANCH
 gitd submodules PATH                 gitd remove PATH
 gitd probe URL                       gitd adopt PATH
 gitd info                            gitd retire [--unused 720h]
+gitd audit [--since 24h] [--repository URL] [--limit N]
 gitd mcp
 ```
 
@@ -117,6 +119,27 @@ token reaches git as an HTTP header in its environment, scoped to that one repos
 key, through `GIT_SSH_COMMAND`, with hosts checked against known keys (GitHub, GitLab,
 Bitbucket and Codeberg are built in). A caller may still send a credential with a request,
 which wins over a kept one of the same prefix.
+
+## Publishing rules
+
+Agents publish only new branches, never forced. A prefix keeps them off the branches people
+use, and every publish, done or refused, is on the record:
+
+```toml
+[publish]
+branch_prefix = "agents/"      # "main" or "release/1.2" is refused: BRANCH_REFUSED
+```
+
+```sh
+$ gitd audit --since 24h
+2026-10-17 07:38:36  agents/x  https://github.com/octocat/hello-world  /var/lib/gitd/workspaces/agent-1
+  refused, AUTH_REQUIRED: publishing takes a token, and none was given
+2026-10-17 07:38:36  master  https://github.com/octocat/hello-world  /var/lib/gitd/workspaces/agent-1
+  refused, BRANCH_REFUSED: "master" does not start with "agents/": gitd publishes only to branches that do
+```
+
+The log is `<state>/audit/publishes.jsonl`, one JSON entry per line, rotated at 16 MiB and
+kept for a year (`[audit] rotate_bytes`, `keep`); the API, the clients and MCP read it too.
 
 ## Benchmark
 
@@ -165,6 +188,8 @@ Every key has a default; [`packaging/gitd.toml`](packaging/gitd.toml) shows them
 | `metrics` | empty (off) | Where Prometheus metrics are served, e.g. `127.0.0.1:9419` |
 | `known_hosts` | `[]` | Files of SSH host keys trusted besides the built-in ones |
 | `[[credentials]]` | none | Credentials gitd keeps, by URL prefix |
+| `[publish]` | `branch_prefix = ""` (any new branch) | What every published branch must start with |
+| `[audit]` | rotate at 16 MiB, keep a year | How the audit log of every publish is kept |
 | `[hosts."<host>"]` | — | `https_port`, `ssh_port`, `ssh_user` of a host not on the usual ones |
 | `[limits]` | 4 fetches, 8 writes, 32 queued, 5m wait, 30m per call | How much runs at once and for how long |
 | `[housekeeping]` | every 6h, retire after 30 days | Pool maintenance and retirement |
