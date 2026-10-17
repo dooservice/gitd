@@ -30,6 +30,26 @@ and gitd pushes from the pool with the token it keeps.
 - **For agents.** `gitd mcp` offers it as Model Context Protocol tools, none of which takes a
   credential.
 
+## Why gitd
+
+When agents write code, each needs its own copy of the repository, and the usual answer —
+one clone each — does not scale. Those who run agents at scale found it first:
+
+- **Uber** built GitFarm, a service that keeps its repositories checked out and ready,
+  because every system cloned on its own and a cold clone of its monorepo took 10 to 15
+  minutes ([Uber Engineering](https://www.uber.com/blog/gitfarm-as-a-service/)).
+- **GitHub**, whose git activity doubled in a year to 473.3 billion events a month, is
+  rebuilding its git infrastructure for the scale of agents
+  ([GitHub](https://x.com/github/status/2107589127051063771)).
+- **Anthropic** built its own version control, Scion, in five months, as its merges went
+  from about 2,500 to over 30,000 a day: agents and CI are always online, so a full copy for
+  each is wasted work ([The Register](https://www.theregister.com/a/5302943)).
+
+None of them is available to anyone else. gitd is: open source, on the official git, with
+one fetch per repository, a copy per agent in milliseconds, and the token kept out of every
+sandbox. And for most teams the bottleneck is no longer git but reviewing what agents do,
+which is why every pull request gitd opens says what it checked.
+
 ## Quick start
 
 With Docker on Linux, two sandboxes with copy-on-write workspaces of one repository, gitd
