@@ -16,6 +16,7 @@ import (
 
 	gitdv1 "github.com/dooservice/gitd/gen/go/gitd/v1"
 	"github.com/dooservice/gitd/internal/credentials"
+	"github.com/dooservice/gitd/internal/events"
 	"github.com/dooservice/gitd/internal/git"
 	"github.com/dooservice/gitd/internal/lock"
 	"github.com/dooservice/gitd/internal/pool"
@@ -39,6 +40,8 @@ type Workspaces struct {
 	// templates and maker make workspaces from templates; a nil maker writes every file.
 	templates *template.Store
 	maker     strategy.Maker
+	// events, when set, are told what happens to each workspace.
+	events *events.Bus
 	// publishing is the rules publishes follow.
 	publishing Publishing
 }

@@ -2,6 +2,7 @@ package workspace
 
 import (
 	"context"
+	gitdv1 "github.com/dooservice/gitd/gen/go/gitd/v1"
 	"path/filepath"
 
 	"github.com/dooservice/gitd/internal/git"
@@ -32,11 +33,23 @@ func (workspaces *Workspaces) note(ctx context.Context, path string, used []repo
 
 // settled notes what a workspace just made or moved borrows from, and the commit it is now
 // on, which is what its changes are read against from then on.
+//
+// A workspace with no commit noted before was made; one with a commit was moved, which
+// changes it.
 func (workspaces *Workspaces) settled(ctx context.Context, work job, result Result, used []repo.Repo) error {
 	if err := workspaces.note(ctx, work.path, used); err != nil {
 		return err
 	}
-	return workspaces.pools.SetBase(ctx, work.repository, work.path, result.Commit)
+	_, moved := workspaces.pools.Base(work.repository, work.path)
+	if err := workspaces.pools.SetBase(ctx, work.repository, work.path, result.Commit); err != nil {
+		return err
+	}
+	kind := gitdv1.WatchResponse_KIND_MADE
+	if moved {
+		kind = gitdv1.WatchResponse_KIND_CHANGED
+	}
+	workspaces.events.Tell(&gitdv1.WatchResponse{Kind: kind, Path: work.path})
+	return nil
 }
 
 // bringUp borrows the pool again, fetches its branches into the workspace — on this disk,

@@ -39,6 +39,7 @@ func branchAllowed(branch, prefix string) error {
 // record keeps what a publish did, or why it was refused. A publish is done by the time it
 // is recorded, so an entry that cannot be written is logged as an error, not answered as one.
 func (workspaces *Workspaces) record(entry *gitdv1.AuditEntry, answer *gitdv1.PublishResponse, err error) {
+	workspaces.tellPublish(entry, answer, err)
 	recorder := workspaces.publishing.Recorder
 	if recorder == nil {
 		return
@@ -57,4 +58,16 @@ func (workspaces *Workspaces) record(entry *gitdv1.AuditEntry, answer *gitdv1.Pu
 		slog.Error("a publish is missing from the audit log", "workspace", entry.GetWorkspace(),
 			"branch", entry.GetBranch(), "error", err)
 	}
+}
+
+// tellPublish tells the watchers of a workspace that it published, with its pull request,
+// or that a publish was refused, and why.
+func (workspaces *Workspaces) tellPublish(entry *gitdv1.AuditEntry, answer *gitdv1.PublishResponse, err error) {
+	event := &gitdv1.WatchResponse{Kind: gitdv1.WatchResponse_KIND_PUBLISHED, Path: entry.GetWorkspace(), Branch: entry.GetBranch()}
+	if err != nil {
+		event.Kind, event.Detail = gitdv1.WatchResponse_KIND_REFUSED, err.Error()
+	} else {
+		event.Detail = answer.GetPullRequest().GetUrl()
+	}
+	workspaces.events.Tell(event)
 }

@@ -87,5 +87,9 @@ func (workspaces *Workspaces) Remove(ctx context.Context, request *gitdv1.Remove
 	if err := workspaces.pools.ForgetBase(ctx, *held, path); err != nil {
 		return err
 	}
-	return workspaces.pools.Forget(ctx, *held, path)
+	if err := workspaces.pools.Forget(ctx, *held, path); err != nil {
+		return err
+	}
+	workspaces.events.Tell(&gitdv1.WatchResponse{Kind: gitdv1.WatchResponse_KIND_REMOVED, Path: path})
+	return nil
 }
