@@ -1,0 +1,58 @@
+name: github-e2e
+
+# gitd against GitHub itself (e2e/github.sh): the gitd-e2e App, installed on
+# dooservice/gitd-e2e only, publishes a pull request as its bot and is refused a change to
+# the CI. Skipped where the App's secrets are not set, as in forks.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: github-e2e
+  cancel-in-progress: false
+
+jobs:
+  github:
+    runs-on: ubuntu-latest
+    env:
+      GITD_E2E_APP_ID: ${{ secrets.GITD_E2E_APP_ID }}
+      GITD_E2E_APP_KEY: ${{ secrets.GITD_E2E_APP_KEY }}
+    steps:
+      - name: the App's secrets are set
+        id: secrets
+        run: |
+          if [ -n "$GITD_E2E_APP_ID" ] && [ -n "$GITD_E2E_APP_KEY" ]; then echo "set=true" >> "$GITHUB_OUTPUT"; fi
+      - uses: actions/checkout@v7
+        if: steps.secrets.outputs.set
+      - uses: actions/setup-go@v7
+        if: steps.secrets.outputs.set
+        with:
+          go-version-file: go.mod
+      - run: make build
+        if: steps.secrets.outputs.set
+      - name: gitd against GitHub
+        if: steps.secrets.outputs.set
+        env:
+          RUN: ${{ github.run_id }}-${{ github.run_attempt }}
+          REVIEWER: ${{ github.actor }}
+        run: e2e/github.sh
+      # The pull request and its branch are this run's to remove, with a token of the same
+      # App made apart from gitd.
+      - uses: actions/create-github-app-token@v2
+        if: always() && steps.secrets.outputs.set
+        id: cleanup
+        with:
+          app-id: ${{ secrets.GITD_E2E_APP_ID }}
+          private-key: ${{ secrets.GITD_E2E_APP_KEY }}
+          repositories: gitd-e2e
+      - name: remove what the run pushed
+        if: always() && steps.secrets.outputs.set
+        env:
+          GH_TOKEN: ${{ steps.cleanup.outputs.token }}
+          RUN: ${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          for branch in "agents/e2e-$RUN" "agents/e2e-ci-$RUN"; do
+            gh pr close --repo dooservice/gitd-e2e "$branch" --delete-branch 2>/dev/null \
+              || gh api -X DELETE "repos/dooservice/gitd-e2e/git/refs/heads/$branch" 2>/dev/null || true
+          done
