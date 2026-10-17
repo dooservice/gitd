@@ -49,7 +49,10 @@ func (pools *Pools) Sync(
 	if existed {
 		lock.ClearStale(dir, pools.staleLock)
 	}
-	access := pools.keys.For(repository, given)
+	access, err := pools.keys.Access(ctx, repository, given, credentials.Read)
+	if err != nil {
+		return accessFailed(repository, err)
+	}
 	if existed {
 		err = pools.fetch(ctx, dir, access, want, false, report)
 	} else {

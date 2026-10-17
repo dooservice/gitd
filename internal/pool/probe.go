@@ -19,7 +19,10 @@ func (pools *Pools) Probe(ctx context.Context, request *gitdv1.ProbeRequest) *gi
 	if !ok {
 		return denied(git.Unnamed(request.GetUrl()))
 	}
-	access := pools.keys.For(repository, credentials.FromProto(request.GetCredentials()))
+	access, err := pools.keys.Access(ctx, repository, credentials.FromProto(request.GetCredentials()), credentials.Read)
+	if err != nil {
+		return denied(accessFailed(repository, err))
+	}
 	out, err := pools.runner.Run(ctx, git.Cmd{Dir: "/", Env: access.Env, Args: []string{
 		"ls-remote", "--symref", "--end-of-options", access.URL, "HEAD", "refs/heads/*",
 	}})

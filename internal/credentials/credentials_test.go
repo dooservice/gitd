@@ -1,7 +1,10 @@
 package credentials
 
 import (
+	"context"
 	"encoding/base64"
+	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -34,19 +37,19 @@ func TestARepositoryIsReadWithTheMostSpecificCredentialAndNoOther(t *testing.T) 
 		{Prefix: "https://github.com/acme/web", Key: "/keys/web"},
 		{Prefix: "https://github.com/other/web", Token: "elsewhere"},
 	}
-	access := keys.For(repository, given)
+	access := accessOf(t, keys, repository, given)
 	if access.URL != "git@github.com:acme/web.git" || !strings.Contains(access.Env[0], "'/keys/web'") {
 		t.Errorf("own key = %+v", access)
 	}
 	public, _ := repo.Of("git@github.com:OCA/web.git")
-	if access := keys.For(public, given); !strings.Contains(access.Env[0], "'/keys/project'") {
+	if access := accessOf(t, keys, public, given); !strings.Contains(access.Env[0], "'/keys/project'") {
 		t.Errorf("project key = %+v", access)
 	}
 	private, _ := repo.Of("git@github.com:other/web.git")
-	if access := keys.For(private, given); access.URL != "https://github.com/other/web" || !access.Offered {
+	if access := accessOf(t, keys, private, given); access.URL != "https://github.com/other/web" || !access.Offered {
 		t.Errorf("token = %+v", access)
 	}
-	if access := keys.For(public, nil); access.Offered || access.Env != nil {
+	if access := accessOf(t, keys, public, nil); access.Offered || access.Env != nil {
 		t.Errorf("nothing = %+v", access)
 	}
 }
@@ -122,7 +125,7 @@ func TestARepositoryIsReadOnThePortsAndAsTheUserOfItsHost(t *testing.T) {
 		"https://github.com/acme/web":              "git@github.com:acme/web.git",
 	} {
 		repository, _ := repo.Of(address)
-		access := keys.For(repository, []Credential{{Key: "/keys/web"}})
+		access := accessOf(t, keys, repository, []Credential{{Key: "/keys/web"}})
 		if access.URL != want {
 			t.Errorf("%s: URL = %q; want %q", address, access.URL, want)
 		}
@@ -136,7 +139,7 @@ func TestATokenIsSentToTheAddressOnTheHostsPort(t *testing.T) {
 	}
 	repository, _ := repo.Of("ssh://git@git.example.com:2222/acme/web.git")
 	given := []Credential{{Prefix: CanonicalPrefix("https://git.example.com:3000/acme"), Token: "secret"}}
-	access := keys.For(repository, given)
+	access := accessOf(t, keys, repository, given)
 	if access.URL != "https://git.example.com:3000/acme/web" || !access.Offered {
 		t.Fatalf("access = %+v", access)
 	}
@@ -166,19 +169,19 @@ func TestACredentialGitdKeepsOpensWhatTheRequestGivesNoneFor(t *testing.T) {
 	header := func(access Access) string { return strings.Join(access.Env, "\n") }
 
 	github, _ := repo.Of("https://github.com/acme/web")
-	if access := keys.For(github, nil); !access.Offered || !strings.Contains(header(access), base64.StdEncoding.EncodeToString([]byte("x-access-token:kept-secret"))) {
+	if access := accessOf(t, keys, github, nil); !access.Offered || !strings.Contains(header(access), base64.StdEncoding.EncodeToString([]byte("x-access-token:kept-secret"))) {
 		t.Errorf("the kept token was not used: %+v", access)
 	}
 	gitlab, _ := repo.Of("https://gitlab.com/acme/tools/web")
-	if access := keys.For(gitlab, nil); !strings.Contains(header(access), base64.StdEncoding.EncodeToString([]byte("oauth2:env-secret"))) {
+	if access := accessOf(t, keys, gitlab, nil); !strings.Contains(header(access), base64.StdEncoding.EncodeToString([]byte("oauth2:env-secret"))) {
 		t.Errorf("the token from the environment was not used: %+v", access)
 	}
 	given := []Credential{{Prefix: "https://github.com/acme", Token: "request-secret"}}
-	if access := keys.For(github, given); !strings.Contains(header(access), base64.StdEncoding.EncodeToString([]byte("x-access-token:request-secret"))) {
+	if access := accessOf(t, keys, github, given); !strings.Contains(header(access), base64.StdEncoding.EncodeToString([]byte("x-access-token:request-secret"))) {
 		t.Errorf("the request's credential did not win over the kept one: %+v", access)
 	}
 	other, _ := repo.Of("https://github.com/other/web")
-	if access := keys.For(other, nil); access.Offered {
+	if access := accessOf(t, keys, other, nil); access.Offered {
 		t.Errorf("a kept credential opened a repository outside its prefix: %+v", access)
 	}
 }
@@ -201,7 +204,7 @@ func TestATokenIsNeverSentToAHostItsPrefixDoesNotName(t *testing.T) {
 	internal := repo.Repo{Host: "169.254.169.254", Path: "latest/meta-data"}
 	for _, prefix := range []string{"", "https://", "git@:"} {
 		given := []Credential{{Prefix: CanonicalPrefix(prefix), Token: "secret"}}
-		access := keys.For(internal, given)
+		access := accessOf(t, keys, internal, given)
 		if access.Offered || strings.Contains(strings.Join(access.Env, " "), base64.StdEncoding.EncodeToString([]byte("x-access-token:secret"))) {
 			t.Errorf("a token with prefix %q is offered to %s", prefix, internal.Host)
 		}
@@ -224,16 +227,76 @@ func TestACredentialKeptWhileGitdRunsIsUsedAtOnce(t *testing.T) {
 	source := &changing{}
 	keys.AlsoKeep(source)
 	repository, _ := repo.Of("https://gitlab.example.com/acme/tools")
-	if keys.For(repository, nil).Offered {
+	if accessOf(t, keys, repository, nil).Offered {
 		t.Fatal("a credential was offered before any was kept")
 	}
 	source.credentials = []Credential{KeptToken("https://gitlab.example.com/acme/", "glpat", "")}
-	access := keys.For(repository, nil)
+	access := accessOf(t, keys, repository, nil)
 	if !access.Offered || !strings.Contains(access.Via, "kept token for https://gitlab.example.com/acme") {
 		t.Errorf("after keeping one: %+v", access)
 	}
 	source.credentials = nil
-	if keys.For(repository, nil).Offered {
+	if accessOf(t, keys, repository, nil).Offered {
 		t.Error("a credential was offered after it was removed")
+	}
+}
+
+// accessOf is how keys reach a repository to read it, failing the test on an error.
+func accessOf(t *testing.T, keys *Keys, repository repo.Repo, given []Credential) Access {
+	t.Helper()
+	access, err := keys.Access(context.Background(), repository, given, Read)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return access
+}
+
+// fixedMinter makes the same token for every repository it reaches, and remembers what
+// each was for.
+type fixedMinter struct {
+	reaches  bool
+	purposes []Purpose
+}
+
+func (minter *fixedMinter) Token(_ context.Context, _ repo.Repo, purpose Purpose) (string, error) {
+	minter.purposes = append(minter.purposes, purpose)
+	if !minter.reaches {
+		return "", fmt.Errorf("%w: not installed", ErrUnreachable)
+	}
+	return "ghs_made", nil
+}
+
+func TestAMintedCredentialMakesATokenForEachRepositoryAndPurpose(t *testing.T) {
+	keys, err := NewKeys(t.TempDir(), nil, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	minter := &fixedMinter{reaches: true}
+	source := &changing{credentials: []Credential{KeptMinter("https://github.com/acme", minter, "GitHub App 7")}}
+	keys.AlsoKeep(source)
+	repository, _ := repo.Of("https://github.com/acme/web")
+	access, err := keys.Access(context.Background(), repository, nil, Write)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !access.Offered || !strings.Contains(access.Env[2], base64.StdEncoding.EncodeToString([]byte("x-access-token:ghs_made"))) ||
+		access.Via != "kept GitHub App 7 for write" || minter.purposes[0] != Write {
+		t.Errorf("access = %+v, purposes %v", access, minter.purposes)
+	}
+}
+
+func TestARepositoryAMintedCredentialCannotReachIsReadAsNothingWouldAndNeverWritten(t *testing.T) {
+	keys, err := NewKeys(t.TempDir(), nil, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	keys.AlsoKeep(&changing{credentials: []Credential{KeptMinter("https://github.com", &fixedMinter{}, "GitHub App 7")}})
+	repository, _ := repo.Of("https://github.com/torvalds/linux")
+	read, err := keys.Access(context.Background(), repository, nil, Read)
+	if err != nil || read.Offered {
+		t.Errorf("read = %+v, %v", read, err)
+	}
+	if _, err := keys.Access(context.Background(), repository, nil, Write); !errors.Is(err, ErrUnreachable) {
+		t.Errorf("write = %v", err)
 	}
 }

@@ -67,7 +67,10 @@ func (pools *Pools) Push(
 	defer release()
 	staged := "refs/gitd/staging/" + branch
 	refspec := staged + ":refs/heads/" + branch
-	access := pools.keys.For(repository, given)
+	access, err := pools.keys.Access(ctx, repository, given, credentials.Write)
+	if err != nil {
+		return accessFailed(repository, err)
+	}
 	if !access.Offered || !strings.HasPrefix(access.URL, "https://") {
 		failure := git.Fail(git.AuthRequired, "publishing takes a token, and none was given")
 		failure.Repository = repository.HTTPS()

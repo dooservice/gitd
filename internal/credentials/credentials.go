@@ -11,6 +11,8 @@
 package credentials
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"net/url"
 	"os"
@@ -24,12 +26,33 @@ import (
 // Credential opens the repositories whose canonical address starts with Prefix, with a
 // token or with the path of a key, whichever it carries. User goes with the token, and
 // empty is the one its host expects (see tokenUser).
+//
+// A credential made for each operation has a Minter instead of a Token, and a Label that
+// names it in the logs.
 type Credential struct {
 	Prefix string
 	Token  string
 	User   string
 	Key    string
+	Minter Minter
+	Label  string
 	stored bool
+}
+
+// Minter makes a token for one repository and one purpose, as a GitHub App does. One that
+// cannot reach a repository answers an error that wraps ErrUnreachable.
+type Minter interface {
+	Token(ctx context.Context, repository repo.Repo, purpose Purpose) (string, error)
+}
+
+// ErrUnreachable is a repository a minted credential cannot reach, such as one a GitHub
+// App is not installed on.
+var ErrUnreachable = errors.New("this credential cannot reach the repository")
+
+// KeptMinter is a credential gitd keeps that makes a token for each operation on the
+// repositories under prefix, named label in the logs.
+func KeptMinter(prefix string, minter Minter, label string) Credential {
+	return Credential{Prefix: CanonicalPrefix(prefix), Minter: minter, Label: label, stored: true}
 }
 
 // FromProto reads the credentials of a request, each prefix in canonical form.
@@ -125,7 +148,7 @@ func tokenUser(host string) string {
 // names no host carries nothing: it would go to any host a repository's submodules name.
 // A key needs no such prefix, as ssh checks every host against the keys it knows.
 func (credential Credential) carries() bool {
-	return credential.Token != "" && credential.NamesHost() || credential.Key != ""
+	return (credential.Token != "" || credential.Minter != nil) && credential.NamesHost() || credential.Key != ""
 }
 
 // NamesHost says whether the prefix names a host, as https://host[/path] does: a token

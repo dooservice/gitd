@@ -1,8 +1,10 @@
 package credentials
 
 import (
+	"context"
 	_ "embed"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -79,11 +81,15 @@ func (keys *Keys) Address(repository repo.Repo) string {
 	return keys.hosts.HTTPS(repository)
 }
 
-// For is how a repository is read: with the most specific credential that opens it, of
-// those the request gives and those gitd keeps, or with nothing when none does. A request's
-// wins over a kept one of the same prefix, so a caller can always say which. One credential
-// and one attempt: nothing here guesses by trying them in turn.
-func (keys *Keys) For(repository repo.Repo, given []Credential) Access {
+// Access is how a repository is reached for a purpose: with the most specific credential
+// that opens it, of those the request gives and those gitd keeps, or with nothing when none
+// does. A request's wins over a kept one of the same prefix, so a caller can always say
+// which. One credential and one attempt: nothing here guesses by trying them in turn.
+//
+// A credential made for each operation — a GitHub App's — is made here, for that one
+// repository and purpose. One that cannot reach the repository reads it as nothing would,
+// so a public repository still reads, and refuses anything else.
+func (keys *Keys) Access(ctx context.Context, repository repo.Repo, given []Credential, purpose Purpose) (Access, error) {
 	candidates := append(append([]Credential(nil), given...), keys.stored...)
 	for _, source := range keys.sources {
 		candidates = append(candidates, source.Credentials()...)
@@ -98,9 +104,23 @@ func (keys *Keys) For(repository repo.Repo, given []Credential) Access {
 		}
 	}
 	if chosen == nil {
-		return Access{URL: keys.Address(repository), Via: "nothing"}
+		return Access{URL: keys.Address(repository), Via: "nothing"}, nil
 	}
-	return keys.access(repository, *chosen)
+	if chosen.Minter != nil {
+		token, err := chosen.Minter.Token(ctx, repository, purpose)
+		switch {
+		case errors.Is(err, ErrUnreachable) && purpose == Read:
+			return Access{URL: keys.Address(repository), Via: "nothing, as " + chosen.Label + " cannot reach it"}, nil
+		case err != nil:
+			return Access{}, fmt.Errorf("%s, for %s: %w", chosen.Label, purpose, err)
+		}
+		made := *chosen
+		made.Token = token
+		access := keys.access(repository, made)
+		access.Via = chosen.kept() + chosen.Label + " for " + purpose.String()
+		return access, nil
+	}
+	return keys.access(repository, *chosen), nil
 }
 
 func (keys *Keys) access(repository repo.Repo, credential Credential) Access {
