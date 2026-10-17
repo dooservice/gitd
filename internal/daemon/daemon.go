@@ -5,6 +5,7 @@ package daemon
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	"github.com/dooservice/gitd/internal/config"
 	"github.com/dooservice/gitd/internal/credentials"
@@ -14,6 +15,7 @@ import (
 	"github.com/dooservice/gitd/internal/metrics"
 	"github.com/dooservice/gitd/internal/pool"
 	"github.com/dooservice/gitd/internal/server"
+	"github.com/dooservice/gitd/internal/strategy"
 	"github.com/dooservice/gitd/internal/template"
 	"github.com/dooservice/gitd/internal/workspace"
 )
@@ -54,6 +56,17 @@ func Run(ctx context.Context, path, socket, version string) error {
 	workspaces := workspace.New(settings.Roots, runner, pools, locks, writes, settings.Housekeeping.StaleLock)
 
 	templates := template.New(settings.Templates(), locks, workspaces)
+	want := strategy.Name(settings.Workspaces.Strategy)
+	if want == "auto" {
+		want = ""
+	}
+	maker, why := strategy.Detect(want, settings.State, settings.Roots, strategy.Kernel{})
+	workspaces.UseTemplates(templates, maker)
+	made := strategy.Copy
+	if maker != nil {
+		made = maker.Name()
+	}
+	slog.Info("workspaces are made by "+string(made), "why", why)
 	keeper := housekeeping.New(pools, templates, runner, settings.Roots, settings.Housekeeping, measured)
 	keeper.Sweep()
 	go keeper.Run(ctx)

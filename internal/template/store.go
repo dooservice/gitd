@@ -155,6 +155,11 @@ func (store *Store) All() []Key {
 	return keys
 }
 
+// KeyOf reads a template's key back from its directory, when the directory is one.
+func (store *Store) KeyOf(dir string) (Key, bool) {
+	return store.keyOf(dir)
+}
+
 // keyOf reads a template's key back from its directory, when the directory is one.
 func (store *Store) keyOf(dir string) (Key, bool) {
 	name := filepath.Base(dir)

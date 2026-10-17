@@ -20,6 +20,8 @@ import (
 	"github.com/dooservice/gitd/internal/lock"
 	"github.com/dooservice/gitd/internal/pool"
 	"github.com/dooservice/gitd/internal/repo"
+	"github.com/dooservice/gitd/internal/strategy"
+	"github.com/dooservice/gitd/internal/template"
 )
 
 // Report hands progress to whoever asked, naming the repository it is about.
@@ -34,6 +36,16 @@ type Workspaces struct {
 	locks     *lock.Locks
 	writes    *lock.Queue
 	staleLock time.Duration
+	// templates and maker make workspaces from templates; a nil maker writes every file.
+	templates *template.Store
+	maker     strategy.Maker
+}
+
+// UseTemplates has new workspaces made from templates by maker, which Detect picked; a nil
+// maker keeps writing every file. Templates are built by the workspaces themselves, so this
+// comes after New.
+func (workspaces *Workspaces) UseTemplates(templates *template.Store, maker strategy.Maker) {
+	workspaces.templates, workspaces.maker = templates, maker
 }
 
 // New returns the workspaces under roots. A root is kept with its symbolic links resolved,

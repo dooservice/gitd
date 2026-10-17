@@ -55,5 +55,8 @@ func (workspaces *Workspaces) Prepare(
 	if held != nil {
 		return workspaces.moveTo(ctx, work)
 	}
+	if workspaces.fromTemplate(work) {
+		return workspaces.createFromTemplate(ctx, work)
+	}
 	return workspaces.create(ctx, work)
 }

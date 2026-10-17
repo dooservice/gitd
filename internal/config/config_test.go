@@ -60,3 +60,15 @@ func TestACredentialNamesExactlyOneSecret(t *testing.T) {
 		}
 	}
 }
+
+func TestAStrategyIsOneGitdKnows(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "gitd.toml")
+	for strategy, valid := range map[string]bool{"": true, "auto": true, "overlay": true, "copy": true, "reflink": true, "fuse": false} {
+		if err := os.WriteFile(path, []byte("[workspaces]\nstrategy = \""+strategy+"\"\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := Load(path); (err == nil) != valid {
+			t.Errorf("strategy %q: %v; valid %v", strategy, err, valid)
+		}
+	}
+}

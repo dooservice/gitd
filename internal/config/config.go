@@ -34,6 +34,7 @@ type Config struct {
 	Hosts       repo.Hosts   `toml:"hosts"`
 	Credentials []Credential `toml:"credentials"`
 
+	Workspaces   Workspaces   `toml:"workspaces"`
 	Limits       Limits       `toml:"limits"`
 	Housekeeping Housekeeping `toml:"housekeeping"`
 }
@@ -49,6 +50,13 @@ type Credential struct {
 	TokenEnv  string `toml:"token_env"`
 	TokenUser string `toml:"token_user"`
 	SSHKey    string `toml:"ssh_key"`
+}
+
+// Workspaces is how new workspaces are made. Strategy "" (or "auto") lets gitd pick: an
+// overlay on a shared template when one can be mounted, else every file written; "overlay"
+// and "copy" ask for one, and "reflink" clones the template to save disk, not time.
+type Workspaces struct {
+	Strategy string `toml:"strategy"`
 }
 
 // Limits bound how much gitd does at once and for how long: fetches and writes running,
@@ -141,6 +149,11 @@ func (settings *Config) normalize() error {
 		hosts[lowered] = host
 	}
 	settings.Hosts = hosts
+	switch settings.Workspaces.Strategy {
+	case "", "auto", "overlay", "copy", "reflink":
+	default:
+		return fmt.Errorf("workspaces: strategy %q is none of auto, overlay, copy and reflink", settings.Workspaces.Strategy)
+	}
 	for index, credential := range settings.Credentials {
 		set := 0
 		for _, source := range []string{credential.TokenFile, credential.TokenEnv, credential.SSHKey} {
