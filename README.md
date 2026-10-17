@@ -189,6 +189,14 @@ Connect or gRPC client can call it, and `buf curl` can too.
   [releases](https://github.com/dooservice/gitd/releases), with its checksum.
 - **Docker:** `ghcr.io/dooservice/gitd`, for amd64 and arm64.
 - **systemd:** [`packaging/gitd.service`](packaging/gitd.service).
+- **Copy-on-write workspaces:** gitd makes a workspace by mounting an overlay on a shared
+  template whenever it can, and writes its files otherwise. It runs unprivileged, so the
+  mount is done by `gitd-mount`, a tiny root service on a socket only gitd's user reaches:
+  install `gitd-mount-linux-*` as `/usr/local/bin/gitd-mount`, put
+  [`packaging/gitd-mount.conf`](packaging/gitd-mount.conf) in `/etc/gitd/` (root's,
+  matching gitd's state and roots), and enable
+  [`gitd-mount.socket`](packaging/gitd-mount.socket). gitd says at start which way it makes
+  workspaces, and why.
 - **From source:** `make build` (Go, the version in `go.mod`); `make test`, `make lint`;
   `make generate` regenerates `gen/` from the `.proto` with `buf`.
 

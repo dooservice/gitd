@@ -132,9 +132,9 @@ unprivileged on purpose. Nobody chooses this: gitd uses the first that exists.
    `type=overlay`), Kubernetes (the CSI driver of 0.9), rootless Podman or bubblewrap inside
    a user namespace. gitd hands over the layers' paths; the runtime mounts them where the
    sandbox sees them.
-2. **`gitd-mount`**, a tiny helper that holds the one permission to mount and unmount, and
-   only layers inside gitd's roots — as `fusermount` does for FUSE. gitd itself stays
-   unprivileged.
+2. **`gitd-mount`**, a tiny root service on a socket only gitd's user can reach, that does
+   two things — mount an overlay workspace, unmount one — and only within directories its
+   root-owned configuration fixes. gitd itself stays unprivileged.
 3. **copy**, when neither exists.
 
 **Where layers live.** On a real disk — a host directory or a volume — never inside a
@@ -173,6 +173,7 @@ calls gitd in a few lines instead of writing a client.
 | D1 | A template per repository, commit and submodule choice, immutable | A layer's lower directory must never change under it |
 | D2 | overlay, then copy, automatically; reflink only when configured to save disk | Principle 3, and the spike: reflink is slower than copy, fuse-overlayfs broke git |
 | D3 | The runtime mounts when it can; `gitd-mount` otherwise; never gitd itself | gitd stays unprivileged; the privilege is confined to one tiny program |
+| D3b | `gitd-mount` is a socket-activated service, not a setcap or setuid binary | Built that way after finding that gitd's unit keeps `NoNewPrivileges`, which voids file capabilities; a service also knows its caller by the kernel's credentials (`SO_PEERCRED`), not by anything it is told |
 | D4 | `core.checkStat=minimal` and `core.trustctime=false` in copy-on-write workspaces | The first `git status` stays fast (3.96 s to 0.74 s with reflink) |
 | D5 | A strategy is chosen automatically only if the conformance suite passes on it | git correctness is not negotiable — it is what kept fuse-overlayfs out |
 | D6 | `update` and `checkout` stay plain git inside the workspace | Correct in every case |
@@ -185,7 +186,7 @@ calls gitd in a few lines instead of writing a client.
 | Risk | Handling |
 |---|---|
 | Overlay needs permission to mount | The runtime mounts (Docker, Kubernetes, rootless Podman, bubblewrap); else `gitd-mount`; else copy |
-| `gitd-mount` becomes an attack surface | It mounts and unmounts only overlays whose every path resolves inside gitd's roots, follows no symlink, serves only gitd's user, and does nothing else; tests, a fuzz target, and the security review (task 10) |
+| `gitd-mount` becomes an attack surface | It answers only the configured user (by `SO_PEERCRED`), on a socket only that user can reach; mounts only an overlay of a template on a layer onto an empty target in a root, all that user's; pins every directory with `openat2(RESOLVE_NO_SYMLINKS)` and mounts and unmounts through the descriptor, so no swap in between redirects it; unmounts only overlays. Tests, a fuzz target, and the security review (task 10) |
 | Overlay on overlay is refused by the kernel | Layers and templates on a real disk; checked at start (overlayfs's magic number), with a warning and a fallback |
 | git is confused by inodes or change times | D4, and the conformance suite gating every strategy (D5) |
 | A template retired while a workspace uses it | Workspaces are registered on their template; it is retired only when none is, after a grace period |
@@ -200,7 +201,7 @@ calls gitd in a few lines instead of writing a client.
 | **0.7 · 0 Spike** ✓ | Overlay, fuse-overlayfs, reflink and copy on kubernetes, 100 agents | Done: the table above |
 | **0.7 · 1 Templates** ✓ | `internal/template`: build, register users, retire; housekeeping retires the unused | Done: built once even when asked for at once, shared, never rebuilt, retired only when unused and rested, swept after a crash; built by the workspace package, detached at its commit and tuned for copies |
 | **0.7 · 2 Strategies** ✓ | One interface; copy (today's code moved behind it), overlay (external and helper), reflink (`FICLONE`); detection at start | Done: overlay and reflink makers, detection (a state on an overlay told apart), Prepare and Remove through them; end to end with the kernel's overlay, workspaces after the first in 26–32 ms. Whole-history and submodule workspaces are still written, until templates hold them |
-| **0.7 · 3 `gitd-mount`** | The helper: a separate small binary with `CAP_SYS_ADMIN` only, and a systemd example | Refuses any path outside the roots or through a symlink; tests and a fuzz target |
+| **0.7 · 3 `gitd-mount`** ✓ | The helper: a small root service with `CAP_SYS_ADMIN` only, socket-activated, with systemd units | Done: refuses any path outside its directories or through a symlink, any caller but gitd's user, any unmount of what is not an overlay; tests (root ones in CI) and a fuzz target; end to end, an unprivileged gitd made workspaces in 34–36 ms through it |
 | **0.7 · 4 Contract** | `[workspaces] strategy`; `strategy` on `Prepare`; `strategy` and `layers` in `WorkspaceResult` and `Describe`; CLI flags and MCP output | buf lint and breaking-change check pass; a 0.6 client still works |
 | **0.7 · 5 Lifecycle** | Unmount on remove; remount at start; templates and layers in the start-up sweep and in `Info` | A restarted gitd serves every overlay workspace it had |
 | **0.7 · 6 Conformance** | What agents do — status, diff, add, commit, stash, rebase, checkout, submodules, publish — on every strategy in CI; fuse-overlayfs retried inside a user namespace | It gates D5; fuse-overlayfs either passes and joins, or stays out, recorded here |
@@ -421,7 +422,7 @@ benchmark, its docs and a release (principle 7).
 | 2 | 0.7 · 0 ✓ | Spike run, table recorded, strategy order decided | 1 |
 | 3 | 0.7 · 1 ✓ | Templates | 2 |
 | 4 | 0.7 · 2 ✓ | Strategies and detection: copy moved behind the interface first, then overlay, then reflink | 3 |
-| 5 | 0.7 · 3 | `gitd-mount` | 4 |
+| 5 | 0.7 · 3 ✓ | `gitd-mount` | 4 |
 | 6 | 0.7 · 4 | Contract, CLI and MCP | 4 |
 | 7 | 0.7 · 5 | Lifecycle | 5, 6 |
 | 8 | 0.7 · 6 | Conformance suite gating the strategies; fuse-overlayfs in a user namespace | 4 |

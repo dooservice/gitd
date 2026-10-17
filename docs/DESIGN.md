@@ -104,6 +104,29 @@ by the configuration (`roots`), for instance:
   gitd's, of which repository, which branch it follows while a rollback has it detached,
   and whether it keeps the whole history.
 
+### Template and copy-on-write workspace
+A **template** is a checkout of a repository at one commit, built once — exactly as a
+workspace is, detached at the commit and tuned with `core.checkStat=minimal` and
+`core.trustctime=false` — and shared by every workspace of that commit. It never changes;
+the workspaces using it are noted beside it, and maintenance retires it when none is left
+and `housekeeping.template_grace` has passed.
+
+A new workspace is made from a template, without writing its files, when gitd can mount an
+**overlay**: the template below, read only, and a layer of the workspace's own above, under
+`<state>/layers`. The workspace is put on its branch by writing refs only. gitd detects at
+start how workspaces can be made (`[workspaces] strategy`, auto by default) and says why:
+overlay when a probe mounts, by the kernel if gitd may, else by `gitd-mount`; otherwise
+every file is written, as before. `reflink` clones the template instead, to save disk, only
+when configured. Workspaces with their whole history or their submodules are still written.
+
+**gitd-mount** is a small root service on a socket only gitd's user can reach. It knows its
+caller by `SO_PEERCRED`, answers only the user its root-owned configuration names, and only
+mounts an overlay of a template on a layer onto an empty target in a root — all that user's
+— or unmounts an overlay. Every directory is pinned with `openat2(RESOLVE_NO_SYMLINKS)` and
+mounted, or unmounted, through its descriptor, so nothing swapped in between can redirect
+it. It is a service rather than a setcap binary because gitd's unit keeps
+`NoNewPrivileges`, and it has no mount namespace of its own, so its mounts are seen.
+
 ### Credential
 What opens a repository, bound to a **URL prefix** (`https://github.com/acme/web`, or empty
 for "any repository"). Two kinds:
@@ -157,6 +180,10 @@ internal/workspace/       workspaces: prepare, update, checkout, submodules, des
 internal/lock/            per-repository locks (memory + flock), concurrency queues
 internal/housekeeping/    heuristic maintenance, retirement, start-up sweep
 internal/credentials/     kept and requested credentials → the address and git's environment
+internal/template/        templates: built once per commit, shared, retired when unused
+internal/strategy/        making a workspace from a template: overlay, reflink; detection
+internal/mounthelper/     gitd-mount: the root service that mounts overlays for gitd
+cmd/gitd-mount/           its command
 internal/progress/        git's `--progress` → stream messages
 internal/metrics/         Prometheus metrics
 proto/gitd/v1/            the contract
