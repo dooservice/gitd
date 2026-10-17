@@ -23,6 +23,7 @@ const (
 	Failed        = gitdv1.GitFailure_REASON_GIT_FAILED
 	NothingNew    = gitdv1.GitFailure_REASON_NOTHING_NEW
 	BranchRefused = gitdv1.GitFailure_REASON_BRANCH_REFUSED
+	ConfigRefused = gitdv1.GitFailure_REASON_CONFIG_REFUSED
 )
 
 // Failure is an operation that did not go through: why, what git said about it, and the

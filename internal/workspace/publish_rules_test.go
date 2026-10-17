@@ -26,38 +26,12 @@ func (recorded *entries) Record(entry *gitdv1.AuditEntry) error {
 }
 
 func TestEveryPublishIsRecordedAndABranchOutsideThePrefixRefused(t *testing.T) {
-	root := t.TempDir()
-	upstream, pools, roots := filepath.Join(root, "upstream"), filepath.Join(root, "pools"), filepath.Join(root, "workspaces")
 	repository := repo.Repo{Host: "github.com", Path: "acme/web"}
-	run(t, root, "init", "-q", "-b", "main", upstream)
-	if err := os.WriteFile(filepath.Join(upstream, "README.md"), []byte("hi\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	run(t, upstream, "add", "README.md")
-	run(t, upstream, "commit", "-q", "-m", "first")
-	run(t, root, "clone", "-q", "--bare", upstream, repository.Dir(pools))
-	if err := os.MkdirAll(roots, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	runner := git.NewRunner("git")
-	locks, err := lock.NewLocks(filepath.Join(root, "locks"), time.Minute)
-	if err != nil {
-		t.Fatal(err)
-	}
-	keys, err := credentials.NewKeys(filepath.Join(root, "state"), nil, nil, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	workspaces := New([]string{roots}, runner, pool.New(pools, runner, keys, locks, nil, 0), locks, lock.NewQueue(4, 4, time.Minute), time.Hour)
-	workspaces.UseTemplates(template.New(filepath.Join(root, "templates"), locks, workspaces),
-		&strategy.OverlayMaker{Layers: filepath.Join(root, "layers"), Mounter: treeMounter{}})
+	workspaces, roots := newTestWorkspaces(t, repository)
 	recorded := &entries{}
 	workspaces.UsePublishing(Publishing{BranchPrefix: "agents/", Recorder: recorded})
 	ctx := context.Background()
-	path := filepath.Join(roots, "agent-1")
-	if _, err := workspaces.createFromTemplate(ctx, job{path: path, repository: repository, revision: onBranch("main")}); err != nil {
-		t.Fatal(err)
-	}
+	path := made(t, workspaces, roots, "agent-1", repository)
 
 	attempts := []struct {
 		path, branch string
@@ -98,5 +72,90 @@ func TestADonePublishIsRecordedWithWhatItPushed(t *testing.T) {
 	entry := recorded.kept[0]
 	if entry.GetRefusal() != nil || entry.GetRepository() != pushed || len(entry.GetSubmodules()) != 1 {
 		t.Fatalf("entry = %v; want what was pushed and no refusal", entry)
+	}
+}
+
+func TestAWorkspaceThatRenamesItsRepositoryIsNotOneGitdMade(t *testing.T) {
+	repository := repo.Repo{Host: "github.com", Path: "acme/web"}
+	other := repo.Repo{Host: "github.com", Path: "acme/other"}
+	workspaces, roots := newTestWorkspaces(t, repository, other)
+	ctx := context.Background()
+	path := made(t, workspaces, roots, "agent-1", repository)
+	if held, _ := workspaces.madeFor(ctx, path); held == nil || *held != repository {
+		t.Fatalf("madeFor = %v; want %s", held, repository.HTTPS())
+	}
+	// The other repository's pool lends to the workspace too, as a submodule's would.
+	if err := workspaces.pools.Use(ctx, other, path); err != nil {
+		t.Fatal(err)
+	}
+	run(t, path, "config", "gitd.url", other.HTTPS())
+	if held, _ := workspaces.madeFor(ctx, path); held != nil {
+		t.Fatalf("a workspace naming another repository it borrows from is taken as one of %s", held.HTTPS())
+	}
+}
+
+// newTestWorkspaces are workspaces under a root, with a pool for each repository, all of
+// one upstream with one commit on main, and templates made by treeMounter.
+func newTestWorkspaces(t *testing.T, repositories ...repo.Repo) (*Workspaces, string) {
+	t.Helper()
+	root := t.TempDir()
+	upstream, pools, roots := filepath.Join(root, "upstream"), filepath.Join(root, "pools"), filepath.Join(root, "workspaces")
+	run(t, root, "init", "-q", "-b", "main", upstream)
+	if err := os.WriteFile(filepath.Join(upstream, "README.md"), []byte("hi\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	run(t, upstream, "add", "README.md")
+	run(t, upstream, "commit", "-q", "-m", "first")
+	for _, repository := range repositories {
+		run(t, root, "clone", "-q", "--bare", upstream, repository.Dir(pools))
+	}
+	if err := os.MkdirAll(roots, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	runner := git.NewRunner("git")
+	locks, err := lock.NewLocks(filepath.Join(root, "locks"), time.Minute)
+	if err != nil {
+		t.Fatal(err)
+	}
+	keys, err := credentials.NewKeys(filepath.Join(root, "state"), nil, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	workspaces := New([]string{roots}, runner, pool.New(pools, runner, keys, locks, nil, 0), locks, lock.NewQueue(4, 4, time.Minute), time.Hour)
+	workspaces.UseTemplates(template.New(filepath.Join(root, "templates"), locks, workspaces),
+		&strategy.OverlayMaker{Layers: filepath.Join(root, "layers"), Mounter: treeMounter{}})
+	return workspaces, roots
+}
+
+// made is a workspace of repository at roots/name, on main.
+func made(t *testing.T, workspaces *Workspaces, roots, name string, repository repo.Repo) string {
+	t.Helper()
+	path := filepath.Join(roots, name)
+	if _, err := workspaces.createFromTemplate(context.Background(), job{path: path, repository: repository, revision: onBranch("main")}); err != nil {
+		t.Fatal(err)
+	}
+	return path
+}
+
+func TestOwnWorkspacesAreRecordedOnceForPoolsMadeBeforeGitdKeptThem(t *testing.T) {
+	repository := repo.Repo{Host: "github.com", Path: "acme/web"}
+	library := repo.Repo{Host: "github.com", Path: "acme/lib"}
+	workspaces, roots := newTestWorkspaces(t, repository, library)
+	ctx := context.Background()
+	path := made(t, workspaces, roots, "agent-1", repository)
+	if err := workspaces.pools.Use(ctx, library, path); err != nil {
+		t.Fatal(err)
+	}
+	for _, dir := range workspaces.pools.All() {
+		if err := os.Remove(filepath.Join(dir, "gitd-owned")); err != nil && !os.IsNotExist(err) {
+			t.Fatal(err)
+		}
+	}
+	workspaces.RecordOwners(ctx)
+	if !workspaces.pools.Owns(repository, path) {
+		t.Error("the workspace is not recorded as its repository's own")
+	}
+	if workspaces.pools.Owns(library, path) {
+		t.Error("the workspace is recorded as its submodule's own")
 	}
 }

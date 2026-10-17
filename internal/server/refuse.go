@@ -62,7 +62,7 @@ func codeOf(reason git.Reason) connect.Code {
 		return connect.CodeDeadlineExceeded
 	case git.Corrupt:
 		return connect.CodeDataLoss
-	case git.NothingNew:
+	case git.NothingNew, git.ConfigRefused:
 		return connect.CodeFailedPrecondition
 	default:
 		return connect.CodeInternal

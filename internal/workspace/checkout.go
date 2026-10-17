@@ -77,6 +77,9 @@ func (workspaces *Workspaces) following(ctx context.Context, path string) (strin
 	if err == nil && followed == "" {
 		err = git.Fail(git.NotFound, "%s is on no branch and follows none; say which one", path)
 	}
+	if err == nil {
+		err = workspaces.validBranch(ctx, followed)
+	}
 	return followed, err
 }
 

@@ -25,6 +25,9 @@ func (workspaces *Workspaces) Describe(
 	if _, err := os.Stat(config); err != nil {
 		return nil, git.Fail(git.NotFound, "%s is not a git repository", path)
 	}
+	if err := workspaces.guard(ctx, path); err != nil {
+		return nil, err
+	}
 	described := &gitdv1.DescribeResponse{}
 	if described.Url, err = workspaces.runner.Config(ctx, config, "gitd.url"); err == nil && described.Url == "" {
 		described.Url, err = workspaces.runner.Config(ctx, config, "remote.origin.url")
@@ -75,6 +78,9 @@ func (workspaces *Workspaces) Remove(ctx context.Context, request *gitdv1.Remove
 			return err
 		}
 	} else if err := os.RemoveAll(path); err != nil {
+		return err
+	}
+	if err := workspaces.pools.Disown(ctx, *held, path); err != nil {
 		return err
 	}
 	return workspaces.pools.Forget(ctx, *held, path)

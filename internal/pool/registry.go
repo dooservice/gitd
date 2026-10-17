@@ -36,6 +36,13 @@ func (pools *Pools) Forget(ctx context.Context, repository repo.Repo, path strin
 }
 
 func (pools *Pools) editRegistry(ctx context.Context, repository repo.Repo, change func([]string) []string) error {
+	return pools.editList(ctx, repository, registryOf, change)
+}
+
+// editList changes, under the pool's lock, one of the lists of workspace paths it keeps.
+func (pools *Pools) editList(
+	ctx context.Context, repository repo.Repo, file func(string) string, change func([]string) []string,
+) error {
 	release, err := pools.Lock(ctx, repository)
 	if err != nil {
 		return err
@@ -45,8 +52,8 @@ func (pools *Pools) editRegistry(ctx context.Context, repository repo.Repo, chan
 	if _, err := os.Stat(dir); err != nil {
 		return nil
 	}
-	paths := change(Workspaces(dir))
-	return WriteAtomic(registryOf(dir), []byte(strings.Join(paths, "\n")+"\n"))
+	paths := change(readList(file(dir)))
+	return WriteAtomic(file(dir), []byte(strings.Join(paths, "\n")+"\n"))
 }
 
 func (pools *Pools) touch(dir string) {
@@ -58,7 +65,12 @@ func (pools *Pools) touch(dir string) {
 
 // Workspaces are the paths noted as borrowing from the pool at dir.
 func Workspaces(dir string) []string {
-	file, err := os.Open(registryOf(dir))
+	return readList(registryOf(dir))
+}
+
+// readList reads a list of workspace paths, one per line; a list not there is empty.
+func readList(path string) []string {
+	file, err := os.Open(path)
 	if err != nil {
 		return nil
 	}

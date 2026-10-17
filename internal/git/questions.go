@@ -42,6 +42,30 @@ func (runner *Runner) Config(ctx context.Context, path, key string) (string, err
 	return strings.TrimSpace(out), err
 }
 
+// ConfigEntry is one key of a git configuration file and its value. Key is as git lists it:
+// section and name lowercased, a subsection as written.
+type ConfigEntry struct {
+	Key, Value string
+}
+
+// ConfigEntries lists every key of the configuration file at path, without following its
+// includes. Listing runs nothing the file names.
+func (runner *Runner) ConfigEntries(ctx context.Context, path string) ([]ConfigEntry, error) {
+	out, err := runner.Run(ctx, Cmd{Dir: "/", Args: []string{"config", "--file", path, "--no-includes", "--null", "--list"}})
+	if err != nil {
+		return nil, err
+	}
+	var entries []ConfigEntry
+	for _, listed := range strings.Split(out, "\x00") {
+		if listed == "" {
+			continue
+		}
+		key, value, _ := strings.Cut(listed, "\n")
+		entries = append(entries, ConfigEntry{Key: key, Value: value})
+	}
+	return entries, nil
+}
+
 // SetConfig writes keys and their values into the repository at dir, in order.
 func (runner *Runner) SetConfig(ctx context.Context, dir string, keysAndValues ...string) error {
 	for pair := range slices.Chunk(keysAndValues, 2) {

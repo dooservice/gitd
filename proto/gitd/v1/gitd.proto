@@ -116,6 +116,10 @@ message GitFailure {
     REASON_NOTHING_NEW = 10;
     // The branch is outside the prefix publishing is limited to.
     REASON_BRANCH_REFUSED = 11;
+    // The workspace's git configuration sets something gitd does not run git under, such
+    // as a filter or a hook path: whoever writes in the workspace could otherwise have gitd
+    // run a command of theirs.
+    REASON_CONFIG_REFUSED = 12;
   }
   Reason reason = 1;
   // The last useful line git wrote, e.g. "remote: Repository not found.".

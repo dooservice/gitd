@@ -11,7 +11,9 @@ import (
 )
 
 // allowed is a path cleaned, when it lies inside one of the roots once its symbolic links
-// are resolved: a link must not carry a workspace out of where gitd may write.
+// are resolved: a link must not carry a workspace out of where gitd may write. Nor may it lie
+// inside another workspace, whose directories whoever works there can change between gitd's
+// check and its write.
 func (workspaces *Workspaces) allowed(path string) (string, error) {
 	if !filepath.IsAbs(path) {
 		return "", git.Fail(git.PathRefused, "%q is not an absolute path", path)
@@ -24,11 +26,26 @@ func (workspaces *Workspaces) allowed(path string) (string, error) {
 	}
 	resolved = filepath.Join(resolved, strings.TrimPrefix(path, existing))
 	for _, root := range workspaces.roots {
-		if inside(resolved, root) {
-			return path, nil
+		if !inside(resolved, root) {
+			continue
 		}
+		if holder := enclosingWorkspace(root, resolved); holder != "" {
+			return "", git.Fail(git.PathRefused, "%s is inside the workspace %s", path, holder)
+		}
+		return path, nil
 	}
 	return "", git.Fail(git.PathRefused, "%s is outside the directories gitd may write in", path)
+}
+
+// enclosingWorkspace is the directory between root and path, path excluded, that holds a
+// `.git`: a workspace path lies in. Empty when there is none.
+func enclosingWorkspace(root, path string) string {
+	for parent := filepath.Dir(path); inside(parent, root); parent = filepath.Dir(parent) {
+		if _, err := os.Lstat(filepath.Join(parent, ".git")); err == nil {
+			return parent
+		}
+	}
+	return ""
 }
 
 // nearest is the deepest part of a path that exists, the path itself included.

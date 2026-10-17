@@ -53,6 +53,9 @@ func (workspaces *Workspaces) createFromTemplate(ctx context.Context, work job) 
 	}
 	made, layers := workspaces.made(ctx, work.path)
 	result := Result{Commit: commit, Branch: branch, Strategy: made, Layers: layers}
+	if err := workspaces.claim(ctx, work.path, work.repository); err != nil {
+		return Result{}, err
+	}
 	return result, workspaces.note(ctx, work.path, []repo.Repo{work.repository})
 }
 
@@ -84,7 +87,7 @@ func (workspaces *Workspaces) target(ctx context.Context, work job) (commit, bra
 
 func (workspaces *Workspaces) validBranch(ctx context.Context, branch string) error {
 	if branch == "" {
-		return git.Fail(git.NotFound, "the repository names no default branch")
+		return git.Fail(git.NotFound, "no branch was given, and the repository names no default one")
 	}
 	// Checked as refs/heads/<branch>: an argument starting with refs/ cannot pass for an
 	// option, and `check-ref-format` knows no --end-of-options.

@@ -19,21 +19,33 @@ import (
 //
 // The superproject's `.git/config` points the submodule at its pool, so a person's own
 // `git submodule update` reads it on this disk too.
+//
+// Its name and path come from the repository, and whoever works in the workspace may have
+// left a symbolic link where they lead: every directory and file gitd makes for it is made
+// through an os.Root of the workspace, which refuses to follow a link out of it.
 func (workspaces *Workspaces) mount(
 	ctx context.Context, work job, submodule submodule, repository repo.Repo, commit string,
 ) error {
-	gitDir := filepath.Join(work.path, ".git", "modules", submodule.name)
-	workTree := filepath.Join(work.path, submodule.path)
+	workspace, err := os.OpenRoot(work.path)
+	if err != nil {
+		return err
+	}
+	defer workspace.Close()
+	gitDirIn := filepath.Join(".git", "modules", submodule.name)
+	gitDir, workTree := filepath.Join(work.path, gitDirIn), filepath.Join(work.path, submodule.path)
 	poolURL := "file://" + workspaces.pools.Path(repository)
-	if !exists(filepath.Join(gitDir, "HEAD")) {
-		if err := workspaces.initModule(ctx, work.path, gitDir, workTree); err != nil {
+	if err := workspace.MkdirAll(submodule.path, 0o755); err != nil {
+		return git.Fail(git.PathRefused, "submodule %s: %v", submodule.path, err)
+	}
+	if _, err := workspace.Stat(filepath.Join(gitDirIn, "HEAD")); err != nil {
+		if err := workspaces.initModule(ctx, workspace, work.path, gitDirIn); err != nil {
 			return err
 		}
 	}
 	// Also when the git directory was already there: the submodule may have moved, or its
 	// checkout been removed, and git run in a directory with no `.git` of its own would
 	// write to the superproject instead.
-	if err := workspaces.pointAt(ctx, gitDir, workTree); err != nil {
+	if err := workspaces.pointAt(ctx, workspace, gitDirIn, submodule.path); err != nil {
 		return err
 	}
 	if err := workspaces.borrow(gitDir, repository); err != nil {
@@ -54,34 +66,35 @@ func (workspaces *Workspaces) mount(
 	)
 }
 
-func (workspaces *Workspaces) initModule(ctx context.Context, superproject, gitDir, workTree string) error {
-	if err := os.MkdirAll(filepath.Dir(gitDir), 0o755); err != nil {
-		return err
+// initModule makes a submodule's git directory, gitDir within the workspace, as a bare
+// repository; pointAt then links it to its checkout.
+func (workspaces *Workspaces) initModule(ctx context.Context, workspace *os.Root, superproject, gitDir string) error {
+	if err := workspace.MkdirAll(gitDir, 0o755); err != nil {
+		return git.Fail(git.PathRefused, "%s: %v", gitDir, err)
 	}
 	_, err := workspaces.runner.Run(ctx, git.Cmd{
-		Dir: superproject, Args: []string{"init", "--quiet", "--separate-git-dir", gitDir, workTree},
+		Dir: filepath.Join(superproject, gitDir), Args: []string{"init", "--quiet", "--bare"},
 	})
 	return err
 }
 
 // pointAt links a submodule's checkout and its git directory both ways, with relative
-// paths: the checkout's `.git` file and the git directory's `core.worktree`.
-func (workspaces *Workspaces) pointAt(ctx context.Context, gitDir, workTree string) error {
-	if err := os.MkdirAll(workTree, 0o755); err != nil {
-		return err
-	}
+// paths: the checkout's `.git` file and the git directory's `core.worktree`, written as
+// `submodule update` leaves them, with core.bare off.
+func (workspaces *Workspaces) pointAt(ctx context.Context, workspace *os.Root, gitDir, workTree string) error {
 	toGitDir, err := filepath.Rel(workTree, gitDir)
 	if err != nil {
 		return err
 	}
-	if err := os.WriteFile(filepath.Join(workTree, ".git"), []byte("gitdir: "+toGitDir+"\n"), 0o644); err != nil {
-		return err
+	if err := workspace.WriteFile(filepath.Join(workTree, ".git"), []byte("gitdir: "+toGitDir+"\n"), 0o644); err != nil {
+		return git.Fail(git.PathRefused, "submodule %s: %v", workTree, err)
 	}
 	toWorkTree, err := filepath.Rel(gitDir, workTree)
 	if err != nil {
 		return err
 	}
-	return workspaces.runner.SetConfig(ctx, workTree, "core.worktree", toWorkTree)
+	return workspaces.runner.SetConfig(ctx, filepath.Join(workspace.Name(), gitDir),
+		"core.bare", "false", "core.logallrefupdates", "true", "core.worktree", toWorkTree)
 }
 
 func exists(path string) bool {

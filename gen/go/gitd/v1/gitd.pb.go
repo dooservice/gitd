@@ -95,6 +95,10 @@ const (
 	GitFailure_REASON_NOTHING_NEW   GitFailure_Reason = 10
 	// The branch is outside the prefix publishing is limited to.
 	GitFailure_REASON_BRANCH_REFUSED GitFailure_Reason = 11
+	// The workspace's git configuration sets something gitd does not run git under, such
+	// as a filter or a hook path: whoever writes in the workspace could otherwise have gitd
+	// run a command of theirs.
+	GitFailure_REASON_CONFIG_REFUSED GitFailure_Reason = 12
 )
 
 // Enum value maps for GitFailure_Reason.
@@ -112,6 +116,7 @@ var (
 		9:  "REASON_GIT_FAILED",
 		10: "REASON_NOTHING_NEW",
 		11: "REASON_BRANCH_REFUSED",
+		12: "REASON_CONFIG_REFUSED",
 	}
 	GitFailure_Reason_value = map[string]int32{
 		"REASON_UNSPECIFIED":    0,
@@ -126,6 +131,7 @@ var (
 		"REASON_GIT_FAILED":     9,
 		"REASON_NOTHING_NEW":    10,
 		"REASON_BRANCH_REFUSED": 11,
+		"REASON_CONFIG_REFUSED": 12,
 	}
 )
 
@@ -2667,14 +2673,14 @@ const file_gitd_v1_gitd_proto_rawDesc = "" +
 	"\x10PendingSubmodule\x12\x10\n" +
 	"\x03url\x18\x01 \x01(\tR\x03url\x12\x12\n" +
 	"\x04path\x18\x02 \x01(\tR\x04path\x12-\n" +
-	"\afailure\x18\x03 \x01(\v2\x13.gitd.v1.GitFailureR\afailure\"\x9b\x03\n" +
+	"\afailure\x18\x03 \x01(\v2\x13.gitd.v1.GitFailureR\afailure\"\xb6\x03\n" +
 	"\n" +
 	"GitFailure\x122\n" +
 	"\x06reason\x18\x01 \x01(\x0e2\x1a.gitd.v1.GitFailure.ReasonR\x06reason\x12\x19\n" +
 	"\bgit_said\x18\x02 \x01(\tR\agitSaid\x12\x1e\n" +
 	"\n" +
 	"repository\x18\x03 \x01(\tR\n" +
-	"repository\"\x9d\x02\n" +
+	"repository\"\xb8\x02\n" +
 	"\x06Reason\x12\x16\n" +
 	"\x12REASON_UNSPECIFIED\x10\x00\x12\x18\n" +
 	"\x14REASON_AUTH_REQUIRED\x10\x01\x12\x17\n" +
@@ -2688,7 +2694,8 @@ const file_gitd_v1_gitd_proto_rawDesc = "" +
 	"\x11REASON_GIT_FAILED\x10\t\x12\x16\n" +
 	"\x12REASON_NOTHING_NEW\x10\n" +
 	"\x12\x19\n" +
-	"\x15REASON_BRANCH_REFUSED\x10\v\"\x97\x02\n" +
+	"\x15REASON_BRANCH_REFUSED\x10\v\x12\x19\n" +
+	"\x15REASON_CONFIG_REFUSED\x10\f\"\x97\x02\n" +
 	"\x0ePrepareRequest\x12\x10\n" +
 	"\x03url\x18\x01 \x01(\tR\x03url\x12\x12\n" +
 	"\x04path\x18\x02 \x01(\tR\x04path\x12-\n" +

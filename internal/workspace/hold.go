@@ -25,6 +25,9 @@ func (workspaces *Workspaces) open(ctx context.Context, path string) (string, re
 	if err == nil && held == nil {
 		err = git.Fail(git.PathRefused, "%s is not a workspace gitd made; adopt it first", path)
 	}
+	if err == nil {
+		err = workspaces.guard(ctx, path)
+	}
 	if err != nil {
 		release()
 		return "", repo.Repo{}, nil, err
@@ -58,10 +61,13 @@ func (workspaces *Workspaces) hold(ctx context.Context, path string) (func(), er
 }
 
 // madeFor is the repository of the workspace gitd made at path, or nil when gitd did not
-// make what is there.
+// make what is there. The workspace names its repository in its own configuration, which
+// whoever works in it can write, so the name counts only when that repository's pool lists
+// the workspace as one of its own: a workspace cannot make itself one of another repository,
+// and be published there with gitd's credential.
 func (workspaces *Workspaces) madeFor(ctx context.Context, path string) (*repo.Repo, error) {
 	config := filepath.Join(path, ".git", "config")
-	if _, err := os.Stat(config); err != nil {
+	if info, err := os.Lstat(config); err != nil || !info.Mode().IsRegular() {
 		return nil, nil
 	}
 	address, err := workspaces.runner.Config(ctx, config, "gitd.url")
@@ -69,7 +75,7 @@ func (workspaces *Workspaces) madeFor(ctx context.Context, path string) (*repo.R
 		return nil, err
 	}
 	repository, ok := repo.Of(address)
-	if !ok {
+	if !ok || !workspaces.pools.Owns(repository, path) {
 		return nil, nil
 	}
 	return &repository, nil

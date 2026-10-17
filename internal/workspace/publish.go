@@ -31,9 +31,8 @@ func (workspaces *Workspaces) Publish(
 	}
 	defer release()
 	entry.Url = repository.HTTPS()
-	validated := git.Cmd{Dir: "/", Args: []string{"check-ref-format", "--branch", branch}}
-	if _, err := workspaces.runner.Run(ctx, validated); err != nil {
-		return nil, git.Fail(git.BadAddress, "%q is not a branch name", branch)
+	if err := workspaces.validBranch(ctx, branch); err != nil {
+		return nil, err
 	}
 	if err := workspaces.branchAllowed(branch); err != nil {
 		return nil, err

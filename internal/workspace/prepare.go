@@ -37,6 +37,11 @@ func (workspaces *Workspaces) Prepare(
 		return Result{}, git.Fail(git.PathRefused,
 			"%s is a workspace of %s, not of %s", path, held.HTTPS(), repository.HTTPS())
 	}
+	if held != nil {
+		if err := workspaces.guard(ctx, path); err != nil {
+			return Result{}, err
+		}
+	}
 	if held == nil && !vacant(path) {
 		return Result{}, git.Fail(git.PathRefused,
 			"%s already holds something gitd did not make; adopt it or remove it first", path)

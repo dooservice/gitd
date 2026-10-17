@@ -54,5 +54,8 @@ func (workspaces *Workspaces) create(ctx context.Context, work job) (Result, err
 	if err := os.Rename(building.path, work.path); err != nil {
 		return Result{}, err
 	}
+	if err := workspaces.claim(ctx, work.path, work.repository); err != nil {
+		return Result{}, err
+	}
 	return result, workspaces.note(ctx, work.path, used)
 }

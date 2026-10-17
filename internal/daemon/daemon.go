@@ -70,6 +70,7 @@ func Run(ctx context.Context, path, socket, version string) error {
 	}
 	maker, why := strategy.Detect(want, settings.State, settings.Roots, mounters(settings.Workspaces.MountHelper)...)
 	workspaces.UseTemplates(templates, maker)
+	workspaces.RecordOwners(ctx)
 	made := strategy.Copy
 	if maker != nil {
 		made = maker.Name()

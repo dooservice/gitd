@@ -31,6 +31,9 @@ func (workspaces *Workspaces) Adopt(ctx context.Context, request *gitdv1.AdoptRe
 	if held, err := workspaces.madeFor(ctx, path); err != nil || held != nil {
 		return 0, err
 	}
+	if err := workspaces.guard(ctx, path); err != nil {
+		return 0, err
+	}
 	repository, err := workspaces.originOf(ctx, path)
 	if err != nil {
 		return 0, err
@@ -57,6 +60,9 @@ func (workspaces *Workspaces) Adopt(ctx context.Context, request *gitdv1.AdoptRe
 	}
 	used, fromSubmodules, err := workspaces.adoptSubmodules(ctx, path, repository, report)
 	if err != nil {
+		return 0, err
+	}
+	if err := workspaces.claim(ctx, path, repository); err != nil {
 		return 0, err
 	}
 	return released + fromSubmodules, workspaces.note(ctx, path, append(used, repository))
