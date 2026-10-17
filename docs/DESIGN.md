@@ -134,6 +134,17 @@ kernel writes an overlay's layers with its mounter's credentials; nothing else.
 index), all hundred in 14.5 s and 850 MB, against 980 s and 41,870 MB for a hundred shallow
 clones (`benchmarks/hundred.sh`).
 
+### Warm layer
+A **warm layer** is what installing a repository's dependencies wrote — `node_modules`, a
+`.venv` — sealed from one overlay workspace for later ones to stand on. It is named per
+repository, of one commit, and lives at `<state>/templates/.warm/<host>/<path>/<name>`,
+with what it changes (`<name>.json`) and the workspaces on it (`<name>.users`) beside it. A
+workspace on it is mounted with two lower layers, the warm layer above the template, and
+its own layer on top; gitd-mount takes at most two, each pinned beneath the templates.
+gitd never runs the install: the platform does, in its sandbox. Sealing a name again
+replaces the layer once no workspace stands on it; maintenance retires one nothing has
+used for `housekeeping.retire_after`.
+
 ### Credential
 What opens a repository, bound to a **URL prefix** (`https://github.com/acme/web`, or, for
 a key only, empty for "any repository": a token's prefix must name its host, or it would go
@@ -351,6 +362,11 @@ kept path deleted or renamed away, or more files changed than allowed refuses th
 (`POLICY_REFUSED`) before anything is pushed; a merge counts only what it brings beyond its
 parents. Submodules are checked against their own settings.
 
+**Provenance.** A publish may say where its work came from — the agent, its model, the
+session and an https task address, each one line of at most 200 characters — which gitd
+records as told in the audit log and writes in the pull request, never in a commit. Only
+the platform says it: MCP's publish takes none.
+
 **Pull requests.** When the settings open them always, or the publish asks, gitd opens one
 after the push, through the host's API with the credential that pushed (GitHub; another
 host answers `UNSUPPORTED`): titled after the newest commit unless told, a draft and
@@ -368,6 +384,45 @@ answers. The file is rotated at `[audit] rotate_bytes` and rotated files are del
 reads it newest first, by time and repository, as `gitd audit` and `read_audit_log` do. A
 publish is done by the time it is recorded, so an entry that cannot be written is logged
 as an error rather than answered as one.
+
+### What changed (`Changes`, `Diff`)
+What was changed in a workspace since gitd last put it on a commit — its **base**, which
+the pool keeps per workspace (`gitd-bases`) and Prepare, Update and Checkout set —
+committed or not, file by file with its lines. On an overlay workspace the candidates are
+the agent's own layer — its files, the marks of deletions, and what a directory it remade
+hides of the lower layers — the files a warm layer changes, as kept when it was sealed,
+and what differs between the template's commit and the base; each is hashed through an
+`os.Root` of the workspace and compared with the base's blob, so no git runs in the
+workspace and only what the agent touched is read. On a written workspace git lists them
+there, after the checks of its `.git`. Ignored files are left out unless asked, as the
+template's `.gitignore` says. Lines are counted, and the diff written, by
+`git diff --no-index` on copies set aside in a private directory, so no link or attribute
+driver of the repository is followed; the diff stops at `max_bytes` (512 KiB).
+
+### Compare and conflicts (`Compare`, `Conflicts`)
+`Compare` says how two works of one repository differ — two workspaces, two branches the
+pool holds, or one of each — as `Changes` does, file by file and, when asked, with their
+diff. `Conflicts` says which pairs of works do not merge cleanly, and on which files: a
+workspace stands for what it committed, fetched into its pool under a ref of its own and
+forgotten after, and each pair is merged with `git merge-tree --write-tree` in the pool,
+which writes no work tree and runs none of the repository's code.
+
+### Watch (`Watch`)
+A stream of what happens to the workspaces asked for, or to every one: made, changed,
+published, refused, removed. A workspace's layer is looked at for changes only while
+someone watches it, every two seconds; a watcher with 256 events unread is dropped rather
+than waited for.
+
+### Seal (`Seal`)
+An overlay workspace, not itself on a warm layer, becomes the warm layer `name` of its
+repository. While it is mounted, the files its layer changes that git does not ignore are
+listed for `Changes`. Then it is unmounted, and refused and mounted back if its overlay is
+still mounted anywhere gitd can see — a sandbox's bind of it outlives the unmount, and
+would write into the layer after; its `.git` is set aside, its upper directory is moved
+(never copied, so overlay's marks stay as written) beneath the templates, and the
+workspace is forgotten as by `Remove`. `Prepare` with `warm` makes a new overlay workspace
+on the layer, at the commit it was sealed at only; it is never written instead, as it
+would then lack what the layer installed.
 
 ### What a workspace may not do
 
