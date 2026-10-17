@@ -40,6 +40,12 @@ conversation, so the run is the same every time and needs no key. To have a mode
 set `LLM_MODEL` and `LLM_API_KEY` (and `LLM_BASE_URL`, `TASK` if you like); the sandbox
 then gets a network for the model, still no git credential.
 
+`SCENARIO=injected` runs the same agent taken over by a prompt injection hidden in its task:
+it looks for a token and finds none, tries to push to `main` by itself and cannot, and
+commits a workflow that would send the CI's environment away. gitd refuses that publish
+with `POLICY_REFUSED` before anything is pushed — the `recommended` preset protects
+`.github/workflows/**` — and the refusal is in the audit log. CI runs both.
+
 `demo.sh` is the whole run as CI does it, gitd and its App included: it needs
 `GITD_E2E_APP_ID`, `GITD_E2E_APP_KEY`, `bin/gitd` (`make build`) and Docker.
 

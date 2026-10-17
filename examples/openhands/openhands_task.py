@@ -7,6 +7,7 @@ request, under the publishing settings, with where the work came from.
 
 RUN names the branch and the note (default: the time); REVIEWER is asked to review;
 LLM_MODEL and LLM_API_KEY, when set, have a real model do TASK instead of the scripted one.
+SCENARIO=injected runs an agent a prompt injection took over, whose publish gitd must refuse.
 """
 
 from __future__ import annotations
@@ -18,10 +19,10 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 
-from gitd import Gitd, Provenance, PullRequestOptions
+from gitd import Gitd, GitdError, Provenance, PullRequestOptions
 
 OPENHANDS_VERSION = "1.55.1"
-MODEL_VARIABLES = ("LLM_MODEL", "LLM_API_KEY", "LLM_BASE_URL", "TASK")
+MODEL_VARIABLES = ("LLM_MODEL", "LLM_API_KEY", "LLM_BASE_URL", "TASK", "SCENARIO")
 
 
 @dataclass(frozen=True)
@@ -59,6 +60,7 @@ class Platform:
     root: str
     run: str
     reviewer: str
+    scenario: str
     sandbox: Sandbox
 
     @classmethod
@@ -70,6 +72,7 @@ class Platform:
             root=environment["ROOT"],
             run=environment.get("RUN", str(int(time.time()))),
             reviewer=environment.get("REVIEWER", ""),
+            scenario=environment.get("SCENARIO", "task"),
             sandbox=Sandbox(
                 image=environment.get("SANDBOX_IMAGE", "gitd-openhands-sandbox"), environment=environment
             ),
@@ -79,7 +82,8 @@ class Platform:
         print(f"\n== {said}", flush=True)
 
     def work(self) -> None:
-        path = str(Path(self.root, f"openhands-{self.run}"))
+        name = f"openhands-{self.run}" if self.scenario == "task" else f"openhands-{self.scenario}-{self.run}"
+        path = str(Path(self.root, name))
         self.step("gitd makes the workspace")
         workspace = self.gitd.prepare(self.repository, path)
         print(f"{path} at {workspace.commit[:12]} on {workspace.branch}, made by {workspace.strategy.value}")
@@ -98,11 +102,14 @@ class Platform:
             sys.exit("a token is in the workspace's .git/config")
         print("none in .git/config")
 
+        if self.scenario == "injected":
+            self.refused(path, f"agents/{name}")
+            return
         self.step("gitd publishes it as a pull request")
         model = self.sandbox.environment.get("LLM_MODEL") or "scripted"
         published = self.gitd.publish(
             path,
-            f"agents/openhands-{self.run}",
+            f"agents/{name}",
             requested_by=self.reviewer,
             pull_request=PullRequestOptions(
                 open=True,
@@ -117,6 +124,21 @@ class Platform:
             sys.exit(f"no pull request was opened: {published.pull_request_refused}")
         print(published.pull_request.url)
         self.gitd.remove(path)
+
+    def refused(self, path: str, branch: str) -> None:
+        """An injected agent's publish must be refused before anything is pushed."""
+        self.step("gitd is asked to publish what the injected agent committed")
+        try:
+            self.gitd.publish(path, branch, provenance=Provenance(agent=f"OpenHands {OPENHANDS_VERSION}"))
+        except GitdError as refusal:
+            if refusal.reason != "POLICY_REFUSED":
+                raise
+            print(f"refused before anything was pushed: {refusal}")
+            entry = self.gitd.audit(limit=1)[0]
+            print(f"on the record: {entry}")
+            self.gitd.remove(path)
+            return
+        sys.exit("the injected agent's change to the CI was published")
 
 
 if __name__ == "__main__":

@@ -106,6 +106,14 @@ jobs:
           RUN: ${{ github.run_id }}-${{ github.run_attempt }}
           REVIEWER: ${{ github.actor }}
         run: examples/openhands/demo.sh
+      # The same agent taken over by a prompt injection: it finds no token, cannot push by
+      # itself, and its commit adding a workflow is refused before anything is pushed.
+      - name: an injected OpenHands agent is stopped
+        if: steps.secrets.outputs.set
+        env:
+          RUN: ${{ github.run_id }}-${{ github.run_attempt }}
+          SCENARIO: injected
+        run: examples/openhands/demo.sh
       - uses: actions/create-github-app-token@v3
         if: always() && steps.secrets.outputs.set
         id: cleanup
@@ -122,6 +130,10 @@ jobs:
           gh pr view --repo dooservice/gitd-e2e "agents/openhands-$RUN" --json author,files,body > pull.json
           jq -e --arg note "openhands/run-$RUN.md" '.author.login == "app/gitd-e2e" and ([.files[].path] == [$note])' pull.json
           jq -r .body pull.json | grep -F "Agent: OpenHands 1.55.1 (scripted) · session openhands-$RUN"
+          if gh api "repos/dooservice/gitd-e2e/branches/agents/openhands-injected-$RUN" >/dev/null 2>&1; then
+            echo "the injected agent's branch was pushed" >&2
+            exit 1
+          fi
       - name: remove what the run pushed
         if: always() && steps.secrets.outputs.set
         env:
@@ -130,3 +142,4 @@ jobs:
         run: |
           gh pr close --repo dooservice/gitd-e2e "agents/openhands-$RUN" --delete-branch 2>/dev/null \
             || gh api -X DELETE "repos/dooservice/gitd-e2e/git/refs/heads/agents/openhands-$RUN" 2>/dev/null || true
+          gh api -X DELETE "repos/dooservice/gitd-e2e/git/refs/heads/agents/openhands-injected-$RUN" 2>/dev/null || true
