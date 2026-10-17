@@ -1,47 +1,140 @@
 # gitd
 
+**Instant, secretless git checkouts for agent sandboxes.** Your agents work in their own
+copy and publish a branch; they never see your token.
+
 ![Without gitd, three clones fetch and store every object three times; with gitd, one pool fetches once and the workspaces borrow its objects](docs/gitd.svg)
 
-A service that keeps the local copies of git repositories on a server: one **pool** per
-repository, which is the only copy that talks to the network, and **workspaces** that
-borrow their objects from it. Ten workspaces of the same repository take the disk of one
-clone, and a repository is fetched once however many of them use it.
+Give ten AI agents, CI jobs or preview environments the same repository and you usually get
+ten full clones, ten fetches over the network, and a token inside every sandbox. gitd
+fetches each repository once into a **pool** and makes **workspaces** that borrow its
+objects: a new workspace takes about half a second, holds no copy of the history, and
+holds no credential. When an agent is done it asks gitd to **publish** its commits as a new
+branch, and gitd pushes from the pool with the token it keeps.
 
-It reads from any git host: GitHub, GitLab (nested groups included), Bitbucket, Gitea,
-Forgejo, Codeberg or a self-hosted one, over HTTPS or SSH, on any port.
+- **Secretless.** Credentials live in gitd, never in a workspace, a sandbox, an agent's
+  context or a command line. Pushing happens from the pool, so a hostile `insteadOf` or
+  `http.proxy` left in a workspace never sees where the token goes.
+- **Instant.** After the first fetch, a workspace is ready in about half a second, whatever
+  the size of the repository.
+- **Made for sandboxes.** A workspace mounts into a container next to the pools, read only:
+  each sandbox sees its own checkout and nothing else.
+- **Any git host.** GitHub, GitLab (nested groups included), Bitbucket, Gitea, Forgejo,
+  Codeberg or your own, over HTTPS or SSH, on any port, submodules included.
+- **For agents.** `gitd mcp` offers it as Model Context Protocol tools, none of which takes a
+  credential.
 
-It clones, updates, checks out branches and commits, rolls back, handles submodules, adopts
-clones that already exist, and pushes what was committed in a workspace, each with the one
-credential that opens that repository: a token or an SSH key, never on a command line nor
-on disk.
+## Quick start
 
-It speaks ConnectRPC (gRPC, gRPC-Web and Connect) on a Unix socket. The contract is
-[`proto/gitd/v1/gitd.proto`](proto/gitd/v1/gitd.proto) and the design
-[`docs/DESIGN.md`](docs/DESIGN.md).
-
-## Build
-
-You need Go (the version in `go.mod`) and git.
-
-```sh
-make build        # bin/gitd
-make test         # go test
-make lint         # buf lint, go vet, gofmt
-make generate     # regenerates gen/ from the .proto
-```
-
-`make generate` also needs `buf`, `protoc-gen-go` and `protoc-gen-connect-go`.
-
-## Run
+With Docker, two sandboxes sharing one repository and no token in either:
 
 ```sh
-bin/gitd -config /etc/gitd/gitd.toml     # the default path; a missing file is the defaults
-bin/gitd -socket /tmp/gitd.sock          # -socket wins over the configuration's
-bin/gitd -version
+cd examples/sandboxes
+./demo.sh                                   # or the steps below
+
+docker compose up -d gitd
+docker compose exec gitd gitd prepare https://github.com/OCA/web /var/lib/gitd/workspaces/agent-1
+docker compose exec gitd gitd prepare https://github.com/OCA/web /var/lib/gitd/workspaces/agent-2
+docker compose run --rm agent-1 sh -c 'echo hi > NOTE.md && git add NOTE.md && git commit -m "agent-1 was here"'
+docker compose exec gitd gitd publish /var/lib/gitd/workspaces/agent-1 agent-1/note
 ```
 
-As a service, [`packaging/gitd.service`](packaging/gitd.service) runs it as the user
-`gitd`, on `/run/gitd/gitd.sock`, with its state in `/var/lib/gitd`.
+To publish, give gitd a credential in `gitd.toml` (see [Credentials](#credentials)).
+
+On a server, without Docker:
+
+```sh
+curl -fsSLo /usr/local/bin/gitd https://github.com/dooservice/gitd/releases/latest/download/gitd-linux-amd64
+chmod +x /usr/local/bin/gitd
+gitd serve --config /etc/gitd/gitd.toml &   # packaging/gitd.service runs it under systemd
+gitd prepare https://github.com/OCA/web /var/lib/gitd/workspaces/web
+```
+
+## For AI agents (MCP)
+
+`gitd mcp` answers the Model Context Protocol over stdio. Add it to your agent, for
+instance in Claude Code's `.mcp.json` or Cursor's `mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "gitd": { "command": "gitd", "args": ["mcp"], "env": { "GITD_SOCKET": "/run/gitd/gitd.sock" } }
+  }
+}
+```
+
+| Tool | What it does |
+|---|---|
+| `prepare_workspace` | A workspace of a repository at a path under gitd's roots, at a branch or a commit |
+| `update_workspace` | To the tip of its branch |
+| `checkout_commit` | To a commit, as a rollback does |
+| `describe_workspace` | Its repository, commit, branch, uncommitted changes and submodules |
+| `publish_branch` | Its commits pushed to a new branch, for a pull request |
+| `remove_workspace` | Deleted; its pool stays |
+| `probe_repository` | Whether it can be read, its default branch and branches |
+
+No tool takes a credential, and each says whether it only reads or destroys.
+
+## Command line
+
+`gitd` alone serves; every other command calls the gitd that serves.
+
+```sh
+gitd prepare URL PATH [--branch B | --commit C] [--submodules] [--full-history]
+gitd update PATH [--branch B]        gitd checkout PATH COMMIT
+gitd describe PATH                   gitd publish PATH BRANCH
+gitd submodules PATH                 gitd remove PATH
+gitd probe URL                       gitd adopt PATH
+gitd info                            gitd retire [--unused 720h]
+gitd mcp
+```
+
+Every command takes `--socket` (default `$GITD_SOCKET`, then `/run/gitd/gitd.sock`) and
+`--json`. Progress shows on a terminal only.
+
+## Credentials
+
+gitd keeps them, so callers never have to. Each names where its secret is, never the
+secret itself:
+
+```toml
+[[credentials]]
+prefix = "https://github.com/your-org"
+token_file = "/run/credentials/gitd.service/github"   # LoadCredential= in gitd.service: in memory
+
+[[credentials]]
+prefix = "https://gitlab.com/your-group"
+token_env = "GITLAB_TOKEN"
+
+[[credentials]]
+prefix = ""                                            # any repository
+ssh_key = "/etc/gitd/keys/id_ed25519"
+```
+
+A repository is read with the most specific credential that opens it, and only that one. A
+token reaches git as an HTTP header in its environment, scoped to that one repository; a
+key, through `GIT_SSH_COMMAND`, with hosts checked against known keys (GitHub, GitLab,
+Bitbucket and Codeberg are built in). A caller may still send a credential with a request,
+which wins over a kept one of the same prefix.
+
+## Benchmark
+
+<!-- benchmark -->
+
+Run it yourself: `docker build -t gitd:bench . && benchmarks/agents.sh REPO N`, or the
+*benchmark* workflow of this repository.
+
+## How it works
+
+A pool is a bare repository fetched with `--no-prune`, never garbage collected, so even a
+commit lost to a force push is still there for a rollback. A workspace is a plain
+repository whose `objects/info/alternates` points at the pool: it has its own refs, index
+and config, any branch, and can be moved or mounted elsewhere. gitd runs the official `git`
+with a closed environment, no hooks and only HTTPS and SSH, and builds everything aside
+before moving it into place. The design is in [`docs/DESIGN.md`](docs/DESIGN.md).
+
+Unlike `git worktree`, workspaces share no refs or config with each other, can check out
+the same branch twice, and survive being mounted into a container.
 
 ## Configure
 
@@ -55,51 +148,35 @@ Every key has a default; [`packaging/gitd.toml`](packaging/gitd.toml) shows them
 | `git` | `git` | The git binary |
 | `metrics` | empty (off) | Where Prometheus metrics are served, e.g. `127.0.0.1:9419` |
 | `known_hosts` | `[]` | Files of SSH host keys trusted besides the built-in ones |
+| `[[credentials]]` | none | Credentials gitd keeps, by URL prefix |
 | `[hosts."<host>"]` | — | `https_port`, `ssh_port`, `ssh_user` of a host not on the usual ones |
 | `[limits]` | 4 fetches, 8 writes, 32 queued, 5m wait, 30m per call | How much runs at once and for how long |
 | `[housekeeping]` | every 6h, retire after 30 days | Pool maintenance and retirement |
 
-### Git hosts
+A host on other ports says so, and every form of its addresses is then one repository:
 
-- **SSH host keys** of github.com, gitlab.com, bitbucket.org and codeberg.org are built in.
-  For a self-hosted GitLab, Gitea or Forgejo, put its keys in a file listed in
-  `known_hosts`, checked against what its admin publishes (`ssh-keyscan` only shows what
-  answers). Nothing is trusted on first use.
-- **Ports**: a host reached on other ports than HTTPS on 443 and SSH on 22 says so:
-
-  ```toml
-  [hosts."git.example.com"]
-  https_port = 3000
-  ssh_port = 2222       # its key goes in known_hosts as [git.example.com]:2222 ssh-ed25519 …
-  ```
-
-  Every form of a repository's address — `https://git.example.com:3000/acme/web`,
-  `ssh://git@git.example.com:2222/acme/web.git`, `git@git.example.com:acme/web` — is then
-  the same repository, with one pool.
-- **Tokens** are sent with the user name their host expects (`oauth2` on gitlab.com,
-  `x-token-auth` on bitbucket.org, `x-access-token` elsewhere) unless the request's
-  `https_user` names one.
-
-## Try it by hand
-
-```sh
-buf curl --http2-prior-knowledge --unix-socket /run/gitd/gitd.sock --schema . \
-  -d '{"url": "https://gitlab.com/gitlab-org/cloud-native/gitlab-operator"}' \
-  http://localhost/gitd.v1.RepositoryService/Probe
-
-echo '{"url": "git@github.com:acme/private.git", "path": "/var/lib/gitd/workspaces/acme/app",
-       "credentials": [{"url_prefix": "https://github.com/acme", "https_token": "…"}]}' |
-buf curl --http2-prior-knowledge --unix-socket /run/gitd/gitd.sock --schema . -d @- \
-  http://localhost/gitd.v1.WorkspaceService/Prepare
+```toml
+[hosts."git.example.com"]
+https_port = 3000
+ssh_port = 2222       # its key goes in known_hosts as [git.example.com]:2222 ssh-ed25519 …
 ```
 
-Credentials travel in the request body: pass it on stdin (`-d @-`), never on the command
-line.
+## API
 
-## Release
+gitd speaks ConnectRPC (gRPC, gRPC-Web and Connect over HTTP) on its Unix socket; the
+contract is [`proto/gitd/v1/gitd.proto`](proto/gitd/v1/gitd.proto). Any language with a
+Connect or gRPC client can call it, and `buf curl` can too.
 
-Push a tag such as `0.5.0`: the release workflow tests, builds and attaches
-`gitd-linux-amd64` and its checksum to the GitHub release.
+## Install
+
+- **Binary:** `gitd-linux-amd64` or `gitd-linux-arm64` from the
+  [releases](https://github.com/dooservice/gitd/releases), with its checksum.
+- **Docker:** `ghcr.io/dooservice/gitd`, for amd64 and arm64.
+- **systemd:** [`packaging/gitd.service`](packaging/gitd.service).
+- **From source:** `make build` (Go, the version in `go.mod`); `make test`, `make lint`;
+  `make generate` regenerates `gen/` from the `.proto` with `buf`.
+
+Pushing a tag such as `0.6.0` releases the binaries and the image.
 
 ## Contributing and security
 
