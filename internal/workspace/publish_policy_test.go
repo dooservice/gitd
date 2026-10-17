@@ -38,7 +38,7 @@ func TestAPublishThatBreaksARuleIsRefusedBeforeAnythingIsPushed(t *testing.T) {
 	}
 	two := int32(2)
 	if _, err := settings.Set(&gitdv1.PublishSettings{
-		UrlPrefix: "https://github.com/acme", Preset: gitdv1.Preset_PRESET_RECOMMENDED, MaxChangedFiles: &two,
+		UrlPrefix: "https://github.com/acme", Preset: "recommended", MaxChangedFiles: &two,
 	}); err != nil {
 		t.Fatal(err)
 	}

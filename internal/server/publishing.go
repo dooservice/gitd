@@ -6,10 +6,13 @@ import (
 	"connectrpc.com/connect"
 
 	gitdv1 "github.com/dooservice/gitd/gen/go/gitd/v1"
+	"github.com/dooservice/gitd/gen/go/gitd/v1/gitdv1connect"
 )
 
-// publishingHandlers answers PublishingService.
+// publishingHandlers answers PublishingService. Presets come with their own changes; until
+// then those calls answer that they are not implemented.
 type publishingHandlers struct {
+	gitdv1connect.UnimplementedPublishingServiceHandler
 	server *Server
 }
 

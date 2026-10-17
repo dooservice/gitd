@@ -1361,6 +1361,14 @@
                 {
                   "name": "ACTION_SETTINGS_REMOVED",
                   "number": 4
+                },
+                {
+                  "name": "ACTION_PRESET_SET",
+                  "number": 5
+                },
+                {
+                  "name": "ACTION_PRESET_REMOVED",
+                  "number": 6
                 }
               ]
             }
@@ -1769,8 +1777,7 @@
               "name": "preset",
               "number": 2,
               "label": "LABEL_OPTIONAL",
-              "type": "TYPE_ENUM",
-              "typeName": ".gitd.v1.Preset",
+              "type": "TYPE_STRING",
               "jsonName": "preset"
             },
             {
@@ -1817,6 +1824,84 @@
               "label": "LABEL_OPTIONAL",
               "type": "TYPE_BOOL",
               "jsonName": "fromFile"
+            },
+            {
+              "name": "allowed_paths",
+              "number": 9,
+              "label": "LABEL_REPEATED",
+              "type": "TYPE_STRING",
+              "jsonName": "allowedPaths"
+            }
+          ],
+          "oneofDecl": [
+            {
+              "name": "_max_changed_files"
+            }
+          ]
+        },
+        {
+          "name": "Preset",
+          "field": [
+            {
+              "name": "name",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "name"
+            },
+            {
+              "name": "protected_paths",
+              "number": 2,
+              "label": "LABEL_REPEATED",
+              "type": "TYPE_STRING",
+              "jsonName": "protectedPaths"
+            },
+            {
+              "name": "kept_paths",
+              "number": 3,
+              "label": "LABEL_REPEATED",
+              "type": "TYPE_STRING",
+              "jsonName": "keptPaths"
+            },
+            {
+              "name": "max_changed_files",
+              "number": 4,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_INT32",
+              "oneofIndex": 0,
+              "jsonName": "maxChangedFiles",
+              "proto3Optional": true
+            },
+            {
+              "name": "origin",
+              "number": 5,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_ENUM",
+              "typeName": ".gitd.v1.Preset.Origin",
+              "jsonName": "origin"
+            }
+          ],
+          "enumType": [
+            {
+              "name": "Origin",
+              "value": [
+                {
+                  "name": "ORIGIN_UNSPECIFIED",
+                  "number": 0
+                },
+                {
+                  "name": "ORIGIN_BUILT_IN",
+                  "number": 1
+                },
+                {
+                  "name": "ORIGIN_FILE",
+                  "number": 2
+                },
+                {
+                  "name": "ORIGIN_API",
+                  "number": 3
+                }
+              ]
             }
           ],
           "oneofDecl": [
@@ -1934,6 +2019,63 @@
         },
         {
           "name": "RemoveSettingsResponse"
+        },
+        {
+          "name": "ListPresetsRequest"
+        },
+        {
+          "name": "ListPresetsResponse",
+          "field": [
+            {
+              "name": "presets",
+              "number": 1,
+              "label": "LABEL_REPEATED",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".gitd.v1.Preset",
+              "jsonName": "presets"
+            }
+          ]
+        },
+        {
+          "name": "SetPresetRequest",
+          "field": [
+            {
+              "name": "preset",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".gitd.v1.Preset",
+              "jsonName": "preset"
+            }
+          ]
+        },
+        {
+          "name": "SetPresetResponse",
+          "field": [
+            {
+              "name": "preset",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".gitd.v1.Preset",
+              "jsonName": "preset"
+            }
+          ]
+        },
+        {
+          "name": "RemovePresetRequest",
+          "field": [
+            {
+              "name": "name",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "name"
+            }
+          ]
+        },
+        {
+          "name": "RemovePresetResponse"
         }
       ],
       "enumType": [
@@ -1955,19 +2097,6 @@
             {
               "name": "STRATEGY_REFLINK",
               "number": 3
-            }
-          ]
-        },
-        {
-          "name": "Preset",
-          "value": [
-            {
-              "name": "PRESET_UNSPECIFIED",
-              "number": 0
-            },
-            {
-              "name": "PRESET_RECOMMENDED",
-              "number": 1
             }
           ]
         }
@@ -2115,6 +2244,21 @@
               "name": "RemoveSettings",
               "inputType": ".gitd.v1.RemoveSettingsRequest",
               "outputType": ".gitd.v1.RemoveSettingsResponse"
+            },
+            {
+              "name": "ListPresets",
+              "inputType": ".gitd.v1.ListPresetsRequest",
+              "outputType": ".gitd.v1.ListPresetsResponse"
+            },
+            {
+              "name": "SetPreset",
+              "inputType": ".gitd.v1.SetPresetRequest",
+              "outputType": ".gitd.v1.SetPresetResponse"
+            },
+            {
+              "name": "RemovePreset",
+              "inputType": ".gitd.v1.RemovePresetRequest",
+              "outputType": ".gitd.v1.RemovePresetResponse"
             }
           ]
         }

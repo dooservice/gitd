@@ -1,7 +1,6 @@
 import type { MessageInitShape } from "@bufbuild/protobuf";
 
 import {
-  Preset as PresetMessage,
   PullRequestSettings_Open,
   type PublishSettings as PublishSettingsMessage,
   type PublishSettingsSchema,
@@ -13,7 +12,7 @@ export function toPublishSettings(settings: PublishSettingsMessage | undefined):
   const pullRequests = settings?.pullRequests;
   return {
     urlPrefix: settings?.urlPrefix ?? "",
-    preset: settings?.preset === PresetMessage.RECOMMENDED ? "recommended" : undefined,
+    preset: settings?.preset || undefined,
     protectedPaths: settings?.protectedPaths ?? [],
     keptPaths: settings?.keptPaths ?? [],
     maxChangedFiles: settings?.maxChangedFiles,
@@ -32,7 +31,7 @@ export function publishSettingsProto(settings: PublishSettings): MessageInitShap
   const pullRequests = settings.pullRequests;
   return {
     urlPrefix: settings.urlPrefix,
-    preset: settings.preset === "recommended" ? PresetMessage.RECOMMENDED : PresetMessage.UNSPECIFIED,
+    preset: settings.preset ?? "",
     protectedPaths: settings.protectedPaths ?? [],
     keptPaths: settings.keptPaths ?? [],
     maxChangedFiles: settings.maxChangedFiles,

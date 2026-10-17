@@ -9,24 +9,7 @@ from typing import Any
 
 from . import messages
 
-PRESET_PREFIX = "PRESET_"
 OPENING_PREFIX = "OPEN_"
-
-
-class Preset(StrEnum):
-    """A ready set of rules. recommended protects the CI, CODEOWNERS and .gitmodules, keeps
-    tests, and allows at most 200 files changed."""
-
-    RECOMMENDED = "recommended"
-
-    @classmethod
-    def from_message(cls, number: int) -> Preset | None:
-        name = messages.PRESET.name(number).removeprefix(PRESET_PREFIX).lower()
-        return cls(name) if name in {member.value for member in cls} else None
-
-    @classmethod
-    def to_message(cls, preset: Preset | None) -> int:
-        return messages.PRESET.number(PRESET_PREFIX + (preset.value.upper() if preset else "UNSPECIFIED"))
 
 
 class Opening(StrEnum):
@@ -75,12 +58,13 @@ class PullRequestSettings:
 @dataclass(frozen=True)
 class PublishSettings:
     """The rules of the repositories whose address starts with url_prefix (empty for every
-    repository): a preset, paths a publish may not change and paths it may not delete, as
-    git's glob pathspecs, at most how many files it may change, the branch prefix, and how
-    pull requests are opened. from_file says gitd.toml declares them."""
+    repository): the name of a preset whose rules they take ("recommended" is gitd's own),
+    paths a publish may not change and paths it may not delete, as git's glob pathspecs, at
+    most how many files it may change, the branch prefix, and how pull requests are opened.
+    from_file says gitd.toml declares them."""
 
     url_prefix: str = ""
-    preset: Preset | None = None
+    preset: str = ""
     protected_paths: list[str] = field(default_factory=list)
     kept_paths: list[str] = field(default_factory=list)
     max_changed_files: int | None = None
@@ -92,7 +76,7 @@ class PublishSettings:
     def from_message(cls, settings: Any) -> PublishSettings:
         return cls(
             url_prefix=settings.url_prefix,
-            preset=Preset.from_message(settings.preset),
+            preset=settings.preset,
             protected_paths=list(settings.protected_paths),
             kept_paths=list(settings.kept_paths),
             max_changed_files=settings.max_changed_files if settings.HasField("max_changed_files") else None,
@@ -108,7 +92,7 @@ class PublishSettings:
     def to_message(self) -> Any:
         message: Any = messages.PublishSettings(
             url_prefix=self.url_prefix,
-            preset=Preset.to_message(self.preset),
+            preset=self.preset,
             protected_paths=self.protected_paths,
             kept_paths=self.kept_paths,
             branch_prefix=self.branch_prefix,

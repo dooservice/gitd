@@ -10,10 +10,8 @@ import (
 	gitdv1 "github.com/dooservice/gitd/gen/go/gitd/v1"
 )
 
-// presetsByName and openingsByName are how the command line names presets and ways of
-// opening pull requests.
+// openingsByName are how the command line names the ways of opening pull requests.
 var (
-	presetsByName  = map[string]gitdv1.Preset{"": gitdv1.Preset_PRESET_UNSPECIFIED, "recommended": gitdv1.Preset_PRESET_RECOMMENDED}
 	openingsByName = map[string]gitdv1.PullRequestSettings_Open{
 		"when-asked": gitdv1.PullRequestSettings_OPEN_WHEN_ASKED, "always": gitdv1.PullRequestSettings_OPEN_ALWAYS,
 	}
@@ -65,12 +63,8 @@ func setPublishingCommand(app *app) *cobra.Command {
 			"    --pull-requests always --draft --label agent --review-requester",
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			chosen, known := presetsByName[preset]
-			if !known {
-				return fmt.Errorf("no preset %q; there is \"recommended\"", preset)
-			}
 			settings := &gitdv1.PublishSettings{
-				UrlPrefix: args[0], Preset: chosen, ProtectedPaths: protected, KeptPaths: kept, BranchPrefix: branchPrefix,
+				UrlPrefix: args[0], Preset: preset, ProtectedPaths: protected, KeptPaths: kept, BranchPrefix: branchPrefix,
 			}
 			if cmd.Flags().Changed("max-files") {
 				settings.MaxChangedFiles = &maxFiles
@@ -127,8 +121,8 @@ func settingsLines(out io.Writer, settings *gitdv1.PublishSettings) {
 		title += "  (gitd.toml)"
 	}
 	fmt.Fprintln(out, title)
-	if settings.GetPreset() != gitdv1.Preset_PRESET_UNSPECIFIED {
-		fmt.Fprintf(out, "  preset: %s\n", strings.ToLower(strings.TrimPrefix(settings.GetPreset().String(), "PRESET_")))
+	if preset := settings.GetPreset(); preset != "" {
+		fmt.Fprintf(out, "  preset: %s\n", preset)
 	}
 	if paths := settings.GetProtectedPaths(); len(paths) > 0 {
 		fmt.Fprintf(out, "  protected: %s\n", strings.Join(paths, ", "))

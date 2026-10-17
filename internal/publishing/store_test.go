@@ -18,7 +18,7 @@ func TestSettingsSetThroughTheAPIAreKeptAcrossRestarts(t *testing.T) {
 		t.Fatal(err)
 	}
 	set, err := store.Set(&gitdv1.PublishSettings{
-		UrlPrefix: "https://GitHub.com/acme/", Preset: gitdv1.Preset_PRESET_RECOMMENDED, BranchPrefix: "agents/",
+		UrlPrefix: "https://GitHub.com/acme/", Preset: "recommended", BranchPrefix: "agents/",
 		PullRequests: &gitdv1.PullRequestSettings{Open: gitdv1.PullRequestSettings_OPEN_ALWAYS, Labels: []string{"agent"}},
 	})
 	if err != nil {

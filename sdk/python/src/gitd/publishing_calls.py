@@ -11,7 +11,7 @@ from .publishing_settings import PublishSettings
 class Publishing:
     """The publishing settings, per repository prefix, as gitd.publishing.
 
-    gitd.publishing.set(PublishSettings(url_prefix="https://github.com/acme", preset=Preset.RECOMMENDED,
+    gitd.publishing.set(PublishSettings(url_prefix="https://github.com/acme", preset="recommended",
                                         branch_prefix="agents/"))
     """
 

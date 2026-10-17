@@ -26,7 +26,7 @@ func TestSettingsAreSetAndRemovedThroughTheAPIAndRecorded(t *testing.T) {
 	handlers := &publishingHandlers{server: server}
 	ctx := context.Background()
 	if _, err := handlers.SetSettings(ctx, connect.NewRequest(&gitdv1.SetSettingsRequest{Settings: &gitdv1.PublishSettings{
-		UrlPrefix: "https://github.com/acme", Preset: gitdv1.Preset_PRESET_RECOMMENDED,
+		UrlPrefix: "https://github.com/acme", Preset: "recommended",
 	}})); err != nil {
 		t.Fatal(err)
 	}
@@ -35,7 +35,7 @@ func TestSettingsAreSetAndRemovedThroughTheAPIAndRecorded(t *testing.T) {
 		t.Fatal(err)
 	}
 	if settings := got.Msg.GetSettings(); len(settings) != 2 || !settings[0].GetFromFile() ||
-		settings[1].GetPreset() != gitdv1.Preset_PRESET_RECOMMENDED {
+		settings[1].GetPreset() != "recommended" {
 		t.Fatalf("settings = %v", settings)
 	}
 	var refused *connect.Error

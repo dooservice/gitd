@@ -11,7 +11,7 @@ func TestSettingsReadAsTheirRules(t *testing.T) {
 	var out bytes.Buffer
 	fifty := int32(50)
 	settingsLines(&out, &gitdv1.PublishSettings{
-		UrlPrefix: "https://github.com/acme", Preset: gitdv1.Preset_PRESET_RECOMMENDED, ProtectedPaths: []string{"deploy/**"},
+		UrlPrefix: "https://github.com/acme", Preset: "recommended", ProtectedPaths: []string{"deploy/**"},
 		MaxChangedFiles: &fifty, BranchPrefix: "agents/",
 		PullRequests: &gitdv1.PullRequestSettings{Open: gitdv1.PullRequestSettings_OPEN_WHEN_ASKED, Draft: true,
 			Labels: []string{"agent"}, RequestReviewFromRequester: true},

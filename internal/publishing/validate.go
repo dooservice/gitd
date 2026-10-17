@@ -31,8 +31,8 @@ func normalized(settings *gitdv1.PublishSettings) (*gitdv1.PublishSettings, erro
 			return nil, invalid("the prefix %q must name a host, e.g. https://github.com/acme", settings.GetUrlPrefix())
 		}
 	}
-	if _, known := gitdv1.Preset_name[int32(settings.GetPreset())]; !known {
-		return nil, invalid("no preset %d", settings.GetPreset())
+	if preset := settings.GetPreset(); preset != "" && preset != RecommendedName {
+		return nil, invalid("no preset %q", preset)
 	}
 	for name, paths := range map[string][]string{"protected": settings.GetProtectedPaths(), "kept": settings.GetKeptPaths()} {
 		if err := validPaths(name, paths); err != nil {

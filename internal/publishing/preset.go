@@ -3,8 +3,6 @@
 // those a platform sets through it, kept under the state directory and applied at once.
 package publishing
 
-import gitdv1 "github.com/dooservice/gitd/gen/go/gitd/v1"
-
 // Recommended is the preset most organisations want: the CI and who owns what untouched,
 // no test deleted, and a publish small enough to review.
 var Recommended = Rules{
@@ -21,9 +19,12 @@ type Rules struct {
 	MaxFiles  int32
 }
 
+// RecommendedName is the name of gitd's own preset.
+const RecommendedName = "recommended"
+
 // presetRules is what a preset brings.
-func presetRules(preset gitdv1.Preset) Rules {
-	if preset == gitdv1.Preset_PRESET_RECOMMENDED {
+func presetRules(preset string) Rules {
+	if preset == RecommendedName {
 		return Recommended
 	}
 	return Rules{}

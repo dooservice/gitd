@@ -9,9 +9,8 @@ import (
 	"github.com/dooservice/gitd/internal/config"
 )
 
-// presets and openings are how the file names them.
+// openings are how the file names the ways of opening pull requests.
 var (
-	presets  = map[string]gitdv1.Preset{"": gitdv1.Preset_PRESET_UNSPECIFIED, "recommended": gitdv1.Preset_PRESET_RECOMMENDED}
 	openings = map[string]gitdv1.PullRequestSettings_Open{
 		"":           gitdv1.PullRequestSettings_OPEN_UNSPECIFIED,
 		"when_asked": gitdv1.PullRequestSettings_OPEN_WHEN_ASKED,
@@ -57,13 +56,9 @@ func FromFile(publish config.Publish) ([]*gitdv1.PublishSettings, error) {
 }
 
 func fromSetting(setting config.PublishSetting) (*gitdv1.PublishSettings, error) {
-	preset, known := presets[setting.Preset]
-	if !known {
-		return nil, fmt.Errorf("%w: no preset %q; there is \"recommended\"", ErrInvalid, setting.Preset)
-	}
 	converted := &gitdv1.PublishSettings{
 		UrlPrefix:       setting.Prefix,
-		Preset:          preset,
+		Preset:          setting.Preset,
 		ProtectedPaths:  setting.ProtectedPaths,
 		KeptPaths:       setting.KeptPaths,
 		MaxChangedFiles: setting.MaxChangedFiles,

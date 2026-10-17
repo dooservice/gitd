@@ -1,6 +1,3 @@
-/** A ready set of rules: protects the CI, CODEOWNERS and .gitmodules, keeps tests, allows 200 files. */
-export type Preset = "recommended";
-
 /** When publishes open pull requests: only when a publish asks, or always. */
 export type Opening = "when_asked" | "always";
 
@@ -16,7 +13,8 @@ export interface PullRequestSettings {
 /** The rules of the repositories whose address starts with urlPrefix ("" for every one). */
 export interface PublishSettings {
   urlPrefix: string;
-  preset?: Preset;
+  /** The name of a preset whose rules these take; `recommended` is gitd's own. */
+  preset?: string;
   /** Paths a publish may not change, as git's glob pathspecs, e.g. `.github/workflows/**`. */
   protectedPaths?: string[];
   /** Paths a publish may change but not delete or rename away. */

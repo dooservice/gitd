@@ -82,7 +82,8 @@ service ConnectionService {
 
 // The rules publishing follows, per repository prefix, managed by a platform from its own
 // pages instead of a file: which paths a publish may not change or delete, how many files
-// it may change, the branch prefix, and how pull requests are opened.
+// it may change, the branch prefix, and how pull requests are opened; and the presets,
+// named sets of rules that settings use.
 service PublishingService {
   // Every setting, those of the configuration file included.
   rpc GetSettings(GetSettingsRequest) returns (GetSettingsResponse);
@@ -90,6 +91,14 @@ service PublishingService {
   rpc SetSettings(SetSettingsRequest) returns (SetSettingsResponse);
   // Forget the settings of a prefix. Those of the configuration file are refused.
   rpc RemoveSettings(RemoveSettingsRequest) returns (RemoveSettingsResponse);
+  // Every preset: gitd's own (`recommended`), the configuration file's and those set
+  // through the API, as they apply.
+  rpc ListPresets(ListPresetsRequest) returns (ListPresetsResponse);
+  // Keep a preset, replacing one of the same name; one named `recommended` replaces gitd's.
+  rpc SetPreset(SetPresetRequest) returns (SetPresetResponse);
+  // Forget a preset set through the API: refused while settings use it, unless gitd has its
+  // own of that name, which then applies again.
+  rpc RemovePreset(RemovePresetRequest) returns (RemovePresetResponse);
 }
 
 // What opens repositories whose address starts with `url_prefix`, on any host:
@@ -475,9 +484,11 @@ message ConfigurationChange {
     ACTION_CONNECTION_REMOVED = 2;
     ACTION_SETTINGS_SET = 3;
     ACTION_SETTINGS_REMOVED = 4;
+    ACTION_PRESET_SET = 5;
+    ACTION_PRESET_REMOVED = 6;
   }
   Action action = 1;
-  // The connection's ID, or the settings' prefix.
+  // The connection's ID, the settings' prefix, or the preset's name.
   string subject = 2;
   // What it opens or applies to, e.g. `https://github.com/acme`.
   string url_prefix = 3;
@@ -617,8 +628,8 @@ message RemoveConnectionResponse {}
 message PublishSettings {
   // The repositories these apply to; empty for every repository.
   string url_prefix = 1;
-  // A ready set of rules, which the fields below add to.
-  Preset preset = 2;
+  // The name of a preset whose rules these take, and which the fields below add to.
+  string preset = 2;
   // Paths a publish may not change, as git's glob pathspecs, e.g. `.github/workflows/**`.
   repeated string protected_paths = 3;
   // Paths a publish may change but not delete or rename away, e.g. `tests/**`.
@@ -630,14 +641,30 @@ message PublishSettings {
   PullRequestSettings pull_requests = 7;
   // From the configuration file: shown, never changed through the API.
   bool from_file = 8;
+  // Paths these settings' own rules — their preset's and their own — leave free, as glob
+  // pathspecs, e.g. `.gitmodules` under `recommended`. They never free what another
+  // setting protects or keeps.
+  repeated string allowed_paths = 9;
 }
 
-enum Preset {
-  PRESET_UNSPECIFIED = 0;
-  // Protects `.github/workflows/**`, `.gitlab-ci.yml`, `CODEOWNERS` and `.gitmodules`;
-  // keeps tests (`**/*_test.*`, `**/*.test.*`, `**/test/**`, `**/tests/**`,
-  // `**/__tests__/**`); at most 200 files changed.
-  PRESET_RECOMMENDED = 1;
+// A named set of rules settings take. gitd has its own `recommended`: it protects
+// `.github/workflows/**`, `.gitlab-ci.yml`, `CODEOWNERS` and `.gitmodules`, keeps tests
+// (`**/*_test.*`, `**/*.test.*`, `**/test/**`, `**/tests/**`, `**/__tests__/**`) and
+// allows at most 200 files changed; a preset of that name replaces it.
+message Preset {
+  // Lowercase letters, digits, `-`, `_` and `.`, up to 64.
+  string name = 1;
+  repeated string protected_paths = 2;
+  repeated string kept_paths = 3;
+  optional int32 max_changed_files = 4;
+  // Where it comes from: gitd's own, the configuration file, or the API.
+  enum Origin {
+    ORIGIN_UNSPECIFIED = 0;
+    ORIGIN_BUILT_IN = 1;
+    ORIGIN_FILE = 2;
+    ORIGIN_API = 3;
+  }
+  Origin origin = 5;
 }
 
 // How publishes open pull requests.
@@ -674,3 +701,23 @@ message RemoveSettingsRequest {
 }
 
 message RemoveSettingsResponse {}
+
+message ListPresetsRequest {}
+
+message ListPresetsResponse {
+  repeated Preset presets = 1;
+}
+
+message SetPresetRequest {
+  Preset preset = 1;
+}
+
+message SetPresetResponse {
+  Preset preset = 1;
+}
+
+message RemovePresetRequest {
+  string name = 1;
+}
+
+message RemovePresetResponse {}

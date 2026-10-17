@@ -103,6 +103,15 @@ const (
 	// PublishingServiceRemoveSettingsProcedure is the fully-qualified name of the PublishingService's
 	// RemoveSettings RPC.
 	PublishingServiceRemoveSettingsProcedure = "/gitd.v1.PublishingService/RemoveSettings"
+	// PublishingServiceListPresetsProcedure is the fully-qualified name of the PublishingService's
+	// ListPresets RPC.
+	PublishingServiceListPresetsProcedure = "/gitd.v1.PublishingService/ListPresets"
+	// PublishingServiceSetPresetProcedure is the fully-qualified name of the PublishingService's
+	// SetPreset RPC.
+	PublishingServiceSetPresetProcedure = "/gitd.v1.PublishingService/SetPreset"
+	// PublishingServiceRemovePresetProcedure is the fully-qualified name of the PublishingService's
+	// RemovePreset RPC.
+	PublishingServiceRemovePresetProcedure = "/gitd.v1.PublishingService/RemovePreset"
 )
 
 // WorkspaceServiceClient is a client for the gitd.v1.WorkspaceService service.
@@ -869,6 +878,14 @@ type PublishingServiceClient interface {
 	SetSettings(context.Context, *connect.Request[v1.SetSettingsRequest]) (*connect.Response[v1.SetSettingsResponse], error)
 	// Forget the settings of a prefix. Those of the configuration file are refused.
 	RemoveSettings(context.Context, *connect.Request[v1.RemoveSettingsRequest]) (*connect.Response[v1.RemoveSettingsResponse], error)
+	// Every preset: gitd's own (`recommended`), the configuration file's and those set
+	// through the API, as they apply.
+	ListPresets(context.Context, *connect.Request[v1.ListPresetsRequest]) (*connect.Response[v1.ListPresetsResponse], error)
+	// Keep a preset, replacing one of the same name; one named `recommended` replaces gitd's.
+	SetPreset(context.Context, *connect.Request[v1.SetPresetRequest]) (*connect.Response[v1.SetPresetResponse], error)
+	// Forget a preset set through the API: refused while settings use it, unless gitd has its
+	// own of that name, which then applies again.
+	RemovePreset(context.Context, *connect.Request[v1.RemovePresetRequest]) (*connect.Response[v1.RemovePresetResponse], error)
 }
 
 // NewPublishingServiceClient constructs a client for the gitd.v1.PublishingService service. By
@@ -900,6 +917,24 @@ func NewPublishingServiceClient(httpClient connect.HTTPClient, baseURL string, o
 			connect.WithSchema(publishingServiceMethods.ByName("RemoveSettings")),
 			connect.WithClientOptions(opts...),
 		),
+		listPresets: connect.NewClient[v1.ListPresetsRequest, v1.ListPresetsResponse](
+			httpClient,
+			baseURL+PublishingServiceListPresetsProcedure,
+			connect.WithSchema(publishingServiceMethods.ByName("ListPresets")),
+			connect.WithClientOptions(opts...),
+		),
+		setPreset: connect.NewClient[v1.SetPresetRequest, v1.SetPresetResponse](
+			httpClient,
+			baseURL+PublishingServiceSetPresetProcedure,
+			connect.WithSchema(publishingServiceMethods.ByName("SetPreset")),
+			connect.WithClientOptions(opts...),
+		),
+		removePreset: connect.NewClient[v1.RemovePresetRequest, v1.RemovePresetResponse](
+			httpClient,
+			baseURL+PublishingServiceRemovePresetProcedure,
+			connect.WithSchema(publishingServiceMethods.ByName("RemovePreset")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -908,6 +943,9 @@ type publishingServiceClient struct {
 	getSettings    *connect.Client[v1.GetSettingsRequest, v1.GetSettingsResponse]
 	setSettings    *connect.Client[v1.SetSettingsRequest, v1.SetSettingsResponse]
 	removeSettings *connect.Client[v1.RemoveSettingsRequest, v1.RemoveSettingsResponse]
+	listPresets    *connect.Client[v1.ListPresetsRequest, v1.ListPresetsResponse]
+	setPreset      *connect.Client[v1.SetPresetRequest, v1.SetPresetResponse]
+	removePreset   *connect.Client[v1.RemovePresetRequest, v1.RemovePresetResponse]
 }
 
 // GetSettings calls gitd.v1.PublishingService.GetSettings.
@@ -925,6 +963,21 @@ func (c *publishingServiceClient) RemoveSettings(ctx context.Context, req *conne
 	return c.removeSettings.CallUnary(ctx, req)
 }
 
+// ListPresets calls gitd.v1.PublishingService.ListPresets.
+func (c *publishingServiceClient) ListPresets(ctx context.Context, req *connect.Request[v1.ListPresetsRequest]) (*connect.Response[v1.ListPresetsResponse], error) {
+	return c.listPresets.CallUnary(ctx, req)
+}
+
+// SetPreset calls gitd.v1.PublishingService.SetPreset.
+func (c *publishingServiceClient) SetPreset(ctx context.Context, req *connect.Request[v1.SetPresetRequest]) (*connect.Response[v1.SetPresetResponse], error) {
+	return c.setPreset.CallUnary(ctx, req)
+}
+
+// RemovePreset calls gitd.v1.PublishingService.RemovePreset.
+func (c *publishingServiceClient) RemovePreset(ctx context.Context, req *connect.Request[v1.RemovePresetRequest]) (*connect.Response[v1.RemovePresetResponse], error) {
+	return c.removePreset.CallUnary(ctx, req)
+}
+
 // PublishingServiceHandler is an implementation of the gitd.v1.PublishingService service.
 type PublishingServiceHandler interface {
 	// Every setting, those of the configuration file included.
@@ -933,6 +986,14 @@ type PublishingServiceHandler interface {
 	SetSettings(context.Context, *connect.Request[v1.SetSettingsRequest]) (*connect.Response[v1.SetSettingsResponse], error)
 	// Forget the settings of a prefix. Those of the configuration file are refused.
 	RemoveSettings(context.Context, *connect.Request[v1.RemoveSettingsRequest]) (*connect.Response[v1.RemoveSettingsResponse], error)
+	// Every preset: gitd's own (`recommended`), the configuration file's and those set
+	// through the API, as they apply.
+	ListPresets(context.Context, *connect.Request[v1.ListPresetsRequest]) (*connect.Response[v1.ListPresetsResponse], error)
+	// Keep a preset, replacing one of the same name; one named `recommended` replaces gitd's.
+	SetPreset(context.Context, *connect.Request[v1.SetPresetRequest]) (*connect.Response[v1.SetPresetResponse], error)
+	// Forget a preset set through the API: refused while settings use it, unless gitd has its
+	// own of that name, which then applies again.
+	RemovePreset(context.Context, *connect.Request[v1.RemovePresetRequest]) (*connect.Response[v1.RemovePresetResponse], error)
 }
 
 // NewPublishingServiceHandler builds an HTTP handler from the service implementation. It returns
@@ -960,6 +1021,24 @@ func NewPublishingServiceHandler(svc PublishingServiceHandler, opts ...connect.H
 		connect.WithSchema(publishingServiceMethods.ByName("RemoveSettings")),
 		connect.WithHandlerOptions(opts...),
 	)
+	publishingServiceListPresetsHandler := connect.NewUnaryHandler(
+		PublishingServiceListPresetsProcedure,
+		svc.ListPresets,
+		connect.WithSchema(publishingServiceMethods.ByName("ListPresets")),
+		connect.WithHandlerOptions(opts...),
+	)
+	publishingServiceSetPresetHandler := connect.NewUnaryHandler(
+		PublishingServiceSetPresetProcedure,
+		svc.SetPreset,
+		connect.WithSchema(publishingServiceMethods.ByName("SetPreset")),
+		connect.WithHandlerOptions(opts...),
+	)
+	publishingServiceRemovePresetHandler := connect.NewUnaryHandler(
+		PublishingServiceRemovePresetProcedure,
+		svc.RemovePreset,
+		connect.WithSchema(publishingServiceMethods.ByName("RemovePreset")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/gitd.v1.PublishingService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case PublishingServiceGetSettingsProcedure:
@@ -968,6 +1047,12 @@ func NewPublishingServiceHandler(svc PublishingServiceHandler, opts ...connect.H
 			publishingServiceSetSettingsHandler.ServeHTTP(w, r)
 		case PublishingServiceRemoveSettingsProcedure:
 			publishingServiceRemoveSettingsHandler.ServeHTTP(w, r)
+		case PublishingServiceListPresetsProcedure:
+			publishingServiceListPresetsHandler.ServeHTTP(w, r)
+		case PublishingServiceSetPresetProcedure:
+			publishingServiceSetPresetHandler.ServeHTTP(w, r)
+		case PublishingServiceRemovePresetProcedure:
+			publishingServiceRemovePresetHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -987,4 +1072,16 @@ func (UnimplementedPublishingServiceHandler) SetSettings(context.Context, *conne
 
 func (UnimplementedPublishingServiceHandler) RemoveSettings(context.Context, *connect.Request[v1.RemoveSettingsRequest]) (*connect.Response[v1.RemoveSettingsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("gitd.v1.PublishingService.RemoveSettings is not implemented"))
+}
+
+func (UnimplementedPublishingServiceHandler) ListPresets(context.Context, *connect.Request[v1.ListPresetsRequest]) (*connect.Response[v1.ListPresetsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("gitd.v1.PublishingService.ListPresets is not implemented"))
+}
+
+func (UnimplementedPublishingServiceHandler) SetPreset(context.Context, *connect.Request[v1.SetPresetRequest]) (*connect.Response[v1.SetPresetResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("gitd.v1.PublishingService.SetPreset is not implemented"))
+}
+
+func (UnimplementedPublishingServiceHandler) RemovePreset(context.Context, *connect.Request[v1.RemovePresetRequest]) (*connect.Response[v1.RemovePresetResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("gitd.v1.PublishingService.RemovePreset is not implemented"))
 }

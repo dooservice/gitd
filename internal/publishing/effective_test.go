@@ -15,7 +15,7 @@ func TestEverySettingThatOpensARepositoryApplies(t *testing.T) {
 	}
 	fifty, ten := int32(50), int32(10)
 	for _, settings := range []*gitdv1.PublishSettings{
-		{Preset: gitdv1.Preset_PRESET_RECOMMENDED, BranchPrefix: "agents/", MaxChangedFiles: &fifty,
+		{Preset: "recommended", BranchPrefix: "agents/", MaxChangedFiles: &fifty,
 			PullRequests: &gitdv1.PullRequestSettings{Open: gitdv1.PullRequestSettings_OPEN_WHEN_ASKED}},
 		{UrlPrefix: "https://github.com/acme", ProtectedPaths: []string{"deploy/**"}, BranchPrefix: "agents/acme/",
 			PullRequests: &gitdv1.PullRequestSettings{Open: gitdv1.PullRequestSettings_OPEN_ALWAYS, Draft: true}},
