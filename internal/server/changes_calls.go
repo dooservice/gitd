@@ -2,23 +2,28 @@ package server
 
 import (
 	"context"
-	"errors"
 
 	"connectrpc.com/connect"
 
 	gitdv1 "github.com/dooservice/gitd/gen/go/gitd/v1"
 )
 
-// Changes and Diff come with their own changes; until then they answer that they are not
-// implemented.
 func (server *Server) Changes(
-	context.Context, *connect.Request[gitdv1.ChangesRequest],
+	ctx context.Context, request *connect.Request[gitdv1.ChangesRequest],
 ) (*connect.Response[gitdv1.ChangesResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("changes are not read yet"))
+	answer, err := server.Workspaces.Changes(ctx, request.Msg)
+	if err != nil {
+		return nil, server.refuse(err)
+	}
+	return connect.NewResponse(answer), nil
 }
 
 func (server *Server) Diff(
-	context.Context, *connect.Request[gitdv1.DiffRequest],
+	ctx context.Context, request *connect.Request[gitdv1.DiffRequest],
 ) (*connect.Response[gitdv1.DiffResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("diffs are not written yet"))
+	answer, err := server.Workspaces.Diff(ctx, request.Msg)
+	if err != nil {
+		return nil, server.refuse(err)
+	}
+	return connect.NewResponse(answer), nil
 }
