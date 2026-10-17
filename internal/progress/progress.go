@@ -6,6 +6,7 @@
 package progress
 
 import (
+	"bytes"
 	"strconv"
 	"strings"
 )
@@ -45,7 +46,7 @@ func NewWriter(report Report) *Writer {
 func (writer *Writer) Write(data []byte) (int, error) {
 	writer.pending = append(writer.pending, data...)
 	for {
-		end := strings.IndexAny(string(writer.pending), "\r\n")
+		end := bytes.IndexAny(writer.pending, "\r\n")
 		if end < 0 {
 			return len(data), nil
 		}

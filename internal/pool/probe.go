@@ -31,7 +31,10 @@ func (pools *Pools) Probe(ctx context.Context, request *gitdv1.ProbeRequest) *gi
 		}
 		return answer
 	}
-	failure, _ := git.AsFailure(err)
+	failure, ok := git.AsFailure(err)
+	if !ok {
+		failure = git.Fail(git.Failed, "%v", err)
+	}
 	failure.Repository = repository.HTTPS()
 	return denied(failure.AccessRefused(access.Offered))
 }

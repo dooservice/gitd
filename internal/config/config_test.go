@@ -15,7 +15,7 @@ func TestAnSSHHostIsReadAndOneThatCannotBeIsRefused(t *testing.T) {
 		}
 		return path
 	}
-	settings, err := Load(write("[ssh.\"git.example.com\"]\nport = 2222\nuser = \"forgejo\"\n"))
+	settings, err := Load(write("[ssh.\"Git.Example.com\"]\nport = 2222\nuser = \"forgejo\"\n"))
 	if err != nil || settings.SSH["git.example.com"] != (SSHHost{Port: 2222, User: "forgejo"}) {
 		t.Fatalf("Load = %v, %v", settings.SSH, err)
 	}
@@ -24,9 +24,18 @@ func TestAnSSHHostIsReadAndOneThatCannotBeIsRefused(t *testing.T) {
 		"[ssh.\"git.example.com\"]\nuser = \"-oProxyCommand=x\"\n",
 		"[ssh.\"git.example.com\"]\nuser = \"a@b\"\n",
 		"[ssh.\"host:22\"]\nport = 2222\n",
+		"[ssh.\"host\tx\"]\nport = 2222\n",
+		"[ssh.\"Git.example.com\"]\nport = 1\n[ssh.\"git.example.com\"]\nport = 2\n",
 	} {
 		if _, err := Load(write(text)); err == nil {
 			t.Errorf("accepted %q", text)
 		}
+	}
+}
+
+func TestAMissingFileIsTheDefaults(t *testing.T) {
+	settings, err := Load(filepath.Join(t.TempDir(), "missing.toml"))
+	if err != nil || settings.Socket != DefaultSocket || settings.State != Default().State {
+		t.Fatalf("Load = %+v, %v", settings, err)
 	}
 }

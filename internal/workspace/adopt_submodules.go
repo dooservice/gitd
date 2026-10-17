@@ -2,6 +2,7 @@ package workspace
 
 import (
 	"context"
+	"log/slog"
 	"os"
 	"path/filepath"
 
@@ -17,7 +18,7 @@ import (
 func (workspaces *Workspaces) adoptSubmodules(
 	ctx context.Context, path string, parent repo.Repo, report Report,
 ) ([]repo.Repo, int64, error) {
-	declared, err := workspaces.declaredIn(ctx, path)
+	declared, _, err := workspaces.declaredIn(ctx, path)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -31,10 +32,12 @@ func (workspaces *Workspaces) adoptSubmodules(
 			continue
 		}
 		if err := workspaces.pools.Seed(ctx, repository, gitDir, reporter(report, repository)); err != nil {
+			slog.Warn("submodule not adopted", "path", workTree, "error", err)
 			continue
 		}
 		freed, err := workspaces.takeIn(ctx, workTree, gitDir, repository, report)
 		if err != nil {
+			slog.Warn("submodule not adopted", "path", workTree, "error", err)
 			continue
 		}
 		poolURL := "file://" + workspaces.pools.Path(repository)

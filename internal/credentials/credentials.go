@@ -20,7 +20,7 @@ import (
 
 // Credential opens the repositories whose canonical address starts with Prefix, with a
 // token or with the path of a key, whichever it carries. User goes with the token, and
-// empty is the one its host expects (see TokenUser).
+// empty is the one its host expects (see tokenUser).
 type Credential struct {
 	Prefix string
 	Token  string
@@ -61,10 +61,10 @@ func (credential Credential) opens(repository repo.Repo) bool {
 	return credential.Prefix == "" || address == credential.Prefix || strings.HasPrefix(address, credential.Prefix+"/")
 }
 
-// TokenUser is the user name a token is sent with to a host that was given none: what
+// tokenUser is the user name a token is sent with to a host that was given none: what
 // gitlab.com and bitbucket.org expect for theirs, and GitHub's `x-access-token` anywhere
 // else, which Gitea and Forgejo accept as they take any name.
-func TokenUser(host string) string {
+func tokenUser(host string) string {
 	switch strings.ToLower(host) {
 	case "gitlab.com":
 		return "oauth2"

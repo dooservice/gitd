@@ -1,6 +1,8 @@
 package server
 
 import (
+	"context"
+	"errors"
 	"strings"
 	"unicode"
 
@@ -14,7 +16,13 @@ import (
 // travels as headers, or in the end of a stream.
 func (server *Server) refuse(err error) error {
 	failure, ok := git.AsFailure(err)
-	if !ok {
+	switch {
+	case ok:
+	case errors.Is(err, context.Canceled):
+		return connect.NewError(connect.CodeCanceled, err)
+	case errors.Is(err, context.DeadlineExceeded):
+		return connect.NewError(connect.CodeDeadlineExceeded, err)
+	default:
 		return connect.NewError(connect.CodeInternal, err)
 	}
 	server.Metrics.Failures.WithLabelValues(failure.Reason.String()).Inc()

@@ -11,7 +11,7 @@ import (
 
 // bringIn checks one submodule out from its pool at the commit the superproject pinned,
 // bringing only that commit into the pool when it is not there: a submodule is what it is
-// pinned at, and its history is what a server has never needed.
+// pinned at, and its history is not needed to check it out.
 //
 // A failure about that submodule comes back as a failure, to be reported as pending;
 // anything else is an error that stops the whole operation.

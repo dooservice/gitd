@@ -36,8 +36,10 @@ func classify(lines []string) Reason {
 		"invalid username or password",
 		"requested url returned error: 401",
 		"requested url returned error: 403",
-		"access denied",
-		"unauthorized",
+		"http basic: access denied", // GitLab
+		"repository access denied",  // Bitbucket
+		"remote: unauthorized",      // Gitea over HTTPS
+		"gitea: unauthorized",       // Gitea over SSH
 	):
 		return AuthRequired
 	case mentions(said,

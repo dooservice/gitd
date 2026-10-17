@@ -42,3 +42,15 @@ func TestOnlyNothingOrAnEmptyDirectoryIsVacant(t *testing.T) {
 		t.Error("a directory with a file is vacant")
 	}
 }
+
+func TestARootThatIsALinkStillAllowsWhatLiesUnderIt(t *testing.T) {
+	real := t.TempDir()
+	link := filepath.Join(t.TempDir(), "workspaces")
+	if err := os.Symlink(real, link); err != nil {
+		t.Fatal(err)
+	}
+	workspaces := New([]string{link}, nil, nil, nil, nil, 0)
+	if _, err := workspaces.allowed(filepath.Join(link, "acme", "app")); err != nil {
+		t.Errorf("under a linked root: %v", err)
+	}
+}

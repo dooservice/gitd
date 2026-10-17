@@ -6,12 +6,13 @@ import (
 	"path/filepath"
 
 	gitdv1 "github.com/dooservice/gitd/gen/go/gitd/v1"
+	"github.com/dooservice/gitd/internal/git"
 )
 
 // states is what each submodule is on disk: the commit it is at when it is checked out,
 // and the one pinned when it is not.
 func (workspaces *Workspaces) states(ctx context.Context, dir string) ([]*gitdv1.SubmoduleState, error) {
-	declared, err := workspaces.declaredIn(ctx, dir)
+	declared, _, err := workspaces.declaredIn(ctx, dir)
 	if err != nil {
 		return nil, err
 	}
@@ -21,10 +22,10 @@ func (workspaces *Workspaces) states(ctx context.Context, dir string) ([]*gitdv1
 	}
 	states := []*gitdv1.SubmoduleState{}
 	for _, submodule := range declared {
-		if submodule.path == "" || submodule.url == "" {
+		if submodule.url == "" {
 			continue
 		}
-		state := &gitdv1.SubmoduleState{Path: submodule.path, Url: submodule.url, Commit: pins[submodule.path]}
+		state := &gitdv1.SubmoduleState{Path: submodule.path, Url: git.Redacted(submodule.url), Commit: pins[submodule.path]}
 		checkout := filepath.Join(dir, submodule.path)
 		if _, err := os.Stat(filepath.Join(checkout, ".git")); err == nil {
 			state.CheckedOut = true

@@ -33,7 +33,10 @@ type Repo struct {
 
 // Of returns the repository an address names, and false when it names none.
 func Of(address string) (Repo, bool) {
-	text := strings.TrimSuffix(strings.TrimSuffix(strings.TrimSpace(address), "/"), ".git")
+	text := strings.TrimSuffix(strings.TrimSpace(address), "/")
+	if strings.HasSuffix(strings.ToLower(text), ".git") {
+		text = text[:len(text)-len(".git")]
+	}
 	host, rest, ok := split(text)
 	if !ok || !segment(host) {
 		return Repo{}, false
@@ -59,7 +62,12 @@ func segment(part string) bool {
 }
 
 func split(text string) (host, rest string, ok bool) {
-	if after, found := strings.CutPrefix(text, "git@"); found {
+	// git's scp-like form, `user@host:path`: no `://`, and the `:` comes before any `/`.
+	if !strings.Contains(text, "://") {
+		_, after, found := strings.Cut(text, "@")
+		if !found {
+			return "", "", false
+		}
 		host, rest, ok = strings.Cut(after, ":")
 		return host, rest, ok && !strings.Contains(host, "/")
 	}
@@ -84,17 +92,6 @@ func Relative(address string, parent Repo) string {
 		return address
 	}
 	return "https://" + parent.Host + path.Join("/", parent.Path, address)
-}
-
-// Owner is the first segment of the path: the user or the top-level group.
-func (repository Repo) Owner() string {
-	owner, _, _ := strings.Cut(repository.Path, "/")
-	return owner
-}
-
-// Name is the last segment of the path.
-func (repository Repo) Name() string {
-	return path.Base(repository.Path)
 }
 
 // HTTPS is the canonical address, and the one stored and compared.

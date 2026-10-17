@@ -44,7 +44,8 @@ func exists(path string) bool {
 }
 
 // All are the directories of every pool, found on disk: `<host>/<path>.git`, however many
-// groups the path has. Nothing below a pool is looked into, nor anything half built.
+// groups the path has. Nothing below a pool is looked into, nor anything half built, and
+// symbolic links are not followed: a pool is a directory under the pools directory.
 func (pools *Pools) All() []string {
 	var found []string
 	_ = filepath.WalkDir(pools.Dir, func(path string, entry fs.DirEntry, err error) error {

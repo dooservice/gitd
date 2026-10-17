@@ -36,8 +36,11 @@ func (workspaces *Workspaces) open(ctx context.Context, path string) (string, re
 // killed git left behind there.
 func (workspaces *Workspaces) hold(ctx context.Context, path string) (func(), error) {
 	leave, err := workspaces.writes.Enter(ctx)
-	if err != nil {
+	if errors.Is(err, lock.ErrBusy) {
 		return nil, git.Fail(git.Busy, "too many operations waiting")
+	}
+	if err != nil {
+		return nil, err
 	}
 	release, err := workspaces.locks.Acquire(ctx, "workspace:"+path)
 	if err != nil {

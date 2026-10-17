@@ -13,7 +13,7 @@ import (
 func (workspaces *Workspaces) stageSubmodules(
 	ctx context.Context, path string, parent repo.Repo, branch string,
 ) ([]*gitdv1.PublishedRepository, error) {
-	declared, err := workspaces.declaredIn(ctx, path)
+	declared, _, err := workspaces.declaredIn(ctx, path)
 	if err != nil {
 		return nil, err
 	}

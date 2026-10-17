@@ -12,10 +12,10 @@ import (
 // Publish pushes what was committed in a workspace to a new branch of its repository.
 //
 // Everything is staged in the pools first, and nothing is pushed when the workspace's own
-// repository brings nothing new: a submodule commit nobody pointed the project at is not a
+// repository brings nothing new: a submodule commit nobody pointed the superproject at is not a
 // change anybody can review. Then the submodules go, each to a branch of the same name in
-// its own repository — its commit has to be there before the project's points at it — and
-// the project last. A submodule that cannot be published stops it all, saying which.
+// its own repository — its commit has to be there before the superproject's points at it —
+// and the superproject last. A submodule that cannot be published stops it all, saying which.
 func (workspaces *Workspaces) Publish(
 	ctx context.Context, request *gitdv1.PublishRequest,
 ) (*gitdv1.PublishResponse, error) {
@@ -34,7 +34,7 @@ func (workspaces *Workspaces) Publish(
 		return nil, err
 	}
 	if len(subjects) == 0 {
-		failure := git.Fail(git.NothingNew, "there is nothing new to publish: commit in the console first")
+		failure := git.Fail(git.NothingNew, "there is nothing new to publish: commit in the workspace first")
 		failure.Repository = repository.HTTPS()
 		return nil, failure
 	}

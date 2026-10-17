@@ -2,6 +2,7 @@ package pool
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 
 	"github.com/dooservice/gitd/internal/credentials"
@@ -35,10 +36,13 @@ func (pools *Pools) Sync(
 		return nil
 	}
 	leave, err := pools.fetches.Enter(ctx)
-	if err != nil {
+	if errors.Is(err, lock.ErrBusy) {
 		failure := git.Fail(git.Busy, "too many fetches waiting")
 		failure.Repository = repository.HTTPS()
 		return failure
+	}
+	if err != nil {
+		return err
 	}
 	defer leave()
 

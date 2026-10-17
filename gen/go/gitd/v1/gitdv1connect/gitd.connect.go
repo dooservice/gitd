@@ -72,7 +72,7 @@ type WorkspaceServiceClient interface {
 	Prepare(context.Context, *connect.Request[v1.PrepareRequest]) (*connect.ServerStreamForClient[v1.PrepareResponse], error)
 	// Bring a workspace to the tip of its branch.
 	Update(context.Context, *connect.Request[v1.UpdateRequest]) (*connect.ServerStreamForClient[v1.UpdateResponse], error)
-	// Move a workspace to a commit it already had, as a rollback does.
+	// Move a workspace to a commit, as a rollback does; the pool fetches it when it lacks it.
 	Checkout(context.Context, *connect.Request[v1.CheckoutRequest]) (*connect.ServerStreamForClient[v1.CheckoutResponse], error)
 	// Check out every submodule the workspace declares, or one.
 	SyncSubmodules(context.Context, *connect.Request[v1.SyncSubmodulesRequest]) (*connect.ServerStreamForClient[v1.SyncSubmodulesResponse], error)
@@ -82,8 +82,8 @@ type WorkspaceServiceClient interface {
 	Remove(context.Context, *connect.Request[v1.RemoveRequest]) (*connect.Response[v1.RemoveResponse], error)
 	// Take an existing clone in, linking it to a pool without fetching anything.
 	Adopt(context.Context, *connect.Request[v1.AdoptRequest]) (*connect.ServerStreamForClient[v1.AdoptResponse], error)
-	// Push what was committed in a workspace to a new branch, with the account's token, so a
-	// pull request can be opened from it. New commits of its submodules go first, each to a
+	// Push what was committed in a workspace to a new branch, with a token, so a pull or merge
+	// request can be opened from it. New commits of its submodules go first, each to a
 	// branch of the same name in its own repository.
 	Publish(context.Context, *connect.Request[v1.PublishRequest]) (*connect.Response[v1.PublishResponse], error)
 }
@@ -208,7 +208,7 @@ type WorkspaceServiceHandler interface {
 	Prepare(context.Context, *connect.Request[v1.PrepareRequest], *connect.ServerStream[v1.PrepareResponse]) error
 	// Bring a workspace to the tip of its branch.
 	Update(context.Context, *connect.Request[v1.UpdateRequest], *connect.ServerStream[v1.UpdateResponse]) error
-	// Move a workspace to a commit it already had, as a rollback does.
+	// Move a workspace to a commit, as a rollback does; the pool fetches it when it lacks it.
 	Checkout(context.Context, *connect.Request[v1.CheckoutRequest], *connect.ServerStream[v1.CheckoutResponse]) error
 	// Check out every submodule the workspace declares, or one.
 	SyncSubmodules(context.Context, *connect.Request[v1.SyncSubmodulesRequest], *connect.ServerStream[v1.SyncSubmodulesResponse]) error
@@ -218,8 +218,8 @@ type WorkspaceServiceHandler interface {
 	Remove(context.Context, *connect.Request[v1.RemoveRequest]) (*connect.Response[v1.RemoveResponse], error)
 	// Take an existing clone in, linking it to a pool without fetching anything.
 	Adopt(context.Context, *connect.Request[v1.AdoptRequest], *connect.ServerStream[v1.AdoptResponse]) error
-	// Push what was committed in a workspace to a new branch, with the account's token, so a
-	// pull request can be opened from it. New commits of its submodules go first, each to a
+	// Push what was committed in a workspace to a new branch, with a token, so a pull or merge
+	// request can be opened from it. New commits of its submodules go first, each to a
 	// branch of the same name in its own repository.
 	Publish(context.Context, *connect.Request[v1.PublishRequest]) (*connect.Response[v1.PublishResponse], error)
 }

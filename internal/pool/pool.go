@@ -3,7 +3,7 @@
 //
 // Every workspace of a repository borrows its objects from the pool through
 // `objects/info/alternates`, so nothing may ever be deleted from a pool: a rollback to a
-// commit that GitHub lost to a force push still needs it. That is why a pool is fetched
+// commit that the host lost to a force push still needs it. That is why a pool is fetched
 // without pruning and git's own gc is switched off in it.
 package pool
 

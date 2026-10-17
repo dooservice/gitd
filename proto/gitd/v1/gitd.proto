@@ -16,7 +16,7 @@ service WorkspaceService {
   rpc Prepare(PrepareRequest) returns (stream PrepareResponse);
   // Bring a workspace to the tip of its branch.
   rpc Update(UpdateRequest) returns (stream UpdateResponse);
-  // Move a workspace to a commit it already had, as a rollback does.
+  // Move a workspace to a commit, as a rollback does; the pool fetches it when it lacks it.
   rpc Checkout(CheckoutRequest) returns (stream CheckoutResponse);
   // Check out every submodule the workspace declares, or one.
   rpc SyncSubmodules(SyncSubmodulesRequest) returns (stream SyncSubmodulesResponse);
@@ -26,8 +26,8 @@ service WorkspaceService {
   rpc Remove(RemoveRequest) returns (RemoveResponse);
   // Take an existing clone in, linking it to a pool without fetching anything.
   rpc Adopt(AdoptRequest) returns (stream AdoptResponse);
-  // Push what was committed in a workspace to a new branch, with the account's token, so a
-  // pull request can be opened from it. New commits of its submodules go first, each to a
+  // Push what was committed in a workspace to a new branch, with a token, so a pull or merge
+  // request can be opened from it. New commits of its submodules go first, each to a
   // branch of the same name in its own repository.
   rpc Publish(PublishRequest) returns (PublishResponse);
 }
@@ -51,7 +51,7 @@ message Credential {
   string url_prefix = 1;
   oneof secret {
     // Sent as `Authorization: Basic <https_user>:<token>`. A repository this opens is
-    // read over HTTPS even when it was written as `git@`.
+    // read over HTTPS even when it was written as `git@` or `ssh://`.
     string https_token = 2;
     // A private key that is already on this server.
     string ssh_key_path = 3;
@@ -117,14 +117,16 @@ message GitFailure {
 }
 
 message PrepareRequest {
-  // The repository, written in any of the shapes git accepts.
+  // The repository: `https://host/owner/[group/…]name`, `user@host:owner/name` or
+  // `ssh://user@host[:port]/owner/name`, with or without `.git`.
   string url = 1;
   // An absolute path inside one of the roots gitd is configured with.
   string path = 2;
   Revision revision = 3;
   bool with_submodules = 4;
   repeated Credential credentials = 5;
-  // The repository's whole history, as a project's own repository wants for `git log`.
+  // The repository's whole history, for `git log` and `git blame` to go back as far as in
+  // a clone; later updates keep it.
   // Otherwise only what is checked out, without the history behind it; submodules are
   // always so.
   bool full_history = 6;
@@ -145,7 +147,7 @@ message WorkspaceResult {
 
 message UpdateRequest {
   string path = 1;
-  // Empty means the branch the workspace is on.
+  // Empty means the branch the workspace follows, also after a rollback left it detached.
   string branch = 2;
   bool with_submodules = 3;
   repeated Credential credentials = 4;
@@ -160,6 +162,7 @@ message UpdateResponse {
 
 message CheckoutRequest {
   string path = 1;
+  // Required: the commit to move to.
   string commit = 2;
   bool with_submodules = 3;
   repeated Credential credentials = 4;
@@ -199,7 +202,8 @@ message DescribeResponse {
   string url = 1;
   string commit = 2;
   string branch = 3;
-  // Whether something on disk differs from the commit, as a console may leave it.
+  // Whether something on disk differs from the commit, as somebody running git in it may
+  // leave it.
   bool modified = 4;
   repeated SubmoduleState submodules = 5;
 }

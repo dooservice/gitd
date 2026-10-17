@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/fs"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -31,7 +32,7 @@ type Config struct {
 	Housekeeping Housekeeping `toml:"housekeeping"`
 }
 
-// SSHHost is how a host takes SSH when not as `git` on port 22, as a Gitea or Forgejo
+// SSHHost is how a host takes SSH when not as `git` on port 22 (hosts are lowercased), as a Gitea or Forgejo
 // behind `:2222`: `[ssh."git.example.com"] port = 2222`. Its host key then goes in a
 // known_hosts file as `[git.example.com]:2222 ssh-ed25519 …`.
 type SSHHost struct {
@@ -95,23 +96,34 @@ func Load(path string) (Config, error) {
 	if _, err := toml.DecodeFile(path, &settings); err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return settings, err
 	}
-	return settings, settings.check()
+	return settings, settings.normalize()
 }
 
-// check refuses an SSH host that could not be connected to, or whose user would read as
-// an option or as part of the address.
-func (settings Config) check() error {
+// sshName is what an SSH host or user may be: nothing that reads as an option, or as part
+// of an address or of a shell word.
+var sshName = regexp.MustCompile(`^[a-z0-9][a-z0-9._-]*$`)
+
+// normalize lowercases the SSH hosts, as repositories name them, and refuses one that is
+// not a host name, is written twice, or has a port or user that could not be connected with.
+func (settings *Config) normalize() error {
+	hosts := make(map[string]SSHHost, len(settings.SSH))
 	for host, ssh := range settings.SSH {
-		if host == "" || strings.ContainsAny(host, ":/@ ") || strings.HasPrefix(host, "-") {
+		lowered := strings.ToLower(host)
+		if !sshName.MatchString(lowered) {
 			return fmt.Errorf("ssh: %q is not a host name", host)
+		}
+		if _, twice := hosts[lowered]; twice {
+			return fmt.Errorf("ssh: %q is written twice", lowered)
 		}
 		if ssh.Port < 0 || ssh.Port > 65535 {
 			return fmt.Errorf("ssh.%q: port %d is not one", host, ssh.Port)
 		}
-		if strings.ContainsAny(ssh.User, ":/@ ") || strings.HasPrefix(ssh.User, "-") {
+		if ssh.User != "" && !sshName.MatchString(ssh.User) {
 			return fmt.Errorf("ssh.%q: %q is not a user name", host, ssh.User)
 		}
+		hosts[lowered] = ssh
 	}
+	settings.SSH = hosts
 	return nil
 }
 

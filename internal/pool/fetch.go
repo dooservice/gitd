@@ -16,7 +16,7 @@ import (
 //
 // The remote's HEAD is asked first, with the same credential: it is which branch a
 // workspace with none gets, and it is followed, so a repository whose main branch went
-// from `main` to `18.0` hands out the new one.
+// from `master` to `main` hands out the new one.
 //
 // A pool being created holds nothing yet, and is shallow unless the whole history is
 // wanted.

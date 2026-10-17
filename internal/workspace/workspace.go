@@ -1,8 +1,8 @@
-// Package workspace checks repositories out where an environment runs them.
+// Package workspace checks repositories out where their users need them.
 //
 // A workspace is an ordinary clone whose objects live in its repository's pool, through
 // `objects/info/alternates`: it takes little disk and seconds to make. Its `origin` is the
-// repository's real address, so a console sees what it always saw, but it never reaches
+// repository's real address, so whoever runs git in it sees what a clone shows, but it never reaches
 // the network itself: the pool is synced, and the workspace then fetches from the pool.
 //
 // A workspace is built next to where it goes and renamed into place when it is complete,
@@ -11,6 +11,7 @@
 package workspace
 
 import (
+	"path/filepath"
 	"time"
 
 	gitdv1 "github.com/dooservice/gitd/gen/go/gitd/v1"
@@ -35,11 +36,19 @@ type Workspaces struct {
 	staleLock time.Duration
 }
 
-// New returns the workspaces under roots.
+// New returns the workspaces under roots. A root is kept with its symbolic links resolved,
+// as every path asked for is compared once its own are.
 func New(
 	roots []string, runner *git.Runner, pools *pool.Pools, locks *lock.Locks, writes *lock.Queue, staleLock time.Duration,
 ) *Workspaces {
-	return &Workspaces{roots: roots, runner: runner, pools: pools, locks: locks, writes: writes, staleLock: staleLock}
+	resolved := make([]string, 0, len(roots))
+	for _, root := range roots {
+		if real, err := filepath.EvalSymlinks(root); err == nil {
+			root = real
+		}
+		resolved = append(resolved, filepath.Clean(root))
+	}
+	return &Workspaces{roots: resolved, runner: runner, pools: pools, locks: locks, writes: writes, staleLock: staleLock}
 }
 
 // Result is where a workspace ended up, and the submodules that could not come along.

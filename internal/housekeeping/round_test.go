@@ -37,3 +37,20 @@ func TestAPoolInNestedGroupsIsFoundAndReadBack(t *testing.T) {
 		}
 	}
 }
+
+func TestWhatACrashLeftInsideAPoolIsSweptToo(t *testing.T) {
+	pools := filepath.Join(t.TempDir(), "pools")
+	dir := filepath.Join(pools, "gitlab.com", "a", "b", "c", "d", "web.git")
+	left := filepath.Join(dir, "gitd-workspaces.gitd-tmp-abc")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(left, nil, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	keeper := &Keeper{pools: pool.New(pools, nil, nil, nil, nil, time.Minute)}
+	keeper.Sweep()
+	if _, err := os.Stat(left); err == nil {
+		t.Error("the half-written registry is still there")
+	}
+}

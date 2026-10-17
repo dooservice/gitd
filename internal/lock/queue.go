@@ -23,21 +23,21 @@ func NewQueue(running, queued int, maxWait time.Duration) *Queue {
 	}
 }
 
-// Enter waits for a slot and returns what leaves it, or ErrBusy when the queue is full or
-// the wait is too long.
-func (queue *Queue) Enter(ctx context.Context) (func(), error) {
+// Enter waits for a slot and returns what leaves it, ErrBusy when the queue is full or the
+// wait is too long, or the caller's context error when it gave up.
+func (queue *Queue) Enter(parent context.Context) (func(), error) {
 	select {
 	case queue.waiting <- struct{}{}:
 	default:
 		return nil, ErrBusy
 	}
-	ctx, cancel := context.WithTimeout(ctx, queue.maxWait)
+	ctx, cancel := context.WithTimeout(parent, queue.maxWait)
 	defer cancel()
 	select {
 	case queue.slots <- struct{}{}:
 	case <-ctx.Done():
 		<-queue.waiting
-		return nil, ErrBusy
+		return nil, gaveUp(parent)
 	}
 	var once sync.Once
 	return func() {

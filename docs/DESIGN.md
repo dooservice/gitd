@@ -39,7 +39,9 @@ one). Between the owner and the name may sit the groups of a host that nests the
 an owner and a name is not a repository, which is also where `file://` and `ext::` stop. `ssh://git@git.example.com:2222/acme/web.git` is
 the repository `https://git.example.com/acme/web`: the SSH user and port are the host's,
 not the repository's. A port in an HTTPS address is kept
-(`https://git.example.com:3000/acme/web`) and is the HTTPS one, never used for SSH.
+(`https://git.example.com:3000/acme/web`) and is the HTTPS one, never used for SSH. Such a
+host is therefore a different one from its SSH form, which names no HTTPS port: write a
+repository and its submodules the same way, both HTTPS or both SSH.
 
 ### Pool (cache)
 One **bare** repository per remote repository and per server, holding its objects:
@@ -167,8 +169,8 @@ The only thing that starts `git`. Everything else goes through it.
   `protocol.ext.allow=never`; `file` only for the local pool, see §5).
 - **Subcommand allowlist**, as Gitaly's `commandDescriptions`: `clone`, `fetch`,
   `ls-remote`, `rev-parse`, `checkout`, `submodule`, `config`, `symbolic-ref`, `ls-tree`,
-  `status`, `count-objects`, `repack`, `pack-refs`, `commit-graph`, `fsck`, `version`,
-  `init`, `push`, `check-ref-format`.
+  `status`, `log`, `count-objects`, `repack`, `pack-refs`, `commit-graph`, `fsck`,
+  `version`, `init`, `push`, `update-ref`, `check-ref-format`.
   Nothing else can run. Arguments are always built by `gitd`.
 - **`--end-of-options`** before any argument that comes from outside (branch, URL,
   commit), so none of them can pass for an option.

@@ -41,7 +41,7 @@ func (workspaces *Workspaces) submodules(
 	if onlyURL != "" && !ok {
 		return nil, nil, git.Unnamed(onlyURL)
 	}
-	declared, err := workspaces.declaredIn(ctx, work.path)
+	declared, refused, err := workspaces.declaredIn(ctx, work.path)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -50,6 +50,12 @@ func (workspaces *Workspaces) submodules(
 		return nil, nil, err
 	}
 	var pending []*gitdv1.PendingSubmodule
+	for _, submodule := range refused {
+		if onlyURL == "" {
+			pending = append(pending, submodule.pending(git.Fail(git.PathRefused,
+				"submodule %q would be checked out outside the workspace, at %q", submodule.name, submodule.path)))
+		}
+	}
 	var used []repo.Repo
 	for _, submodule := range declared {
 		repository, named := repo.Of(repo.Relative(submodule.url, work.repository))

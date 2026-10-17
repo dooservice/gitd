@@ -27,6 +27,8 @@ func TestEveryForgeNamesItsRepositoriesTheSameWay(t *testing.T) {
 		"git@gitea.example.com:acme/web.git":            {Host: "gitea.example.com", Path: "acme/web"},
 		"ssh://git@gitea.example.com:2222/acme/web.git": {Host: "gitea.example.com", Path: "acme/web"},
 		"ssh://git@github.com/OCA/web":                  {Host: "github.com", Path: "oca/web"},
+		"forgejo@git.example.com:acme/web.git":          {Host: "git.example.com", Path: "acme/web"},
+		"https://github.com/OCA/Web.GIT":                {Host: "github.com", Path: "oca/web"},
 		"ssh://forgejo@Git.Example.com/acme/tools/web":  {Host: "git.example.com", Path: "acme/tools/web"},
 	} {
 		if got, ok := Of(address); !ok || got != want {
@@ -93,8 +95,5 @@ func TestThePoolOfARepositoryStaysUnderThePoolsDirectory(t *testing.T) {
 	nested := Repo{Host: "gitlab.com", Path: "acme/tools/web"}
 	if got := nested.Dir("/pools"); got != "/pools/gitlab.com/acme/tools/web.git" {
 		t.Errorf("Dir = %q", got)
-	}
-	if nested.Owner() != "acme" || nested.Name() != "web" {
-		t.Errorf("Owner, Name = %q, %q", nested.Owner(), nested.Name())
 	}
 }

@@ -33,8 +33,24 @@ func (keeper *Keeper) sweep(dir string, depth, limit int) {
 			}
 			continue
 		}
-		if entry.IsDir() && depth < limit && !strings.HasSuffix(entry.Name(), ".git") {
+		if !entry.IsDir() {
+			continue
+		}
+		if strings.HasSuffix(entry.Name(), ".git") {
+			// A registry or a file written atomically inside a repository, left half written.
+			keeper.removeTemps(path)
+		} else if depth < limit {
 			keeper.sweep(path, depth+1, limit)
+		}
+	}
+}
+
+// removeTemps removes the temporary files Temp named directly inside dir.
+func (keeper *Keeper) removeTemps(dir string) {
+	temps, _ := filepath.Glob(filepath.Join(dir, "*.gitd-tmp-*"))
+	for _, temp := range temps {
+		if os.RemoveAll(temp) == nil {
+			slog.Warn("half-built copy removed", "path", temp)
 		}
 	}
 }

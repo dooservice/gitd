@@ -17,8 +17,17 @@ import (
 	"time"
 )
 
-// ErrBusy is a wait that ran out of time or room.
+// ErrBusy is a wait that ran out of time or room. A wait the caller gave up on returns
+// the caller's own context error instead, so a cancelled call is not taken for a busy one.
 var ErrBusy = errors.New("busy")
+
+// gaveUp is why a wait, bounded by maxWait on top of the caller's parent context, ended.
+func gaveUp(parent context.Context) error {
+	if err := parent.Err(); err != nil {
+		return err
+	}
+	return ErrBusy
+}
 
 // Locks are the locks of one gitd, one per key, each waited for at most maxWait.
 type Locks struct {
@@ -37,16 +46,16 @@ func NewLocks(dir string, maxWait time.Duration) (*Locks, error) {
 }
 
 // Acquire waits for key, and returns what releases it.
-func (locks *Locks) Acquire(ctx context.Context, key string) (func(), error) {
-	ctx, cancel := context.WithTimeout(ctx, locks.maxWait)
+func (locks *Locks) Acquire(parent context.Context, key string) (func(), error) {
+	ctx, cancel := context.WithTimeout(parent, locks.maxWait)
 	defer cancel()
 	slot := locks.slot(key)
 	select {
 	case slot <- struct{}{}:
 	case <-ctx.Done():
-		return nil, ErrBusy
+		return nil, gaveUp(parent)
 	}
-	file, err := locks.flock(ctx, key)
+	file, err := locks.flock(ctx, parent, key)
 	if err != nil {
 		<-slot
 		return nil, err
@@ -74,7 +83,7 @@ func (locks *Locks) slot(key string) chan struct{} {
 
 // flock takes the file lock of key, trying again until ctx ends: flock itself cannot be
 // told to stop waiting.
-func (locks *Locks) flock(ctx context.Context, key string) (*os.File, error) {
+func (locks *Locks) flock(ctx, parent context.Context, key string) (*os.File, error) {
 	sum := sha256.Sum256([]byte(key))
 	file, err := os.OpenFile(filepath.Join(locks.dir, hex.EncodeToString(sum[:12])+".lock"), os.O_CREATE|os.O_RDWR, 0o644)
 	if err != nil {
@@ -93,7 +102,7 @@ func (locks *Locks) flock(ctx context.Context, key string) (*os.File, error) {
 		case <-time.After(100 * time.Millisecond):
 		case <-ctx.Done():
 			_ = file.Close()
-			return nil, ErrBusy
+			return nil, gaveUp(parent)
 		}
 	}
 }

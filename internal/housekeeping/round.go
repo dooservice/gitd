@@ -22,6 +22,9 @@ func (keeper *Keeper) round(ctx context.Context) {
 		}
 		release, err := keeper.pools.Lock(ctx, repository)
 		if err != nil {
+			// Held by a long sync: not maintained this round, but still there.
+			count++
+			bytes += size(filepath.Join(dir, "objects"))
 			continue
 		}
 		if keeper.retire(dir) {

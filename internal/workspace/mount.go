@@ -17,7 +17,7 @@ import (
 // It is done by hand because `submodule update --reference` refuses a shallow pool, and
 // without the reference it copies every object the pool is there to hold once.
 //
-// The superproject's `.git/config` points the submodule at its pool, so a console's own
+// The superproject's `.git/config` points the submodule at its pool, so a person's own
 // `git submodule update` reads it on this disk too.
 func (workspaces *Workspaces) mount(
 	ctx context.Context, work job, submodule submodule, repository repo.Repo, commit string,
@@ -29,6 +29,12 @@ func (workspaces *Workspaces) mount(
 		if err := workspaces.initModule(ctx, work.path, gitDir, workTree); err != nil {
 			return err
 		}
+	}
+	// Also when the git directory was already there: the submodule may have moved, or its
+	// checkout been removed, and git run in a directory with no `.git` of its own would
+	// write to the superproject instead.
+	if err := workspaces.pointAt(ctx, gitDir, workTree); err != nil {
+		return err
 	}
 	if err := workspaces.borrow(gitDir, repository); err != nil {
 		return err
@@ -52,9 +58,16 @@ func (workspaces *Workspaces) initModule(ctx context.Context, superproject, gitD
 	if err := os.MkdirAll(filepath.Dir(gitDir), 0o755); err != nil {
 		return err
 	}
-	if _, err := workspaces.runner.Run(ctx, git.Cmd{
+	_, err := workspaces.runner.Run(ctx, git.Cmd{
 		Dir: superproject, Args: []string{"init", "--quiet", "--separate-git-dir", gitDir, workTree},
-	}); err != nil {
+	})
+	return err
+}
+
+// pointAt links a submodule's checkout and its git directory both ways, with relative
+// paths: the checkout's `.git` file and the git directory's `core.worktree`.
+func (workspaces *Workspaces) pointAt(ctx context.Context, gitDir, workTree string) error {
+	if err := os.MkdirAll(workTree, 0o755); err != nil {
 		return err
 	}
 	toGitDir, err := filepath.Rel(workTree, gitDir)

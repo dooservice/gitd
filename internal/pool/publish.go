@@ -16,8 +16,8 @@ import (
 // Publishing twice does not publish the same commits twice.
 //
 // Pushing is done from the pool afterwards. The token is used there, where the
-// configuration is gitd's, and never in the copy a console could write: an `http.proxy` or
-// an `insteadOf` left there must not get to see where the token goes.
+// configuration is gitd's, and never in the workspace, which others may write: an `http.proxy`
+// or an `insteadOf` left there must not get to see where the token goes.
 func (pools *Pools) Stage(ctx context.Context, repository repo.Repo, source, branch string) (string, []string, error) {
 	release, err := pools.Lock(ctx, repository)
 	if err != nil {
@@ -69,7 +69,7 @@ func (pools *Pools) Push(
 	refspec := staged + ":refs/heads/" + branch
 	access := pools.keys.For(repository, given)
 	if !access.Offered || !strings.HasPrefix(access.URL, "https://") {
-		failure := git.Fail(git.AuthRequired, "publishing takes the account's token, and none was given")
+		failure := git.Fail(git.AuthRequired, "publishing takes a token, and none was given")
 		failure.Repository = repository.HTTPS()
 		return failure
 	}

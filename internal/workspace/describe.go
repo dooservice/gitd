@@ -13,7 +13,7 @@ import (
 )
 
 // Describe says what a workspace is on disk, without the network: its repository, its
-// commit and branch, whether a console changed something, and its submodules.
+// commit and branch, whether something was changed on disk, and its submodules.
 func (workspaces *Workspaces) Describe(
 	ctx context.Context, request *gitdv1.DescribeRequest,
 ) (*gitdv1.DescribeResponse, error) {
@@ -32,6 +32,7 @@ func (workspaces *Workspaces) Describe(
 	if err != nil {
 		return nil, err
 	}
+	described.Url = git.Redacted(described.Url)
 	if described.Commit, _, err = workspaces.runner.Resolve(ctx, path, "HEAD"); err != nil {
 		return nil, err
 	}

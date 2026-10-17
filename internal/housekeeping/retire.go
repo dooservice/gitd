@@ -2,6 +2,7 @@ package housekeeping
 
 import (
 	"context"
+	"io/fs"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -10,36 +11,50 @@ import (
 	"time"
 
 	"github.com/dooservice/gitd/internal/pool"
+	"github.com/dooservice/gitd/internal/repo"
 )
 
 // MinimumUnused is the least a pool must have gone unused before it is retired on request.
 const MinimumUnused = 24 * time.Hour
 
 // Retire removes now every pool no workspace borrows from and nothing has used for at least
-// unusedFor, and says how many there were and the disk they took.
+// unusedFor, and says how many there were and the disk they took. Totals then count the
+// pools that are left.
 func (keeper *Keeper) Retire(ctx context.Context, unusedFor time.Duration) (int, int64) {
 	unusedFor = max(unusedFor, MinimumUnused)
-	retired, freed := 0, int64(0)
+	var retired, kept int
+	var freed, keptBytes int64
 	for _, dir := range keeper.pools.All() {
 		repository, ok := keeper.repositoryOf(dir)
-		if ctx.Err() != nil || !ok {
-			continue
-		}
-		release, err := keeper.pools.Lock(ctx, repository)
-		if err != nil {
+		if !ok {
 			continue
 		}
 		taken := size(filepath.Join(dir, "objects"))
-		if keeper.retireAfter(dir, unusedFor) {
-			keeper.metrics.PoolBytes.DeleteLabelValues(repository.HTTPS())
+		if ctx.Err() == nil && keeper.retireLocked(ctx, dir, repository, unusedFor) {
 			retired++
 			freed += taken
+			continue
 		}
-		release()
+		kept++
+		keptBytes += taken
 	}
-	keeper.poolCount.Add(int64(-retired))
-	keeper.poolBytes.Add(-freed)
+	keeper.poolCount.Store(int64(kept))
+	keeper.poolBytes.Store(keptBytes)
 	return retired, freed
+}
+
+// retireLocked retires the pool at dir under its lock; a pool somebody holds is kept.
+func (keeper *Keeper) retireLocked(ctx context.Context, dir string, repository repo.Repo, unusedFor time.Duration) bool {
+	release, err := keeper.pools.Lock(ctx, repository)
+	if err != nil {
+		return false
+	}
+	defer release()
+	if !keeper.retireAfter(dir, unusedFor) {
+		return false
+	}
+	keeper.metrics.PoolBytes.DeleteLabelValues(repository.HTTPS())
+	return true
 }
 
 // retire removes a pool that no workspace has borrowed from for as long as the settings say.
@@ -67,10 +82,16 @@ func (keeper *Keeper) retireAfter(dir string, unusedFor time.Duration) bool {
 }
 
 // borrows is whether the repository at path, or one of its submodules, reads objects from
-// a pool's objects directory.
+// a pool's objects directory. A submodule named `vendor/web` lives at
+// `.git/modules/vendor/web`, so the modules are walked rather than globbed.
 func borrows(path, objects string) bool {
-	alternates, _ := filepath.Glob(filepath.Join(path, ".git", "modules", "*", "objects", "info", "alternates"))
-	alternates = append(alternates, filepath.Join(path, ".git", "objects", "info", "alternates"))
+	alternates := []string{filepath.Join(path, ".git", "objects", "info", "alternates")}
+	_ = filepath.WalkDir(filepath.Join(path, ".git", "modules"), func(file string, entry fs.DirEntry, err error) error {
+		if err == nil && !entry.IsDir() && strings.HasSuffix(file, filepath.Join("objects", "info", "alternates")) {
+			alternates = append(alternates, file)
+		}
+		return nil
+	})
 	return slices.ContainsFunc(alternates, func(file string) bool {
 		data, err := os.ReadFile(file)
 		return err == nil && slices.Contains(strings.Fields(string(data)), objects)

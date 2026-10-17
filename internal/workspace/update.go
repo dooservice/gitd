@@ -5,6 +5,7 @@ import (
 
 	gitdv1 "github.com/dooservice/gitd/gen/go/gitd/v1"
 	"github.com/dooservice/gitd/internal/credentials"
+	"github.com/dooservice/gitd/internal/git"
 )
 
 // Update brings a workspace to the tip of a branch: the one asked for, or the one it
@@ -39,10 +40,13 @@ func (workspaces *Workspaces) Update(
 }
 
 // Checkout moves a workspace to a commit, as a rollback does. The pool is only synced
-// when the commit is not in it already, which it is for anything this server ever ran.
+// when the commit is not in it already, which it is for anything the workspace was at.
 func (workspaces *Workspaces) Checkout(
 	ctx context.Context, request *gitdv1.CheckoutRequest, report Report,
 ) (Result, error) {
+	if request.GetCommit() == "" {
+		return Result{}, git.Fail(git.BadAddress, "say which commit to check out")
+	}
 	path, repository, release, err := workspaces.open(ctx, request.GetPath())
 	if err != nil {
 		return Result{}, err
@@ -70,8 +74,14 @@ func (workspaces *Workspaces) Checkout(
 }
 
 // moveTo brings a workspace up to its pool and settles it at the job's revision, over
-// whatever a console left on disk.
+// whatever was left on disk. A job that keeps the whole history notes it, so the updates
+// after it keep it too.
 func (workspaces *Workspaces) moveTo(ctx context.Context, work job) (Result, error) {
+	if work.full {
+		if err := workspaces.runner.SetConfig(ctx, work.path, "gitd.history", "full"); err != nil {
+			return Result{}, err
+		}
+	}
 	result, used, err := workspaces.bringUp(ctx, work)
 	if err != nil {
 		return Result{}, err

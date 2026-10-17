@@ -107,7 +107,7 @@ func TestTheConfiguredHostKeysAreTrustedBesidesTheBuiltInOnes(t *testing.T) {
 
 func TestAKeyReadsOnThePortAndAsTheUserItsHostTakesSSHWith(t *testing.T) {
 	keys, err := NewKeys(t.TempDir(), nil, map[string]config.SSHHost{
-		"Git.Example.com":   {Port: 2222},
+		"git.example.com":   {Port: 2222},
 		"forge.example.com": {User: "forgejo"},
 	})
 	if err != nil {

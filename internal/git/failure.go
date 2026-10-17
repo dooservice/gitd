@@ -3,6 +3,7 @@ package git
 import (
 	"errors"
 	"fmt"
+	"net/url"
 
 	gitdv1 "github.com/dooservice/gitd/gen/go/gitd/v1"
 )
@@ -65,7 +66,19 @@ func Fail(reason Reason, format string, arguments ...any) *Failure {
 
 // Unnamed is the failure for an address that names no repository.
 func Unnamed(address string) *Failure {
-	return Fail(BadAddress, "%q names no repository: write it as https://host/owner/name or git@host:owner/name", address)
+	return Fail(BadAddress, "%q names no repository: write it as https://host/owner/[group/…]name, "+
+		"git@host:owner/name or ssh://git@host[:port]/owner/name", Redacted(address))
+}
+
+// Redacted is an address fit to log and to answer with: a user and password written in it,
+// as `https://user:token@host/…`, are left out.
+func Redacted(address string) string {
+	parsed, err := url.Parse(address)
+	if err != nil || parsed.User == nil || parsed.Scheme == "" {
+		return address
+	}
+	parsed.User = nil
+	return parsed.String()
 }
 
 // AsFailure returns the failure inside err, if there is one.

@@ -150,7 +150,7 @@ func (ProbeResponse_Access) EnumDescriptor() ([]byte, []int) {
 }
 
 // What opens repositories whose address starts with `url_prefix`, on any host:
-// e.g. `https://github.com/apiservicesac/` or `https://gitlab.example.com/acme/tools/`.
+// e.g. `https://github.com/acme/` or `https://gitlab.example.com/acme/tools/`.
 type Credential struct {
 	state     protoimpl.MessageState `protogen:"open.v1"`
 	UrlPrefix string                 `protobuf:"bytes,1,opt,name=url_prefix,json=urlPrefix,proto3" json:"url_prefix,omitempty"`
@@ -243,7 +243,7 @@ type isCredential_Secret interface {
 
 type Credential_HttpsToken struct {
 	// Sent as `Authorization: Basic <https_user>:<token>`. A repository this opens is
-	// read over HTTPS even when it was written as `git@`.
+	// read over HTTPS even when it was written as `git@` or `ssh://`.
 	HttpsToken string `protobuf:"bytes,2,opt,name=https_token,json=httpsToken,proto3,oneof"`
 }
 
@@ -341,7 +341,7 @@ func (*Revision_Commit) isRevision_Target() {}
 
 type Progress struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// What git is doing: "Receiving objects", "Resolving deltas", "Submodule addons/web".
+	// What git is doing: "Receiving objects", "Resolving deltas", "Submodule vendor/web".
 	Phase string `protobuf:"bytes,1,opt,name=phase,proto3" json:"phase,omitempty"`
 	// 0 to 100, or -1 when git does not say.
 	Percent int32 `protobuf:"varint,2,opt,name=percent,proto3" json:"percent,omitempty"`
@@ -596,14 +596,16 @@ func (x *GitFailure) GetRepository() string {
 
 type PrepareRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// The repository, written in any of the shapes git accepts.
+	// The repository: `https://host/owner/[group/…]name`, `user@host:owner/name` or
+	// `ssh://user@host[:port]/owner/name`, with or without `.git`.
 	Url string `protobuf:"bytes,1,opt,name=url,proto3" json:"url,omitempty"`
 	// An absolute path inside one of the roots gitd is configured with.
 	Path           string        `protobuf:"bytes,2,opt,name=path,proto3" json:"path,omitempty"`
 	Revision       *Revision     `protobuf:"bytes,3,opt,name=revision,proto3" json:"revision,omitempty"`
 	WithSubmodules bool          `protobuf:"varint,4,opt,name=with_submodules,json=withSubmodules,proto3" json:"with_submodules,omitempty"`
 	Credentials    []*Credential `protobuf:"bytes,5,rep,name=credentials,proto3" json:"credentials,omitempty"`
-	// The repository's whole history, as a project's own repository wants for `git log`.
+	// The repository's whole history, for `git log` and `git blame` to go back as far as in
+	// a clone; later updates keep it.
 	// Otherwise only what is checked out, without the history behind it; submodules are
 	// always so.
 	FullHistory   bool `protobuf:"varint,6,opt,name=full_history,json=fullHistory,proto3" json:"full_history,omitempty"`
@@ -828,7 +830,7 @@ func (x *WorkspaceResult) GetPendingSubmodules() []*PendingSubmodule {
 type UpdateRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	Path  string                 `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
-	// Empty means the branch the workspace is on.
+	// Empty means the branch the workspace follows, also after a rollback left it detached.
 	Branch         string        `protobuf:"bytes,2,opt,name=branch,proto3" json:"branch,omitempty"`
 	WithSubmodules bool          `protobuf:"varint,3,opt,name=with_submodules,json=withSubmodules,proto3" json:"with_submodules,omitempty"`
 	Credentials    []*Credential `protobuf:"bytes,4,rep,name=credentials,proto3" json:"credentials,omitempty"`
@@ -977,11 +979,12 @@ func (*UpdateResponse_Progress) isUpdateResponse_Event() {}
 func (*UpdateResponse_Result) isUpdateResponse_Event() {}
 
 type CheckoutRequest struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	Path           string                 `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
-	Commit         string                 `protobuf:"bytes,2,opt,name=commit,proto3" json:"commit,omitempty"`
-	WithSubmodules bool                   `protobuf:"varint,3,opt,name=with_submodules,json=withSubmodules,proto3" json:"with_submodules,omitempty"`
-	Credentials    []*Credential          `protobuf:"bytes,4,rep,name=credentials,proto3" json:"credentials,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Path  string                 `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
+	// Required: the commit to move to.
+	Commit         string        `protobuf:"bytes,2,opt,name=commit,proto3" json:"commit,omitempty"`
+	WithSubmodules bool          `protobuf:"varint,3,opt,name=with_submodules,json=withSubmodules,proto3" json:"with_submodules,omitempty"`
+	Credentials    []*Credential `protobuf:"bytes,4,rep,name=credentials,proto3" json:"credentials,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -1370,7 +1373,8 @@ type DescribeResponse struct {
 	Url    string                 `protobuf:"bytes,1,opt,name=url,proto3" json:"url,omitempty"`
 	Commit string                 `protobuf:"bytes,2,opt,name=commit,proto3" json:"commit,omitempty"`
 	Branch string                 `protobuf:"bytes,3,opt,name=branch,proto3" json:"branch,omitempty"`
-	// Whether something on disk differs from the commit, as a console may leave it.
+	// Whether something on disk differs from the commit, as somebody running git in it may
+	// leave it.
 	Modified      bool              `protobuf:"varint,4,opt,name=modified,proto3" json:"modified,omitempty"`
 	Submodules    []*SubmoduleState `protobuf:"bytes,5,rep,name=submodules,proto3" json:"submodules,omitempty"`
 	unknownFields protoimpl.UnknownFields

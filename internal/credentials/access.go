@@ -37,7 +37,7 @@ type Keys struct {
 
 // NewKeys writes the host keys under dir, where every ssh gitd starts reads them: the
 // built-in ones followed by those of each file in extra. hosts are the hosts that take
-// SSH on another port or as another user.
+// SSH on another port or as another user, lowercased as config.Load leaves them.
 func NewKeys(dir string, extra []string, hosts map[string]config.SSHHost) (*Keys, error) {
 	keys := append([]byte(nil), builtInKnownHosts...)
 	for _, file := range extra {
@@ -57,11 +57,7 @@ func NewKeys(dir string, extra []string, hosts map[string]config.SSHHost) (*Keys
 	if err := os.WriteFile(path, keys, 0o644); err != nil {
 		return nil, err
 	}
-	lowered := make(map[string]config.SSHHost, len(hosts))
-	for host, ssh := range hosts {
-		lowered[strings.ToLower(host)] = ssh
-	}
-	return &Keys{knownHosts: path, hosts: lowered}, nil
+	return &Keys{knownHosts: path, hosts: hosts}, nil
 }
 
 // sshURL is the address a key reads the repository at, on the port and as the user its
@@ -99,7 +95,7 @@ func (keys *Keys) access(repository repo.Repo, credential Credential) Access {
 	if credential.Token != "" {
 		user := credential.User
 		if user == "" {
-			user = TokenUser(repository.Host)
+			user = tokenUser(repository.Host)
 		}
 		basic := base64.StdEncoding.EncodeToString([]byte(user + ":" + credential.Token))
 		return Access{
