@@ -251,6 +251,11 @@ git saw all hundred as clean checkouts, a first `git status` taking 0.24 s; an a
 commit stayed in its workspace; removing all hundred took 1.1 s. A workspace's 4.3 MB is
 mostly git's index, which each one keeps of its own.
 
+Reading what an agent changed is fast for the same reason: with one file changed in a
+kubernetes workspace, `gitd changes` took 0.012 s, reading only the agent's own layer, against
+0.130 s for `git status` walking all 31,441 files (0.92 s the first time); measured with ten
+agents on the same runner.
+
 gitd ran as root in the benchmark, mounting the overlays itself; deployed unprivileged, it
 asks `gitd-mount` over a socket, which measured 34–36 ms a workspace. With the whole history
 (`--full-history`) a workspace is written rather than layered: ten of them took 128.6 s and
