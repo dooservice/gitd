@@ -1,0 +1,26 @@
+[Unit]
+Description=gitd-mount, which mounts gitd's overlay workspaces so gitd needs no privilege
+Requires=gitd-mount.socket
+After=gitd-mount.socket
+Before=gitd.service
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/gitd-mount --config /etc/gitd/gitd-mount.conf
+# Root, holding the one capability mounting takes, and nothing else.
+User=root
+CapabilityBoundingSet=CAP_SYS_ADMIN
+AmbientCapabilities=
+NoNewPrivileges=yes
+RestrictAddressFamilies=AF_UNIX
+SystemCallArchitectures=native
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+# No ProtectSystem, PrivateTmp, ProtectHome or ReadWritePaths: each gives the service a
+# mount namespace of its own, and the overlays it mounts would never be seen outside it.
+Restart=on-failure
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=gitd-mount

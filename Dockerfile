@@ -7,7 +7,8 @@ RUN go mod download
 COPY . .
 ARG VERSION=dev TARGETOS TARGETARCH
 # Cross-compiled on the build machine: no emulation for Go, whatever the image's platform.
-RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -ldflags "-s -w -X main.version=${VERSION}" -o /gitd ./cmd/gitd
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -ldflags "-s -w -X main.version=${VERSION}" -o /gitd ./cmd/gitd \
+ && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -ldflags "-s -w -X main.version=${VERSION}" -o /gitd-mount ./cmd/gitd-mount
 
 FROM debian:12-slim
 RUN apt-get update \
@@ -16,7 +17,7 @@ RUN apt-get update \
  && useradd --system --uid 1000 --user-group --home-dir /var/lib/gitd gitd \
  && mkdir -p /var/lib/gitd/workspaces /run/gitd /etc/gitd \
  && chown -R gitd:gitd /var/lib/gitd /run/gitd
-COPY --from=build /gitd /usr/local/bin/gitd
+COPY --from=build /gitd /gitd-mount /usr/local/bin/
 USER gitd
 ENV GITD_SOCKET=/run/gitd/gitd.sock
 VOLUME ["/var/lib/gitd", "/run/gitd"]
