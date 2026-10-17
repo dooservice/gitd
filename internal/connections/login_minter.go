@@ -15,7 +15,8 @@ const renewBefore = 5 * time.Minute
 
 // signedIn makes the tokens of a person signed in: the one kept in memory while it lasts,
 // renewed with the renewal token kept in the store, which GitHub replaces each time and the
-// store keeps again. A person's token opens what they may, whatever the purpose.
+// store keeps again; or, for a token that does not expire, that token, kept sealed. A
+// person's token opens what they may, whatever the purpose.
 type signedIn struct {
 	store   *Store
 	id      string
@@ -38,6 +39,9 @@ func (store *Store) login(record Record, token string, expires time.Time) (crede
 func (person *signedIn) Token(ctx context.Context, _ repo.Repo, _ credentials.Purpose) (string, error) {
 	person.guard.Lock()
 	defer person.guard.Unlock()
+	if record, kept, err := person.store.Get(person.id); err != nil || record.Lasting {
+		return string(kept), err
+	}
 	now := person.store.now()
 	if person.token != "" && now.Add(renewBefore).Before(person.expires) {
 		return person.token, nil

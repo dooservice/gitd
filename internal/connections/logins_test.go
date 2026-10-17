@@ -100,3 +100,35 @@ func TestSigningInIsNotOfferedWithoutGitdsPublicApp(t *testing.T) {
 		t.Errorf("err = %v", err)
 	}
 }
+
+func TestASignInWhoseTokenDoesNotExpireKeepsThatToken(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		switch request.URL.Path {
+		case "/login/device/code":
+			_, _ = writer.Write([]byte(`{"device_code": "dev", "user_code": "C", "verification_uri": "v", "expires_in": 900, "interval": 5}`))
+		case "/login/oauth/access_token":
+			_, _ = writer.Write([]byte(`{"access_token": "ghu_lasting"}`))
+		case "/user":
+			_, _ = writer.Write([]byte(`{"login": "josue"}`))
+		}
+	}))
+	defer server.Close()
+	store, now := signInStore(t, GitHub{APIBase: server.URL, WebBase: server.URL, LoginClientID: "Iv1.public", LoginAppSlug: "gitd-app"})
+	ctx := context.Background()
+	started, err := store.StartLogin(ctx, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	record, _, err := store.FinishLogin(ctx, started.LoginID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !record.Lasting || !record.Expires.IsZero() {
+		t.Errorf("record = %+v", record)
+	}
+	*now = now.Add(365 * 24 * time.Hour)
+	repository, _ := repo.Of("https://github.com/acme/web")
+	if token, err := store.Credentials()[0].Minter.Token(ctx, repository, credentials.Read); err != nil || token != "ghu_lasting" {
+		t.Errorf("a year later: %q, %v", token, err)
+	}
+}

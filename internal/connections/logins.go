@@ -85,9 +85,14 @@ func (store *Store) keepLogin(ctx context.Context, host string, tokens githubapp
 		return Record{}, "", err
 	}
 	now := store.now()
-	record, err := store.Add(Record{
-		Kind: GitHubLogin, URLPrefix: "https://" + host, Host: host, ActsAs: login, Expires: tokens.RefreshExpires(now).UTC(),
-	}, []byte(tokens.RefreshToken))
+	kept := Record{Kind: GitHubLogin, URLPrefix: "https://" + host, Host: host, ActsAs: login}
+	secret := tokens.RefreshToken
+	if secret == "" {
+		kept.Lasting, secret = true, tokens.AccessToken
+	} else {
+		kept.Expires = tokens.RefreshExpires(now).UTC()
+	}
+	record, err := store.Add(kept, []byte(secret))
 	if err != nil {
 		return Record{}, "", err
 	}

@@ -19,7 +19,9 @@ const (
 )
 
 // Record is one connection as it is kept. Secret is the token, the private key or the
-// renewal token, as the Box keeps it; the rest is never secret.
+// renewal token, as the Box keeps it; the rest is never secret. Lasting says a sign-in's
+// token does not expire, as with an App that does not expire its users' tokens: Secret is
+// then that token, not a renewal token.
 type Record struct {
 	ID        string    `json:"id"`
 	Kind      Kind      `json:"kind"`
@@ -31,6 +33,7 @@ type Record struct {
 	ManageURL string    `json:"manage_url,omitempty"`
 	Expires   time.Time `json:"expires,omitzero"`
 	Created   time.Time `json:"created"`
+	Lasting   bool      `json:"lasting,omitempty"`
 	Secret    string    `json:"secret"`
 }
 
