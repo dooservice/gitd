@@ -1,0 +1,36 @@
+name: hundred agents
+
+# N agents on one repository with copy-on-write workspaces, against N shallow clones: the
+# numbers the README quotes. By hand, on a GitHub runner, so anyone can run it again.
+on:
+  workflow_dispatch:
+    inputs:
+      repository:
+        description: "The repository"
+        default: "https://github.com/kubernetes/kubernetes"
+      agents:
+        description: "How many agents"
+        default: "100"
+      clones:
+        description: "How many clones to compare with (0 to skip)"
+        default: "100"
+
+jobs:
+  hundred:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Build the image
+        run: docker build -t gitd:bench .
+
+      # gitd mounts overlays as root in its container, on the runner's disk, as gitd-mount
+      # does for an unprivileged gitd on a server.
+      - name: Run
+        run: |
+          set -o pipefail
+          sudo benchmarks/hundred.sh "${{ inputs.repository }}" "${{ inputs.agents }}" /mnt/gitd-bench "${{ inputs.clones }}" | tee results.md
+
+      - name: Summary
+        run: cat results.md >> "$GITHUB_STEP_SUMMARY"
