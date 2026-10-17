@@ -260,6 +260,16 @@ func (settings Config) AuditLog() string {
 	return filepath.Join(settings.State, "audit")
 }
 
+// Connections is where the connections made through the API are kept.
+func (settings Config) Connections() string {
+	return filepath.Join(settings.State, "connections")
+}
+
+// PublishingSettings is where the publishing settings set through the API are kept.
+func (settings Config) PublishingSettings() string {
+	return filepath.Join(settings.State, "publishing")
+}
+
 // Locks is where the lock files live.
 func (settings Config) Locks() string {
 	return filepath.Join(settings.State, "locks")

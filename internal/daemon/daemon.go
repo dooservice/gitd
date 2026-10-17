@@ -10,6 +10,7 @@ import (
 
 	"github.com/dooservice/gitd/internal/audit"
 	"github.com/dooservice/gitd/internal/config"
+	"github.com/dooservice/gitd/internal/connections"
 	"github.com/dooservice/gitd/internal/credentials"
 	"github.com/dooservice/gitd/internal/git"
 	"github.com/dooservice/gitd/internal/housekeeping"
@@ -17,6 +18,8 @@ import (
 	"github.com/dooservice/gitd/internal/metrics"
 	"github.com/dooservice/gitd/internal/mounthelper"
 	"github.com/dooservice/gitd/internal/pool"
+	"github.com/dooservice/gitd/internal/publishing"
+	"github.com/dooservice/gitd/internal/secrets"
 	"github.com/dooservice/gitd/internal/server"
 	"github.com/dooservice/gitd/internal/strategy"
 	"github.com/dooservice/gitd/internal/template"
@@ -43,6 +46,23 @@ func Run(ctx context.Context, path, socket, version string) error {
 		return err
 	}
 	keys, err := credentials.NewKeys(settings.State, settings.KnownHosts, settings.Hosts, stored)
+	if err != nil {
+		return err
+	}
+	box, err := secrets.Open(settings.SecretsKeyFile)
+	if err != nil {
+		return err
+	}
+	kept, err := connections.Open(settings.Connections(), box)
+	if err != nil {
+		return err
+	}
+	keys.AlsoKeep(kept)
+	fileSettings, err := publishing.FromFile(settings.Publish)
+	if err != nil {
+		return err
+	}
+	publishingSettings, err := publishing.Open(settings.PublishingSettings(), fileSettings)
 	if err != nil {
 		return err
 	}
@@ -95,6 +115,10 @@ func Run(ctx context.Context, path, socket, version string) error {
 		StrategyReason: why,
 		TemplateTotals: keeper.TemplateTotals,
 		AuditLog:       auditLog,
+
+		Connections:     kept,
+		FileConnections: connections.ShownFromFile(settings.Credentials),
+		Publishing:      publishingSettings,
 	}
 	return served.Serve(ctx, settings.Socket, settings.Metrics)
 }
