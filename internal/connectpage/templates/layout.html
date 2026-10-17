@@ -1,0 +1,33 @@
+{{define "layout"}}<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>{{.Title}} · gitd</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='2' width='28' height='28' fill='%232B7F8A'/%3E%3Crect x='17' y='17' width='9' height='9' fill='%23F28A53'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>{{.Style}}</style>
+</head>
+<body>
+<header class="top"><div class="shell">
+  <a class="brand" href="https://gitd.dev" target="_blank" rel="noopener">
+    <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="2" y="2" width="28" height="28" fill="#2B7F8A"/><rect x="17" y="17" width="9" height="9" fill="#F28A53"/></svg>
+    <span>GITD</span>
+  </a>
+  <span class="pill where">{{.Served}}</span>
+</div></header>
+<main><div class="shell">
+{{template "content" .}}
+</div></main>
+<footer><div class="shell">Served by gitd on {{.Served}}: only this machine can open it, and it stops once you are done.</div></footer>
+</body>
+</html>{{end}}
+
+{{define "steps"}}<div class="bento steps">
+  <div class="step {{index .Steps 0}}"><div class="number">01</div><div class="title">Create the App</div><div class="what">On GitHub, in one click</div></div>
+  <div class="step {{index .Steps 1}}"><div class="number">02</div><div class="title">Install it</div><div class="what">On the repositories agents work on</div></div>
+  <div class="step {{index .Steps 2}}"><div class="number">03</div><div class="title">Agents publish</div><div class="what">Branches and pull requests from its bot</div></div>
+</div>{{end}}

@@ -1,0 +1,28 @@
+{{define "content"}}
+<p class="label">Connected</p>
+<h1><span class="accent">{{.ActsAs}}</span><br>is connected</h1>
+<p class="lead">gitd keeps the App and its key. One step left: <strong>install it on the repositories agents work on</strong>. It reaches no other.</p>
+
+{{template "steps" .}}
+
+<div class="actions">
+  <a class="btn btn-primary" href="{{.InstallURL}}">Install on repositories →</a>
+  {{if .ManageURL}}<a class="btn btn-ghost" href="{{.ManageURL}}">Manage the App</a>{{end}}
+</div>
+
+<h2>What gitd keeps</h2>
+<div class="bento facts">
+  <div class="fact"><div class="name">Connection</div><div class="value">{{.ID}}</div></div>
+  <div class="fact"><div class="name">Pull requests from</div><div class="value bot">{{.ActsAs}}</div></div>
+  <div class="fact"><div class="name">Opens</div><div class="value">{{.Prefix}}</div></div>
+  <div class="fact"><div class="name">Its key</div><div class="value">On this server only</div></div>
+</div>
+
+<h2>Next, in the terminal</h2>
+<pre class="code"><span class="comment"># what gitd keeps, never a secret</span>
+<span class="prompt">$ </span>gitd connections list
+<span class="comment"># rules for what agents may publish, and pull requests</span>
+<span class="prompt">$ </span>gitd publishing set {{.Prefix}} --preset recommended \
+    --branch-prefix agents/ --pull-requests always</pre>
+<p class="hint" style="margin-top:24px">You can close this tab: the terminal says the same.</p>
+{{end}}

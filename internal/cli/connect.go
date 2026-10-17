@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra"
 
 	gitdv1 "github.com/dooservice/gitd/gen/go/gitd/v1"
+	"github.com/dooservice/gitd/internal/connectpage"
 )
 
 func connectCommand(app *app) *cobra.Command {
@@ -58,7 +59,7 @@ func connectGitHubAppCommand(app *app) *cobra.Command {
 			"(ssh -L PORT:127.0.0.1:PORT) and give it with --port.",
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			page, err := newManifestPage(port)
+			page, err := newManifestPage(port, connectpage.App{Name: name, Organization: organization, Host: host})
 			if err != nil {
 				return err
 			}

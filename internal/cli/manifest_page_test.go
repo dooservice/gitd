@@ -9,10 +9,11 @@ import (
 	"time"
 
 	gitdv1 "github.com/dooservice/gitd/gen/go/gitd/v1"
+	"github.com/dooservice/gitd/internal/connectpage"
 )
 
 func TestTheManifestPagePostsToGitHubAndTakesTheCodeOnlyWithItsState(t *testing.T) {
-	page, err := newManifestPage(0)
+	page, err := newManifestPage(0, connectpage.App{Name: "acme-agents", Organization: "acme"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -53,7 +54,8 @@ func TestTheManifestPagePostsToGitHubAndTakesTheCodeOnlyWithItsState(t *testing.
 	page.finish(&gitdv1.CompleteGitHubAppResponse{
 		Connection: &gitdv1.Connection{ActsAs: "acme-agents[bot]"}, InstallUrl: "https://github.com/apps/acme-agents/installations/new",
 	}, nil)
-	if text := <-landed; !strings.Contains(text, "gitd keeps acme-agents[bot]") {
+	if text := <-landed; !strings.Contains(text, "acme-agents[bot]</span><br>is connected") ||
+		!strings.Contains(text, `href="https://github.com/apps/acme-agents/installations/new"`) {
 		t.Errorf("landed on:\n%s", text)
 	}
 }

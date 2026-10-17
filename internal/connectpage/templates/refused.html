@@ -1,0 +1,9 @@
+{{define "content"}}
+<p class="label">Not connected</p>
+<h1>The App was<br><span class="warn">not kept</span></h1>
+<p class="lead">{{.Lead}}</p>
+<div class="notice">{{.Message}}</div>
+
+<h2>Try again</h2>
+<pre class="code"><span class="prompt">$ </span>gitd connect github-app --name {{.Name}}{{if .Organization}} --org {{.Organization}}{{end}}</pre>
+{{end}}

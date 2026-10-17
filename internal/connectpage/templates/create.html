@@ -1,0 +1,36 @@
+{{define "content"}}
+<p class="label">Connect GitHub</p>
+<h1>Create your<br><span class="accent">GitHub App</span></h1>
+<p class="lead">gitd creates a GitHub App owned by <strong>{{.Owner}}</strong>. Agents' branches and pull requests come from its bot, and its private key comes back to this server and stays with gitd: nobody else holds it.</p>
+
+{{template "steps" .}}
+
+<h2>The App</h2>
+<div class="bento facts">
+  <div class="fact"><div class="name">Name</div><div class="value">{{.Name}}</div></div>
+  <div class="fact"><div class="name">Pull requests from</div><div class="value bot">{{.Name}}[bot]</div></div>
+  <div class="fact"><div class="name">Owner</div><div class="value">{{.Owner}}</div></div>
+  <div class="fact"><div class="name">Host</div><div class="value">{{.Host}}</div></div>
+</div>
+
+<h2>What it may do</h2>
+<table>
+  <thead><tr><th>Permission</th><th>Access</th><th class="why">Why</th></tr></thead>
+  <tbody>
+    <tr><td class="permission">Contents</td><td class="level">Read &amp; write</td><td class="why">Read repositories and push the branches agents publish</td></tr>
+    <tr><td class="permission">Pull requests</td><td class="level">Read &amp; write</td><td class="why">Open a pull request for each publish, and ask for its review</td></tr>
+    <tr><td class="permission">Metadata</td><td class="level">Read</td><td class="why">Required by GitHub for every App</td></tr>
+  </tbody>
+</table>
+<div class="promises">
+  <span class="pill">Private to {{.Owner}}</span>
+  <span class="pill">No webhook</span>
+  <span class="pill">Tokens of one hour, one repository each</span>
+</div>
+
+<form class="actions" method="post" action="{{.FormAction}}">
+  <input type="hidden" name="manifest" value="{{.Manifest}}">
+  <button class="btn btn-primary" type="submit">Create on GitHub →</button>
+  <span class="hint">GitHub asks you to confirm, then sends you back here.</span>
+</form>
+{{end}}

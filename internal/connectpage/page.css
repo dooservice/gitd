@@ -1,0 +1,126 @@
+/* gitd.dev's look — Anton and Archivo in dooservice's teal and orange, fine lines, mono
+   labels and bento cells — for the pages `gitd connect github-app` serves on this machine. */
+:root {
+  --bg: #FFFFFF;
+  --bg-soft: #F7FAFA;
+  --bg-tint: #EEF6F7;
+  --bg-ink: #0C1E21;
+  --accent: #2B7F8A;
+  --accent-dark: #1B4A52;
+  --accent-light: #D7ECEE;
+  --orange: #F28A53;
+  --orange-soft: #FDEBE1;
+  --text: #0A0F18;
+  --text-secondary: #48566A;
+  --text-muted: #8A96A5;
+  --line: #E1EAEB;
+  --line-strong: #C7D6D8;
+  --sans: "Archivo", system-ui, sans-serif;
+  --heading: "Anton", "Archivo", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+
+* { box-sizing: border-box; margin: 0; }
+html { color-scheme: light; -webkit-font-smoothing: antialiased; }
+body { font-family: var(--sans); font-size: 16px; line-height: 1.6; color: var(--text); background: var(--bg); }
+a { color: inherit; text-decoration: none; }
+code, .mono { font-family: var(--mono); }
+
+.shell { max-width: 920px; margin: 0 auto; padding: 0 24px; }
+
+/* Header: the mark and the name, and where this page is served. */
+.top { border-bottom: 1px solid var(--line); }
+.top .shell { display: flex; align-items: center; justify-content: space-between; height: 64px; }
+.brand { display: inline-flex; align-items: center; gap: 10px; }
+.brand svg { width: 28px; height: 28px; }
+.brand span { font-family: var(--heading); font-size: 22px; letter-spacing: 0.04em; }
+
+.pill {
+  display: inline-flex; align-items: center; gap: 6px; padding: 2px 8px;
+  border: 1px solid var(--line); background: var(--bg);
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-secondary);
+}
+.pill::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--orange); flex: none; }
+
+/* [ LABEL ] above every heading. */
+.label { font-family: var(--mono); font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-secondary); }
+.label::before { content: "[ "; color: var(--accent); }
+.label::after { content: " ]"; color: var(--accent); }
+
+main { padding: 56px 0 72px; }
+h1 {
+  margin-top: 20px; font-family: var(--heading); font-weight: 400; text-transform: uppercase;
+  font-size: clamp(40px, 7vw, 64px); line-height: 1.04; letter-spacing: 0.01em; overflow-wrap: anywhere;
+}
+h1 .accent { color: var(--accent); }
+h1 .warn { color: var(--orange); }
+.lead { margin-top: 20px; max-width: 640px; font-size: 18px; color: var(--text-secondary); }
+.lead strong { color: var(--text); font-weight: 600; }
+
+h2 { margin-top: 48px; font-family: var(--mono); font-weight: 400; font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-secondary); }
+
+/* Bento cells: one fine line between them, never doubled. */
+.bento { display: grid; border-top: 1px solid var(--line); border-left: 1px solid var(--line); margin-top: 16px; }
+.bento > * { border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 20px; }
+.steps { grid-template-columns: repeat(3, 1fr); margin-top: 40px; }
+.facts { grid-template-columns: repeat(2, 1fr); }
+
+/* The three steps of connecting: done, now, next. */
+.step .number { font-family: var(--mono); font-size: 12px; letter-spacing: 0.14em; color: var(--text-muted); }
+.step .title { margin-top: 6px; font-weight: 600; }
+.step .what { margin-top: 2px; font-size: 14px; color: var(--text-secondary); }
+.step.now { background: var(--bg-tint); }
+.step.now .number { color: var(--accent); }
+.step.now .number::after { content: "  ●  NOW"; color: var(--orange); }
+.step.done .number::after { content: "  ✓  DONE"; color: var(--accent); }
+.step.next { color: var(--text-muted); }
+.step.next .what { color: var(--text-muted); }
+
+.fact .name { font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted); }
+.fact .value { margin-top: 4px; font-family: var(--mono); font-size: 15px; overflow-wrap: anywhere; }
+.fact .value.bot { color: var(--accent); }
+
+/* What the App may do, and why. */
+table { width: 100%; border-collapse: collapse; margin-top: 16px; border-top: 1px solid var(--line); font-size: 15px; }
+th, td { text-align: left; padding: 14px 16px 14px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-family: var(--mono); font-weight: 400; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted); }
+td.permission { font-weight: 600; white-space: nowrap; }
+td.level { font-family: var(--mono); font-size: 13px; color: var(--accent); white-space: nowrap; }
+td.why { color: var(--text-secondary); }
+
+.promises { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
+
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 40px; }
+.btn {
+  display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; border: 0; cursor: pointer;
+  font-family: var(--mono); font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap;
+  transition: background-color .2s ease, color .2s ease, border-color .2s ease;
+}
+.btn-primary { background: var(--accent); color: #FFFFFF; }
+.btn-primary:hover { background: var(--accent-dark); }
+.btn-ghost { border: 1px solid var(--line-strong); background: var(--bg); color: var(--text); }
+.btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+.btn:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
+.hint { font-size: 14px; color: var(--text-muted); }
+
+/* A message that something went wrong. */
+.notice { margin-top: 32px; padding: 16px 20px; border: 1px solid var(--line); border-left: 3px solid var(--orange); background: var(--orange-soft); font-family: var(--mono); font-size: 14px; overflow-wrap: anywhere; }
+
+/* A terminal: every line whole. */
+.code {
+  margin-top: 16px; padding: 18px 20px; overflow-x: auto; white-space: pre;
+  font-family: var(--mono); font-size: 13px; line-height: 1.75; color: #CFE6E9; background: var(--bg-ink);
+}
+.code .prompt { color: var(--orange); user-select: none; }
+.code .comment { color: #6F9599; }
+
+footer { border-top: 1px solid var(--line); }
+footer .shell { padding-top: 20px; padding-bottom: 28px; font-family: var(--mono); font-size: 12px; color: var(--text-muted); }
+
+@media (max-width: 640px) {
+  main { padding: 40px 0 56px; }
+  .steps, .facts { grid-template-columns: 1fr; }
+  .lead { font-size: 16px; }
+  th.why, td.why { display: none; }
+  .pill.where { display: none; }
+}
