@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 	"testing"
 
 	gitdv1 "github.com/dooservice/gitd/gen/go/gitd/v1"
@@ -116,5 +117,42 @@ func TestALayerSaysWhatItsAgentTouchedAndWhatItHides(t *testing.T) {
 	slices.Sort(candidates)
 	if !slices.Equal(candidates, []string{"docs/kept.md", "docs/old.md", "src/app.go", "src/new.go"}) {
 		t.Errorf("candidates = %v", candidates)
+	}
+}
+
+func TestADiffIsGitsOwnOfTheChangesAndStopsAtItsSize(t *testing.T) {
+	repository := repo.Repo{Host: "github.com", Path: "acme/web"}
+	workspaces, roots := newTestWorkspacesOf(t, baseFiles, repository)
+	path := copied(t, workspaces, roots, "agent", repository)
+	write(t, filepath.Join(path, "src/app.go"), "package app\n\nfunc One() int { return 2 }\n")
+	write(t, filepath.Join(path, "src/new.go"), "package app\n")
+	if err := os.Remove(filepath.Join(path, "docs/old.md")); err != nil {
+		t.Fatal(err)
+	}
+	ctx := context.Background()
+	answer, err := workspaces.Diff(ctx, &gitdv1.DiffRequest{Path: path})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{
+		"diff --git a/src/app.go b/src/app.go\n", "--- a/src/app.go\n+++ b/src/app.go\n",
+		"-func One() int { return 1 }\n+func One() int { return 2 }\n",
+		"diff --git a/src/new.go b/src/new.go\nnew file mode 100644\n", "--- /dev/null\n+++ b/src/new.go\n",
+		"diff --git a/docs/old.md b/docs/old.md\ndeleted file mode 100644\n", "--- a/docs/old.md\n+++ /dev/null\n",
+	} {
+		if !strings.Contains(answer.GetDiff(), want) {
+			t.Errorf("the diff lacks %q:\n%s", want, answer.GetDiff())
+		}
+	}
+	if answer.GetTruncated() {
+		t.Error("a small diff was cut")
+	}
+	one, err := workspaces.Diff(ctx, &gitdv1.DiffRequest{Path: path, Files: []string{"src/new.go"}})
+	if err != nil || strings.Contains(one.GetDiff(), "src/app.go") || !strings.Contains(one.GetDiff(), "src/new.go") {
+		t.Errorf("one file: %v\n%s", err, one.GetDiff())
+	}
+	cut, err := workspaces.Diff(ctx, &gitdv1.DiffRequest{Path: path, MaxBytes: 40})
+	if err != nil || !cut.GetTruncated() || len(cut.GetDiff()) != 40 {
+		t.Errorf("cut: %v, %d bytes, truncated %v", err, len(cut.GetDiff()), cut.GetTruncated())
 	}
 }
