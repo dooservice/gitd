@@ -831,6 +831,47 @@
               "type": "TYPE_MESSAGE",
               "typeName": ".gitd.v1.PullRequestOptions",
               "jsonName": "pullRequest"
+            },
+            {
+              "name": "provenance",
+              "number": 6,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".gitd.v1.Provenance",
+              "jsonName": "provenance"
+            }
+          ]
+        },
+        {
+          "name": "Provenance",
+          "field": [
+            {
+              "name": "agent",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "agent"
+            },
+            {
+              "name": "model",
+              "number": 2,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "model"
+            },
+            {
+              "name": "session",
+              "number": 3,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "session"
+            },
+            {
+              "name": "task_url",
+              "number": 4,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "taskUrl"
             }
           ]
         },
@@ -1726,6 +1767,14 @@
               "type": "TYPE_MESSAGE",
               "typeName": ".gitd.v1.ConfigurationChange",
               "jsonName": "change"
+            },
+            {
+              "name": "provenance",
+              "number": 12,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".gitd.v1.Provenance",
+              "jsonName": "provenance"
             }
           ]
         },

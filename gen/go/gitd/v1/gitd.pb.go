@@ -221,7 +221,7 @@ func (x ChangedFile_Kind) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use ChangedFile_Kind.Descriptor instead.
 func (ChangedFile_Kind) EnumDescriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{30, 0}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{31, 0}
 }
 
 type WatchResponse_Kind int32
@@ -281,7 +281,7 @@ func (x WatchResponse_Kind) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use WatchResponse_Kind.Descriptor instead.
 func (WatchResponse_Kind) EnumDescriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{41, 0}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{42, 0}
 }
 
 type ProbeResponse_Access int32
@@ -336,7 +336,7 @@ func (x ProbeResponse_Access) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use ProbeResponse_Access.Descriptor instead.
 func (ProbeResponse_Access) EnumDescriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{43, 0}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{44, 0}
 }
 
 type ConfigurationChange_Action int32
@@ -397,7 +397,7 @@ func (x ConfigurationChange_Action) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use ConfigurationChange_Action.Descriptor instead.
 func (ConfigurationChange_Action) EnumDescriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{51, 0}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{52, 0}
 }
 
 type Connection_Kind int32
@@ -454,7 +454,7 @@ func (x Connection_Kind) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Connection_Kind.Descriptor instead.
 func (Connection_Kind) EnumDescriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{52, 0}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{53, 0}
 }
 
 // Where it comes from: gitd's own, the configuration file, or the API.
@@ -507,7 +507,7 @@ func (x Preset_Origin) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Preset_Origin.Descriptor instead.
 func (Preset_Origin) EnumDescriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{70, 0}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{71, 0}
 }
 
 type PullRequestSettings_Open int32
@@ -557,7 +557,7 @@ func (x PullRequestSettings_Open) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use PullRequestSettings_Open.Descriptor instead.
 func (PullRequestSettings_Open) EnumDescriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{71, 0}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{72, 0}
 }
 
 // What opens repositories whose address starts with `url_prefix`, on any host:
@@ -2249,7 +2249,9 @@ type PublishRequest struct {
 	// records it as told.
 	RequestedBy string `protobuf:"bytes,4,opt,name=requested_by,json=requestedBy,proto3" json:"requested_by,omitempty"`
 	// This publish's pull request, beyond what the settings say.
-	PullRequest   *PullRequestOptions `protobuf:"bytes,5,opt,name=pull_request,json=pullRequest,proto3" json:"pull_request,omitempty"`
+	PullRequest *PullRequestOptions `protobuf:"bytes,5,opt,name=pull_request,json=pullRequest,proto3" json:"pull_request,omitempty"`
+	// Where the work came from, written in the pull request and the audit log as told.
+	Provenance    *Provenance `protobuf:"bytes,6,opt,name=provenance,proto3" json:"provenance,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2319,6 +2321,88 @@ func (x *PublishRequest) GetPullRequest() *PullRequestOptions {
 	return nil
 }
 
+func (x *PublishRequest) GetProvenance() *Provenance {
+	if x != nil {
+		return x.Provenance
+	}
+	return nil
+}
+
+// Where a publish's work came from, as the platform says: gitd records it and never checks
+// it, nor writes it into a commit. Each field is one line of at most 200 characters, never
+// a secret; task_url is an https address.
+type Provenance struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The agent, e.g. `claude-code` or `openhands`.
+	Agent string `protobuf:"bytes,1,opt,name=agent,proto3" json:"agent,omitempty"`
+	// The model it ran on.
+	Model string `protobuf:"bytes,2,opt,name=model,proto3" json:"model,omitempty"`
+	// The platform's name for the session or run.
+	Session string `protobuf:"bytes,3,opt,name=session,proto3" json:"session,omitempty"`
+	// Where the task is: an issue, a ticket.
+	TaskUrl       string `protobuf:"bytes,4,opt,name=task_url,json=taskUrl,proto3" json:"task_url,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Provenance) Reset() {
+	*x = Provenance{}
+	mi := &file_gitd_v1_gitd_proto_msgTypes[25]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Provenance) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Provenance) ProtoMessage() {}
+
+func (x *Provenance) ProtoReflect() protoreflect.Message {
+	mi := &file_gitd_v1_gitd_proto_msgTypes[25]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Provenance.ProtoReflect.Descriptor instead.
+func (*Provenance) Descriptor() ([]byte, []int) {
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{25}
+}
+
+func (x *Provenance) GetAgent() string {
+	if x != nil {
+		return x.Agent
+	}
+	return ""
+}
+
+func (x *Provenance) GetModel() string {
+	if x != nil {
+		return x.Model
+	}
+	return ""
+}
+
+func (x *Provenance) GetSession() string {
+	if x != nil {
+		return x.Session
+	}
+	return ""
+}
+
+func (x *Provenance) GetTaskUrl() string {
+	if x != nil {
+		return x.TaskUrl
+	}
+	return ""
+}
+
 // A publish's own say on its pull request. Unset fields take the settings'.
 type PullRequestOptions struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -2337,7 +2421,7 @@ type PullRequestOptions struct {
 
 func (x *PullRequestOptions) Reset() {
 	*x = PullRequestOptions{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[25]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2349,7 +2433,7 @@ func (x *PullRequestOptions) String() string {
 func (*PullRequestOptions) ProtoMessage() {}
 
 func (x *PullRequestOptions) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[25]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2362,7 +2446,7 @@ func (x *PullRequestOptions) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PullRequestOptions.ProtoReflect.Descriptor instead.
 func (*PullRequestOptions) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{25}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *PullRequestOptions) GetOpen() bool {
@@ -2411,7 +2495,7 @@ type OpenedPullRequest struct {
 
 func (x *OpenedPullRequest) Reset() {
 	*x = OpenedPullRequest{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[26]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2423,7 +2507,7 @@ func (x *OpenedPullRequest) String() string {
 func (*OpenedPullRequest) ProtoMessage() {}
 
 func (x *OpenedPullRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[26]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2436,7 +2520,7 @@ func (x *OpenedPullRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OpenedPullRequest.ProtoReflect.Descriptor instead.
 func (*OpenedPullRequest) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{26}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *OpenedPullRequest) GetUrl() string {
@@ -2467,7 +2551,7 @@ type PublishedRepository struct {
 
 func (x *PublishedRepository) Reset() {
 	*x = PublishedRepository{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[27]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2479,7 +2563,7 @@ func (x *PublishedRepository) String() string {
 func (*PublishedRepository) ProtoMessage() {}
 
 func (x *PublishedRepository) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[27]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2492,7 +2576,7 @@ func (x *PublishedRepository) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PublishedRepository.ProtoReflect.Descriptor instead.
 func (*PublishedRepository) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{27}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *PublishedRepository) GetUrl() string {
@@ -2539,7 +2623,7 @@ type PublishResponse struct {
 
 func (x *PublishResponse) Reset() {
 	*x = PublishResponse{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[28]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2551,7 +2635,7 @@ func (x *PublishResponse) String() string {
 func (*PublishResponse) ProtoMessage() {}
 
 func (x *PublishResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[28]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2564,7 +2648,7 @@ func (x *PublishResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PublishResponse.ProtoReflect.Descriptor instead.
 func (*PublishResponse) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{28}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *PublishResponse) GetBranch() string {
@@ -2614,7 +2698,7 @@ type ChangesRequest struct {
 
 func (x *ChangesRequest) Reset() {
 	*x = ChangesRequest{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[29]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2626,7 +2710,7 @@ func (x *ChangesRequest) String() string {
 func (*ChangesRequest) ProtoMessage() {}
 
 func (x *ChangesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[29]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2639,7 +2723,7 @@ func (x *ChangesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ChangesRequest.ProtoReflect.Descriptor instead.
 func (*ChangesRequest) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{29}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *ChangesRequest) GetPath() string {
@@ -2671,7 +2755,7 @@ type ChangedFile struct {
 
 func (x *ChangedFile) Reset() {
 	*x = ChangedFile{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[30]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2683,7 +2767,7 @@ func (x *ChangedFile) String() string {
 func (*ChangedFile) ProtoMessage() {}
 
 func (x *ChangedFile) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[30]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2696,7 +2780,7 @@ func (x *ChangedFile) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ChangedFile.ProtoReflect.Descriptor instead.
 func (*ChangedFile) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{30}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *ChangedFile) GetPath() string {
@@ -2748,7 +2832,7 @@ type ChangesResponse struct {
 
 func (x *ChangesResponse) Reset() {
 	*x = ChangesResponse{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[31]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2760,7 +2844,7 @@ func (x *ChangesResponse) String() string {
 func (*ChangesResponse) ProtoMessage() {}
 
 func (x *ChangesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[31]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2773,7 +2857,7 @@ func (x *ChangesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ChangesResponse.ProtoReflect.Descriptor instead.
 func (*ChangesResponse) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{31}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *ChangesResponse) GetBase() string {
@@ -2811,7 +2895,7 @@ type DiffRequest struct {
 
 func (x *DiffRequest) Reset() {
 	*x = DiffRequest{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[32]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2823,7 +2907,7 @@ func (x *DiffRequest) String() string {
 func (*DiffRequest) ProtoMessage() {}
 
 func (x *DiffRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[32]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2836,7 +2920,7 @@ func (x *DiffRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DiffRequest.ProtoReflect.Descriptor instead.
 func (*DiffRequest) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{32}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *DiffRequest) GetPath() string {
@@ -2880,7 +2964,7 @@ type DiffResponse struct {
 
 func (x *DiffResponse) Reset() {
 	*x = DiffResponse{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[33]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2892,7 +2976,7 @@ func (x *DiffResponse) String() string {
 func (*DiffResponse) ProtoMessage() {}
 
 func (x *DiffResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[33]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2905,7 +2989,7 @@ func (x *DiffResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DiffResponse.ProtoReflect.Descriptor instead.
 func (*DiffResponse) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{33}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *DiffResponse) GetBase() string {
@@ -2944,7 +3028,7 @@ type Side struct {
 
 func (x *Side) Reset() {
 	*x = Side{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[34]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2956,7 +3040,7 @@ func (x *Side) String() string {
 func (*Side) ProtoMessage() {}
 
 func (x *Side) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[34]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2969,7 +3053,7 @@ func (x *Side) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Side.ProtoReflect.Descriptor instead.
 func (*Side) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{34}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *Side) GetOf() isSide_Of {
@@ -3031,7 +3115,7 @@ type CompareRequest struct {
 
 func (x *CompareRequest) Reset() {
 	*x = CompareRequest{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[35]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3043,7 +3127,7 @@ func (x *CompareRequest) String() string {
 func (*CompareRequest) ProtoMessage() {}
 
 func (x *CompareRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[35]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3056,7 +3140,7 @@ func (x *CompareRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CompareRequest.ProtoReflect.Descriptor instead.
 func (*CompareRequest) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{35}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *CompareRequest) GetFirst() *Side {
@@ -3113,7 +3197,7 @@ type CompareResponse struct {
 
 func (x *CompareResponse) Reset() {
 	*x = CompareResponse{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[36]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3125,7 +3209,7 @@ func (x *CompareResponse) String() string {
 func (*CompareResponse) ProtoMessage() {}
 
 func (x *CompareResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[36]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3138,7 +3222,7 @@ func (x *CompareResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CompareResponse.ProtoReflect.Descriptor instead.
 func (*CompareResponse) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{36}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *CompareResponse) GetFiles() []*ChangedFile {
@@ -3174,7 +3258,7 @@ type ConflictsRequest struct {
 
 func (x *ConflictsRequest) Reset() {
 	*x = ConflictsRequest{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[37]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3186,7 +3270,7 @@ func (x *ConflictsRequest) String() string {
 func (*ConflictsRequest) ProtoMessage() {}
 
 func (x *ConflictsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[37]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3199,7 +3283,7 @@ func (x *ConflictsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConflictsRequest.ProtoReflect.Descriptor instead.
 func (*ConflictsRequest) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{37}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *ConflictsRequest) GetSides() []*Side {
@@ -3228,7 +3312,7 @@ type Conflict struct {
 
 func (x *Conflict) Reset() {
 	*x = Conflict{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[38]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3240,7 +3324,7 @@ func (x *Conflict) String() string {
 func (*Conflict) ProtoMessage() {}
 
 func (x *Conflict) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[38]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3253,7 +3337,7 @@ func (x *Conflict) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Conflict.ProtoReflect.Descriptor instead.
 func (*Conflict) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{38}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *Conflict) GetFirst() *Side {
@@ -3287,7 +3371,7 @@ type ConflictsResponse struct {
 
 func (x *ConflictsResponse) Reset() {
 	*x = ConflictsResponse{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[39]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3299,7 +3383,7 @@ func (x *ConflictsResponse) String() string {
 func (*ConflictsResponse) ProtoMessage() {}
 
 func (x *ConflictsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[39]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3312,7 +3396,7 @@ func (x *ConflictsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConflictsResponse.ProtoReflect.Descriptor instead.
 func (*ConflictsResponse) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{39}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{40}
 }
 
 func (x *ConflictsResponse) GetConflicts() []*Conflict {
@@ -3332,7 +3416,7 @@ type WatchRequest struct {
 
 func (x *WatchRequest) Reset() {
 	*x = WatchRequest{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[40]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3344,7 +3428,7 @@ func (x *WatchRequest) String() string {
 func (*WatchRequest) ProtoMessage() {}
 
 func (x *WatchRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[40]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3357,7 +3441,7 @@ func (x *WatchRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WatchRequest.ProtoReflect.Descriptor instead.
 func (*WatchRequest) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{40}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{41}
 }
 
 func (x *WatchRequest) GetPaths() []string {
@@ -3382,7 +3466,7 @@ type WatchResponse struct {
 
 func (x *WatchResponse) Reset() {
 	*x = WatchResponse{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[41]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3394,7 +3478,7 @@ func (x *WatchResponse) String() string {
 func (*WatchResponse) ProtoMessage() {}
 
 func (x *WatchResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[41]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3407,7 +3491,7 @@ func (x *WatchResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WatchResponse.ProtoReflect.Descriptor instead.
 func (*WatchResponse) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{41}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{42}
 }
 
 func (x *WatchResponse) GetKind() WatchResponse_Kind {
@@ -3455,7 +3539,7 @@ type ProbeRequest struct {
 
 func (x *ProbeRequest) Reset() {
 	*x = ProbeRequest{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[42]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3467,7 +3551,7 @@ func (x *ProbeRequest) String() string {
 func (*ProbeRequest) ProtoMessage() {}
 
 func (x *ProbeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[42]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3480,7 +3564,7 @@ func (x *ProbeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ProbeRequest.ProtoReflect.Descriptor instead.
 func (*ProbeRequest) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{42}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{43}
 }
 
 func (x *ProbeRequest) GetUrl() string {
@@ -3512,7 +3596,7 @@ type ProbeResponse struct {
 
 func (x *ProbeResponse) Reset() {
 	*x = ProbeResponse{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[43]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[44]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3524,7 +3608,7 @@ func (x *ProbeResponse) String() string {
 func (*ProbeResponse) ProtoMessage() {}
 
 func (x *ProbeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[43]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[44]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3537,7 +3621,7 @@ func (x *ProbeResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ProbeResponse.ProtoReflect.Descriptor instead.
 func (*ProbeResponse) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{43}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{44}
 }
 
 func (x *ProbeResponse) GetAccess() ProbeResponse_Access {
@@ -3585,7 +3669,7 @@ type RetireRequest struct {
 
 func (x *RetireRequest) Reset() {
 	*x = RetireRequest{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[44]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3597,7 +3681,7 @@ func (x *RetireRequest) String() string {
 func (*RetireRequest) ProtoMessage() {}
 
 func (x *RetireRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[44]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3610,7 +3694,7 @@ func (x *RetireRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RetireRequest.ProtoReflect.Descriptor instead.
 func (*RetireRequest) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{44}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{45}
 }
 
 func (x *RetireRequest) GetUnusedForSeconds() int64 {
@@ -3630,7 +3714,7 @@ type RetireResponse struct {
 
 func (x *RetireResponse) Reset() {
 	*x = RetireResponse{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[45]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[46]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3642,7 +3726,7 @@ func (x *RetireResponse) String() string {
 func (*RetireResponse) ProtoMessage() {}
 
 func (x *RetireResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[45]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[46]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3655,7 +3739,7 @@ func (x *RetireResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RetireResponse.ProtoReflect.Descriptor instead.
 func (*RetireResponse) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{45}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{46}
 }
 
 func (x *RetireResponse) GetRetired() int32 {
@@ -3680,7 +3764,7 @@ type InfoRequest struct {
 
 func (x *InfoRequest) Reset() {
 	*x = InfoRequest{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[46]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[47]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3692,7 +3776,7 @@ func (x *InfoRequest) String() string {
 func (*InfoRequest) ProtoMessage() {}
 
 func (x *InfoRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[46]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[47]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3705,7 +3789,7 @@ func (x *InfoRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InfoRequest.ProtoReflect.Descriptor instead.
 func (*InfoRequest) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{46}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{47}
 }
 
 type InfoResponse struct {
@@ -3728,7 +3812,7 @@ type InfoResponse struct {
 
 func (x *InfoResponse) Reset() {
 	*x = InfoResponse{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[47]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[48]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3740,7 +3824,7 @@ func (x *InfoResponse) String() string {
 func (*InfoResponse) ProtoMessage() {}
 
 func (x *InfoResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[47]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[48]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3753,7 +3837,7 @@ func (x *InfoResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InfoResponse.ProtoReflect.Descriptor instead.
 func (*InfoResponse) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{47}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{48}
 }
 
 func (x *InfoResponse) GetVersion() string {
@@ -3826,7 +3910,7 @@ type AuditRequest struct {
 
 func (x *AuditRequest) Reset() {
 	*x = AuditRequest{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[48]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[49]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3838,7 +3922,7 @@ func (x *AuditRequest) String() string {
 func (*AuditRequest) ProtoMessage() {}
 
 func (x *AuditRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[48]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[49]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3851,7 +3935,7 @@ func (x *AuditRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AuditRequest.ProtoReflect.Descriptor instead.
 func (*AuditRequest) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{48}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{49}
 }
 
 func (x *AuditRequest) GetSince() *timestamppb.Timestamp {
@@ -3884,7 +3968,7 @@ type AuditResponse struct {
 
 func (x *AuditResponse) Reset() {
 	*x = AuditResponse{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[49]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[50]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3896,7 +3980,7 @@ func (x *AuditResponse) String() string {
 func (*AuditResponse) ProtoMessage() {}
 
 func (x *AuditResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[49]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[50]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3909,7 +3993,7 @@ func (x *AuditResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AuditResponse.ProtoReflect.Descriptor instead.
 func (*AuditResponse) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{49}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{50}
 }
 
 func (x *AuditResponse) GetEntries() []*AuditEntry {
@@ -3940,14 +4024,16 @@ type AuditEntry struct {
 	PullRequest        *OpenedPullRequest `protobuf:"bytes,9,opt,name=pull_request,json=pullRequest,proto3" json:"pull_request,omitempty"`
 	PullRequestFailure *GitFailure        `protobuf:"bytes,10,opt,name=pull_request_failure,json=pullRequestFailure,proto3" json:"pull_request_failure,omitempty"`
 	// A change to connections or publishing settings; the other fields are then unset.
-	Change        *ConfigurationChange `protobuf:"bytes,11,opt,name=change,proto3" json:"change,omitempty"`
+	Change *ConfigurationChange `protobuf:"bytes,11,opt,name=change,proto3" json:"change,omitempty"`
+	// Where the work came from, as the publish said.
+	Provenance    *Provenance `protobuf:"bytes,12,opt,name=provenance,proto3" json:"provenance,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *AuditEntry) Reset() {
 	*x = AuditEntry{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[50]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[51]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3959,7 +4045,7 @@ func (x *AuditEntry) String() string {
 func (*AuditEntry) ProtoMessage() {}
 
 func (x *AuditEntry) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[50]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[51]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3972,7 +4058,7 @@ func (x *AuditEntry) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AuditEntry.ProtoReflect.Descriptor instead.
 func (*AuditEntry) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{50}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{51}
 }
 
 func (x *AuditEntry) GetTime() *timestamppb.Timestamp {
@@ -4052,6 +4138,13 @@ func (x *AuditEntry) GetChange() *ConfigurationChange {
 	return nil
 }
 
+func (x *AuditEntry) GetProvenance() *Provenance {
+	if x != nil {
+		return x.Provenance
+	}
+	return nil
+}
+
 // A connection added or removed, or the settings of a prefix set or removed.
 type ConfigurationChange struct {
 	state  protoimpl.MessageState     `protogen:"open.v1"`
@@ -4066,7 +4159,7 @@ type ConfigurationChange struct {
 
 func (x *ConfigurationChange) Reset() {
 	*x = ConfigurationChange{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[51]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[52]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4078,7 +4171,7 @@ func (x *ConfigurationChange) String() string {
 func (*ConfigurationChange) ProtoMessage() {}
 
 func (x *ConfigurationChange) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[51]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[52]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4091,7 +4184,7 @@ func (x *ConfigurationChange) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConfigurationChange.ProtoReflect.Descriptor instead.
 func (*ConfigurationChange) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{51}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{52}
 }
 
 func (x *ConfigurationChange) GetAction() ConfigurationChange_Action {
@@ -4140,7 +4233,7 @@ type Connection struct {
 
 func (x *Connection) Reset() {
 	*x = Connection{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[52]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[53]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4152,7 +4245,7 @@ func (x *Connection) String() string {
 func (*Connection) ProtoMessage() {}
 
 func (x *Connection) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[52]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[53]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4165,7 +4258,7 @@ func (x *Connection) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Connection.ProtoReflect.Descriptor instead.
 func (*Connection) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{52}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{53}
 }
 
 func (x *Connection) GetId() string {
@@ -4248,7 +4341,7 @@ type BeginGitHubAppRequest struct {
 
 func (x *BeginGitHubAppRequest) Reset() {
 	*x = BeginGitHubAppRequest{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[53]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[54]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4260,7 +4353,7 @@ func (x *BeginGitHubAppRequest) String() string {
 func (*BeginGitHubAppRequest) ProtoMessage() {}
 
 func (x *BeginGitHubAppRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[53]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[54]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4273,7 +4366,7 @@ func (x *BeginGitHubAppRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BeginGitHubAppRequest.ProtoReflect.Descriptor instead.
 func (*BeginGitHubAppRequest) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{53}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{54}
 }
 
 func (x *BeginGitHubAppRequest) GetHost() string {
@@ -4319,7 +4412,7 @@ type BeginGitHubAppResponse struct {
 
 func (x *BeginGitHubAppResponse) Reset() {
 	*x = BeginGitHubAppResponse{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[54]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[55]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4331,7 +4424,7 @@ func (x *BeginGitHubAppResponse) String() string {
 func (*BeginGitHubAppResponse) ProtoMessage() {}
 
 func (x *BeginGitHubAppResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[54]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[55]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4344,7 +4437,7 @@ func (x *BeginGitHubAppResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BeginGitHubAppResponse.ProtoReflect.Descriptor instead.
 func (*BeginGitHubAppResponse) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{54}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{55}
 }
 
 func (x *BeginGitHubAppResponse) GetFormAction() string {
@@ -4378,7 +4471,7 @@ type CompleteGitHubAppRequest struct {
 
 func (x *CompleteGitHubAppRequest) Reset() {
 	*x = CompleteGitHubAppRequest{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[55]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[56]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4390,7 +4483,7 @@ func (x *CompleteGitHubAppRequest) String() string {
 func (*CompleteGitHubAppRequest) ProtoMessage() {}
 
 func (x *CompleteGitHubAppRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[55]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[56]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4403,7 +4496,7 @@ func (x *CompleteGitHubAppRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CompleteGitHubAppRequest.ProtoReflect.Descriptor instead.
 func (*CompleteGitHubAppRequest) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{55}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{56}
 }
 
 func (x *CompleteGitHubAppRequest) GetCode() string {
@@ -4431,7 +4524,7 @@ type CompleteGitHubAppResponse struct {
 
 func (x *CompleteGitHubAppResponse) Reset() {
 	*x = CompleteGitHubAppResponse{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[56]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[57]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4443,7 +4536,7 @@ func (x *CompleteGitHubAppResponse) String() string {
 func (*CompleteGitHubAppResponse) ProtoMessage() {}
 
 func (x *CompleteGitHubAppResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[56]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[57]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4456,7 +4549,7 @@ func (x *CompleteGitHubAppResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CompleteGitHubAppResponse.ProtoReflect.Descriptor instead.
 func (*CompleteGitHubAppResponse) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{56}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{57}
 }
 
 func (x *CompleteGitHubAppResponse) GetConnection() *Connection {
@@ -4483,7 +4576,7 @@ type StartGitHubLoginRequest struct {
 
 func (x *StartGitHubLoginRequest) Reset() {
 	*x = StartGitHubLoginRequest{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[57]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[58]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4495,7 +4588,7 @@ func (x *StartGitHubLoginRequest) String() string {
 func (*StartGitHubLoginRequest) ProtoMessage() {}
 
 func (x *StartGitHubLoginRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[57]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[58]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4508,7 +4601,7 @@ func (x *StartGitHubLoginRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StartGitHubLoginRequest.ProtoReflect.Descriptor instead.
 func (*StartGitHubLoginRequest) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{57}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{58}
 }
 
 func (x *StartGitHubLoginRequest) GetHost() string {
@@ -4533,7 +4626,7 @@ type StartGitHubLoginResponse struct {
 
 func (x *StartGitHubLoginResponse) Reset() {
 	*x = StartGitHubLoginResponse{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[58]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[59]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4545,7 +4638,7 @@ func (x *StartGitHubLoginResponse) String() string {
 func (*StartGitHubLoginResponse) ProtoMessage() {}
 
 func (x *StartGitHubLoginResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[58]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[59]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4558,7 +4651,7 @@ func (x *StartGitHubLoginResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StartGitHubLoginResponse.ProtoReflect.Descriptor instead.
 func (*StartGitHubLoginResponse) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{58}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{59}
 }
 
 func (x *StartGitHubLoginResponse) GetUserCode() string {
@@ -4598,7 +4691,7 @@ type FinishGitHubLoginRequest struct {
 
 func (x *FinishGitHubLoginRequest) Reset() {
 	*x = FinishGitHubLoginRequest{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[59]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[60]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4610,7 +4703,7 @@ func (x *FinishGitHubLoginRequest) String() string {
 func (*FinishGitHubLoginRequest) ProtoMessage() {}
 
 func (x *FinishGitHubLoginRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[59]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[60]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4623,7 +4716,7 @@ func (x *FinishGitHubLoginRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FinishGitHubLoginRequest.ProtoReflect.Descriptor instead.
 func (*FinishGitHubLoginRequest) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{59}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{60}
 }
 
 func (x *FinishGitHubLoginRequest) GetLoginId() string {
@@ -4644,7 +4737,7 @@ type FinishGitHubLoginResponse struct {
 
 func (x *FinishGitHubLoginResponse) Reset() {
 	*x = FinishGitHubLoginResponse{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[60]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[61]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4656,7 +4749,7 @@ func (x *FinishGitHubLoginResponse) String() string {
 func (*FinishGitHubLoginResponse) ProtoMessage() {}
 
 func (x *FinishGitHubLoginResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[60]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[61]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4669,7 +4762,7 @@ func (x *FinishGitHubLoginResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FinishGitHubLoginResponse.ProtoReflect.Descriptor instead.
 func (*FinishGitHubLoginResponse) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{60}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{61}
 }
 
 func (x *FinishGitHubLoginResponse) GetConnection() *Connection {
@@ -4701,7 +4794,7 @@ type AddGitHubAppRequest struct {
 
 func (x *AddGitHubAppRequest) Reset() {
 	*x = AddGitHubAppRequest{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[61]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[62]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4713,7 +4806,7 @@ func (x *AddGitHubAppRequest) String() string {
 func (*AddGitHubAppRequest) ProtoMessage() {}
 
 func (x *AddGitHubAppRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[61]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[62]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4726,7 +4819,7 @@ func (x *AddGitHubAppRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddGitHubAppRequest.ProtoReflect.Descriptor instead.
 func (*AddGitHubAppRequest) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{61}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{62}
 }
 
 func (x *AddGitHubAppRequest) GetHost() string {
@@ -4766,7 +4859,7 @@ type AddGitHubAppResponse struct {
 
 func (x *AddGitHubAppResponse) Reset() {
 	*x = AddGitHubAppResponse{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[62]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[63]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4778,7 +4871,7 @@ func (x *AddGitHubAppResponse) String() string {
 func (*AddGitHubAppResponse) ProtoMessage() {}
 
 func (x *AddGitHubAppResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[62]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[63]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4791,7 +4884,7 @@ func (x *AddGitHubAppResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddGitHubAppResponse.ProtoReflect.Descriptor instead.
 func (*AddGitHubAppResponse) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{62}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{63}
 }
 
 func (x *AddGitHubAppResponse) GetConnection() *Connection {
@@ -4814,7 +4907,7 @@ type AddTokenRequest struct {
 
 func (x *AddTokenRequest) Reset() {
 	*x = AddTokenRequest{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[63]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[64]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4826,7 +4919,7 @@ func (x *AddTokenRequest) String() string {
 func (*AddTokenRequest) ProtoMessage() {}
 
 func (x *AddTokenRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[63]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[64]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4839,7 +4932,7 @@ func (x *AddTokenRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddTokenRequest.ProtoReflect.Descriptor instead.
 func (*AddTokenRequest) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{63}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{64}
 }
 
 func (x *AddTokenRequest) GetUrlPrefix() string {
@@ -4872,7 +4965,7 @@ type AddTokenResponse struct {
 
 func (x *AddTokenResponse) Reset() {
 	*x = AddTokenResponse{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[64]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[65]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4884,7 +4977,7 @@ func (x *AddTokenResponse) String() string {
 func (*AddTokenResponse) ProtoMessage() {}
 
 func (x *AddTokenResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[64]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[65]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4897,7 +4990,7 @@ func (x *AddTokenResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddTokenResponse.ProtoReflect.Descriptor instead.
 func (*AddTokenResponse) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{64}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{65}
 }
 
 func (x *AddTokenResponse) GetConnection() *Connection {
@@ -4915,7 +5008,7 @@ type ListConnectionsRequest struct {
 
 func (x *ListConnectionsRequest) Reset() {
 	*x = ListConnectionsRequest{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[65]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[66]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4927,7 +5020,7 @@ func (x *ListConnectionsRequest) String() string {
 func (*ListConnectionsRequest) ProtoMessage() {}
 
 func (x *ListConnectionsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[65]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[66]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4940,7 +5033,7 @@ func (x *ListConnectionsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListConnectionsRequest.ProtoReflect.Descriptor instead.
 func (*ListConnectionsRequest) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{65}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{66}
 }
 
 type ListConnectionsResponse struct {
@@ -4952,7 +5045,7 @@ type ListConnectionsResponse struct {
 
 func (x *ListConnectionsResponse) Reset() {
 	*x = ListConnectionsResponse{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[66]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[67]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4964,7 +5057,7 @@ func (x *ListConnectionsResponse) String() string {
 func (*ListConnectionsResponse) ProtoMessage() {}
 
 func (x *ListConnectionsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[66]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[67]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4977,7 +5070,7 @@ func (x *ListConnectionsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListConnectionsResponse.ProtoReflect.Descriptor instead.
 func (*ListConnectionsResponse) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{66}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{67}
 }
 
 func (x *ListConnectionsResponse) GetConnections() []*Connection {
@@ -4996,7 +5089,7 @@ type RemoveConnectionRequest struct {
 
 func (x *RemoveConnectionRequest) Reset() {
 	*x = RemoveConnectionRequest{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[67]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[68]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5008,7 +5101,7 @@ func (x *RemoveConnectionRequest) String() string {
 func (*RemoveConnectionRequest) ProtoMessage() {}
 
 func (x *RemoveConnectionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[67]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[68]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5021,7 +5114,7 @@ func (x *RemoveConnectionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveConnectionRequest.ProtoReflect.Descriptor instead.
 func (*RemoveConnectionRequest) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{67}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{68}
 }
 
 func (x *RemoveConnectionRequest) GetId() string {
@@ -5039,7 +5132,7 @@ type RemoveConnectionResponse struct {
 
 func (x *RemoveConnectionResponse) Reset() {
 	*x = RemoveConnectionResponse{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[68]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[69]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5051,7 +5144,7 @@ func (x *RemoveConnectionResponse) String() string {
 func (*RemoveConnectionResponse) ProtoMessage() {}
 
 func (x *RemoveConnectionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[68]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[69]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5064,7 +5157,7 @@ func (x *RemoveConnectionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveConnectionResponse.ProtoReflect.Descriptor instead.
 func (*RemoveConnectionResponse) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{68}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{69}
 }
 
 // The rules publishing follows for the repositories under a prefix.
@@ -5100,7 +5193,7 @@ type PublishSettings struct {
 
 func (x *PublishSettings) Reset() {
 	*x = PublishSettings{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[69]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[70]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5112,7 +5205,7 @@ func (x *PublishSettings) String() string {
 func (*PublishSettings) ProtoMessage() {}
 
 func (x *PublishSettings) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[69]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[70]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5125,7 +5218,7 @@ func (x *PublishSettings) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PublishSettings.ProtoReflect.Descriptor instead.
 func (*PublishSettings) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{69}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{70}
 }
 
 func (x *PublishSettings) GetUrlPrefix() string {
@@ -5209,7 +5302,7 @@ type Preset struct {
 
 func (x *Preset) Reset() {
 	*x = Preset{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[70]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[71]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5221,7 +5314,7 @@ func (x *Preset) String() string {
 func (*Preset) ProtoMessage() {}
 
 func (x *Preset) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[70]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[71]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5234,7 +5327,7 @@ func (x *Preset) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Preset.ProtoReflect.Descriptor instead.
 func (*Preset) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{70}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{71}
 }
 
 func (x *Preset) GetName() string {
@@ -5286,7 +5379,7 @@ type PullRequestSettings struct {
 
 func (x *PullRequestSettings) Reset() {
 	*x = PullRequestSettings{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[71]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[72]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5298,7 +5391,7 @@ func (x *PullRequestSettings) String() string {
 func (*PullRequestSettings) ProtoMessage() {}
 
 func (x *PullRequestSettings) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[71]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[72]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5311,7 +5404,7 @@ func (x *PullRequestSettings) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PullRequestSettings.ProtoReflect.Descriptor instead.
 func (*PullRequestSettings) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{71}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{72}
 }
 
 func (x *PullRequestSettings) GetOpen() PullRequestSettings_Open {
@@ -5350,7 +5443,7 @@ type GetSettingsRequest struct {
 
 func (x *GetSettingsRequest) Reset() {
 	*x = GetSettingsRequest{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[72]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[73]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5362,7 +5455,7 @@ func (x *GetSettingsRequest) String() string {
 func (*GetSettingsRequest) ProtoMessage() {}
 
 func (x *GetSettingsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[72]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[73]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5375,7 +5468,7 @@ func (x *GetSettingsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSettingsRequest.ProtoReflect.Descriptor instead.
 func (*GetSettingsRequest) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{72}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{73}
 }
 
 type GetSettingsResponse struct {
@@ -5387,7 +5480,7 @@ type GetSettingsResponse struct {
 
 func (x *GetSettingsResponse) Reset() {
 	*x = GetSettingsResponse{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[73]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[74]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5399,7 +5492,7 @@ func (x *GetSettingsResponse) String() string {
 func (*GetSettingsResponse) ProtoMessage() {}
 
 func (x *GetSettingsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[73]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[74]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5412,7 +5505,7 @@ func (x *GetSettingsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSettingsResponse.ProtoReflect.Descriptor instead.
 func (*GetSettingsResponse) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{73}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{74}
 }
 
 func (x *GetSettingsResponse) GetSettings() []*PublishSettings {
@@ -5431,7 +5524,7 @@ type SetSettingsRequest struct {
 
 func (x *SetSettingsRequest) Reset() {
 	*x = SetSettingsRequest{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[74]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[75]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5443,7 +5536,7 @@ func (x *SetSettingsRequest) String() string {
 func (*SetSettingsRequest) ProtoMessage() {}
 
 func (x *SetSettingsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[74]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[75]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5456,7 +5549,7 @@ func (x *SetSettingsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetSettingsRequest.ProtoReflect.Descriptor instead.
 func (*SetSettingsRequest) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{74}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{75}
 }
 
 func (x *SetSettingsRequest) GetSettings() *PublishSettings {
@@ -5475,7 +5568,7 @@ type SetSettingsResponse struct {
 
 func (x *SetSettingsResponse) Reset() {
 	*x = SetSettingsResponse{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[75]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[76]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5487,7 +5580,7 @@ func (x *SetSettingsResponse) String() string {
 func (*SetSettingsResponse) ProtoMessage() {}
 
 func (x *SetSettingsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[75]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[76]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5500,7 +5593,7 @@ func (x *SetSettingsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetSettingsResponse.ProtoReflect.Descriptor instead.
 func (*SetSettingsResponse) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{75}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{76}
 }
 
 func (x *SetSettingsResponse) GetSettings() *PublishSettings {
@@ -5519,7 +5612,7 @@ type RemoveSettingsRequest struct {
 
 func (x *RemoveSettingsRequest) Reset() {
 	*x = RemoveSettingsRequest{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[76]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[77]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5531,7 +5624,7 @@ func (x *RemoveSettingsRequest) String() string {
 func (*RemoveSettingsRequest) ProtoMessage() {}
 
 func (x *RemoveSettingsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[76]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[77]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5544,7 +5637,7 @@ func (x *RemoveSettingsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveSettingsRequest.ProtoReflect.Descriptor instead.
 func (*RemoveSettingsRequest) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{76}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{77}
 }
 
 func (x *RemoveSettingsRequest) GetUrlPrefix() string {
@@ -5562,7 +5655,7 @@ type RemoveSettingsResponse struct {
 
 func (x *RemoveSettingsResponse) Reset() {
 	*x = RemoveSettingsResponse{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[77]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[78]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5574,7 +5667,7 @@ func (x *RemoveSettingsResponse) String() string {
 func (*RemoveSettingsResponse) ProtoMessage() {}
 
 func (x *RemoveSettingsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[77]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[78]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5587,7 +5680,7 @@ func (x *RemoveSettingsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveSettingsResponse.ProtoReflect.Descriptor instead.
 func (*RemoveSettingsResponse) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{77}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{78}
 }
 
 type ListPresetsRequest struct {
@@ -5598,7 +5691,7 @@ type ListPresetsRequest struct {
 
 func (x *ListPresetsRequest) Reset() {
 	*x = ListPresetsRequest{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[78]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[79]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5610,7 +5703,7 @@ func (x *ListPresetsRequest) String() string {
 func (*ListPresetsRequest) ProtoMessage() {}
 
 func (x *ListPresetsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[78]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[79]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5623,7 +5716,7 @@ func (x *ListPresetsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListPresetsRequest.ProtoReflect.Descriptor instead.
 func (*ListPresetsRequest) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{78}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{79}
 }
 
 type ListPresetsResponse struct {
@@ -5635,7 +5728,7 @@ type ListPresetsResponse struct {
 
 func (x *ListPresetsResponse) Reset() {
 	*x = ListPresetsResponse{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[79]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[80]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5647,7 +5740,7 @@ func (x *ListPresetsResponse) String() string {
 func (*ListPresetsResponse) ProtoMessage() {}
 
 func (x *ListPresetsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[79]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[80]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5660,7 +5753,7 @@ func (x *ListPresetsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListPresetsResponse.ProtoReflect.Descriptor instead.
 func (*ListPresetsResponse) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{79}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{80}
 }
 
 func (x *ListPresetsResponse) GetPresets() []*Preset {
@@ -5679,7 +5772,7 @@ type SetPresetRequest struct {
 
 func (x *SetPresetRequest) Reset() {
 	*x = SetPresetRequest{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[80]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[81]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5691,7 +5784,7 @@ func (x *SetPresetRequest) String() string {
 func (*SetPresetRequest) ProtoMessage() {}
 
 func (x *SetPresetRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[80]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[81]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5704,7 +5797,7 @@ func (x *SetPresetRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetPresetRequest.ProtoReflect.Descriptor instead.
 func (*SetPresetRequest) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{80}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{81}
 }
 
 func (x *SetPresetRequest) GetPreset() *Preset {
@@ -5723,7 +5816,7 @@ type SetPresetResponse struct {
 
 func (x *SetPresetResponse) Reset() {
 	*x = SetPresetResponse{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[81]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[82]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5735,7 +5828,7 @@ func (x *SetPresetResponse) String() string {
 func (*SetPresetResponse) ProtoMessage() {}
 
 func (x *SetPresetResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[81]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[82]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5748,7 +5841,7 @@ func (x *SetPresetResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetPresetResponse.ProtoReflect.Descriptor instead.
 func (*SetPresetResponse) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{81}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{82}
 }
 
 func (x *SetPresetResponse) GetPreset() *Preset {
@@ -5767,7 +5860,7 @@ type RemovePresetRequest struct {
 
 func (x *RemovePresetRequest) Reset() {
 	*x = RemovePresetRequest{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[82]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[83]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5779,7 +5872,7 @@ func (x *RemovePresetRequest) String() string {
 func (*RemovePresetRequest) ProtoMessage() {}
 
 func (x *RemovePresetRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[82]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[83]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5792,7 +5885,7 @@ func (x *RemovePresetRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemovePresetRequest.ProtoReflect.Descriptor instead.
 func (*RemovePresetRequest) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{82}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{83}
 }
 
 func (x *RemovePresetRequest) GetName() string {
@@ -5810,7 +5903,7 @@ type RemovePresetResponse struct {
 
 func (x *RemovePresetResponse) Reset() {
 	*x = RemovePresetResponse{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[83]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[84]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5822,7 +5915,7 @@ func (x *RemovePresetResponse) String() string {
 func (*RemovePresetResponse) ProtoMessage() {}
 
 func (x *RemovePresetResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[83]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[84]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5835,7 +5928,7 @@ func (x *RemovePresetResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemovePresetResponse.ProtoReflect.Descriptor instead.
 func (*RemovePresetResponse) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{83}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{84}
 }
 
 var File_gitd_v1_gitd_proto protoreflect.FileDescriptor
@@ -5975,13 +6068,22 @@ const file_gitd_v1_gitd_proto_rawDesc = "" +
 	"\x06result\x18\x02 \x01(\v2\x14.gitd.v1.AdoptResultH\x00R\x06resultB\a\n" +
 	"\x05event\"4\n" +
 	"\vAdoptResult\x12%\n" +
-	"\x0ebytes_released\x18\x01 \x01(\x03R\rbytesReleased\"\xd6\x01\n" +
+	"\x0ebytes_released\x18\x01 \x01(\x03R\rbytesReleased\"\x8b\x02\n" +
 	"\x0ePublishRequest\x12\x12\n" +
 	"\x04path\x18\x01 \x01(\tR\x04path\x12\x16\n" +
 	"\x06branch\x18\x02 \x01(\tR\x06branch\x125\n" +
 	"\vcredentials\x18\x03 \x03(\v2\x13.gitd.v1.CredentialR\vcredentials\x12!\n" +
 	"\frequested_by\x18\x04 \x01(\tR\vrequestedBy\x12>\n" +
-	"\fpull_request\x18\x05 \x01(\v2\x1b.gitd.v1.PullRequestOptionsR\vpullRequest\"\x8b\x01\n" +
+	"\fpull_request\x18\x05 \x01(\v2\x1b.gitd.v1.PullRequestOptionsR\vpullRequest\x123\n" +
+	"\n" +
+	"provenance\x18\x06 \x01(\v2\x13.gitd.v1.ProvenanceR\n" +
+	"provenance\"m\n" +
+	"\n" +
+	"Provenance\x12\x14\n" +
+	"\x05agent\x18\x01 \x01(\tR\x05agent\x12\x14\n" +
+	"\x05model\x18\x02 \x01(\tR\x05model\x12\x18\n" +
+	"\asession\x18\x03 \x01(\tR\asession\x12\x19\n" +
+	"\btask_url\x18\x04 \x01(\tR\ataskUrl\"\x8b\x01\n" +
 	"\x12PullRequestOptions\x12\x12\n" +
 	"\x04open\x18\x01 \x01(\bR\x04open\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12\x12\n" +
@@ -6116,7 +6218,7 @@ const file_gitd_v1_gitd_proto_rawDesc = "" +
 	"\x03url\x18\x02 \x01(\tR\x03url\x12\x14\n" +
 	"\x05limit\x18\x03 \x01(\x05R\x05limit\">\n" +
 	"\rAuditResponse\x12-\n" +
-	"\aentries\x18\x01 \x03(\v2\x13.gitd.v1.AuditEntryR\aentries\"\x8e\x04\n" +
+	"\aentries\x18\x01 \x03(\v2\x13.gitd.v1.AuditEntryR\aentries\"\xc3\x04\n" +
 	"\n" +
 	"AuditEntry\x12.\n" +
 	"\x04time\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\x04time\x12\x1c\n" +
@@ -6134,7 +6236,10 @@ const file_gitd_v1_gitd_proto_rawDesc = "" +
 	"\fpull_request\x18\t \x01(\v2\x1a.gitd.v1.OpenedPullRequestR\vpullRequest\x12E\n" +
 	"\x14pull_request_failure\x18\n" +
 	" \x01(\v2\x13.gitd.v1.GitFailureR\x12pullRequestFailure\x124\n" +
-	"\x06change\x18\v \x01(\v2\x1c.gitd.v1.ConfigurationChangeR\x06change\"\xd2\x02\n" +
+	"\x06change\x18\v \x01(\v2\x1c.gitd.v1.ConfigurationChangeR\x06change\x123\n" +
+	"\n" +
+	"provenance\x18\f \x01(\v2\x13.gitd.v1.ProvenanceR\n" +
+	"provenance\"\xd2\x02\n" +
 	"\x13ConfigurationChange\x12;\n" +
 	"\x06action\x18\x01 \x01(\x0e2#.gitd.v1.ConfigurationChange.ActionR\x06action\x12\x18\n" +
 	"\asubject\x18\x02 \x01(\tR\asubject\x12\x1d\n" +
@@ -6340,7 +6445,7 @@ func file_gitd_v1_gitd_proto_rawDescGZIP() []byte {
 }
 
 var file_gitd_v1_gitd_proto_enumTypes = make([]protoimpl.EnumInfo, 9)
-var file_gitd_v1_gitd_proto_msgTypes = make([]protoimpl.MessageInfo, 85)
+var file_gitd_v1_gitd_proto_msgTypes = make([]protoimpl.MessageInfo, 86)
 var file_gitd_v1_gitd_proto_goTypes = []any{
 	(Strategy)(0),                     // 0: gitd.v1.Strategy
 	(GitFailure_Reason)(0),            // 1: gitd.v1.GitFailure.Reason
@@ -6376,67 +6481,68 @@ var file_gitd_v1_gitd_proto_goTypes = []any{
 	(*AdoptResponse)(nil),             // 31: gitd.v1.AdoptResponse
 	(*AdoptResult)(nil),               // 32: gitd.v1.AdoptResult
 	(*PublishRequest)(nil),            // 33: gitd.v1.PublishRequest
-	(*PullRequestOptions)(nil),        // 34: gitd.v1.PullRequestOptions
-	(*OpenedPullRequest)(nil),         // 35: gitd.v1.OpenedPullRequest
-	(*PublishedRepository)(nil),       // 36: gitd.v1.PublishedRepository
-	(*PublishResponse)(nil),           // 37: gitd.v1.PublishResponse
-	(*ChangesRequest)(nil),            // 38: gitd.v1.ChangesRequest
-	(*ChangedFile)(nil),               // 39: gitd.v1.ChangedFile
-	(*ChangesResponse)(nil),           // 40: gitd.v1.ChangesResponse
-	(*DiffRequest)(nil),               // 41: gitd.v1.DiffRequest
-	(*DiffResponse)(nil),              // 42: gitd.v1.DiffResponse
-	(*Side)(nil),                      // 43: gitd.v1.Side
-	(*CompareRequest)(nil),            // 44: gitd.v1.CompareRequest
-	(*CompareResponse)(nil),           // 45: gitd.v1.CompareResponse
-	(*ConflictsRequest)(nil),          // 46: gitd.v1.ConflictsRequest
-	(*Conflict)(nil),                  // 47: gitd.v1.Conflict
-	(*ConflictsResponse)(nil),         // 48: gitd.v1.ConflictsResponse
-	(*WatchRequest)(nil),              // 49: gitd.v1.WatchRequest
-	(*WatchResponse)(nil),             // 50: gitd.v1.WatchResponse
-	(*ProbeRequest)(nil),              // 51: gitd.v1.ProbeRequest
-	(*ProbeResponse)(nil),             // 52: gitd.v1.ProbeResponse
-	(*RetireRequest)(nil),             // 53: gitd.v1.RetireRequest
-	(*RetireResponse)(nil),            // 54: gitd.v1.RetireResponse
-	(*InfoRequest)(nil),               // 55: gitd.v1.InfoRequest
-	(*InfoResponse)(nil),              // 56: gitd.v1.InfoResponse
-	(*AuditRequest)(nil),              // 57: gitd.v1.AuditRequest
-	(*AuditResponse)(nil),             // 58: gitd.v1.AuditResponse
-	(*AuditEntry)(nil),                // 59: gitd.v1.AuditEntry
-	(*ConfigurationChange)(nil),       // 60: gitd.v1.ConfigurationChange
-	(*Connection)(nil),                // 61: gitd.v1.Connection
-	(*BeginGitHubAppRequest)(nil),     // 62: gitd.v1.BeginGitHubAppRequest
-	(*BeginGitHubAppResponse)(nil),    // 63: gitd.v1.BeginGitHubAppResponse
-	(*CompleteGitHubAppRequest)(nil),  // 64: gitd.v1.CompleteGitHubAppRequest
-	(*CompleteGitHubAppResponse)(nil), // 65: gitd.v1.CompleteGitHubAppResponse
-	(*StartGitHubLoginRequest)(nil),   // 66: gitd.v1.StartGitHubLoginRequest
-	(*StartGitHubLoginResponse)(nil),  // 67: gitd.v1.StartGitHubLoginResponse
-	(*FinishGitHubLoginRequest)(nil),  // 68: gitd.v1.FinishGitHubLoginRequest
-	(*FinishGitHubLoginResponse)(nil), // 69: gitd.v1.FinishGitHubLoginResponse
-	(*AddGitHubAppRequest)(nil),       // 70: gitd.v1.AddGitHubAppRequest
-	(*AddGitHubAppResponse)(nil),      // 71: gitd.v1.AddGitHubAppResponse
-	(*AddTokenRequest)(nil),           // 72: gitd.v1.AddTokenRequest
-	(*AddTokenResponse)(nil),          // 73: gitd.v1.AddTokenResponse
-	(*ListConnectionsRequest)(nil),    // 74: gitd.v1.ListConnectionsRequest
-	(*ListConnectionsResponse)(nil),   // 75: gitd.v1.ListConnectionsResponse
-	(*RemoveConnectionRequest)(nil),   // 76: gitd.v1.RemoveConnectionRequest
-	(*RemoveConnectionResponse)(nil),  // 77: gitd.v1.RemoveConnectionResponse
-	(*PublishSettings)(nil),           // 78: gitd.v1.PublishSettings
-	(*Preset)(nil),                    // 79: gitd.v1.Preset
-	(*PullRequestSettings)(nil),       // 80: gitd.v1.PullRequestSettings
-	(*GetSettingsRequest)(nil),        // 81: gitd.v1.GetSettingsRequest
-	(*GetSettingsResponse)(nil),       // 82: gitd.v1.GetSettingsResponse
-	(*SetSettingsRequest)(nil),        // 83: gitd.v1.SetSettingsRequest
-	(*SetSettingsResponse)(nil),       // 84: gitd.v1.SetSettingsResponse
-	(*RemoveSettingsRequest)(nil),     // 85: gitd.v1.RemoveSettingsRequest
-	(*RemoveSettingsResponse)(nil),    // 86: gitd.v1.RemoveSettingsResponse
-	(*ListPresetsRequest)(nil),        // 87: gitd.v1.ListPresetsRequest
-	(*ListPresetsResponse)(nil),       // 88: gitd.v1.ListPresetsResponse
-	(*SetPresetRequest)(nil),          // 89: gitd.v1.SetPresetRequest
-	(*SetPresetResponse)(nil),         // 90: gitd.v1.SetPresetResponse
-	(*RemovePresetRequest)(nil),       // 91: gitd.v1.RemovePresetRequest
-	(*RemovePresetResponse)(nil),      // 92: gitd.v1.RemovePresetResponse
-	nil,                               // 93: gitd.v1.ProbeResponse.CommitsEntry
-	(*timestamppb.Timestamp)(nil),     // 94: google.protobuf.Timestamp
+	(*Provenance)(nil),                // 34: gitd.v1.Provenance
+	(*PullRequestOptions)(nil),        // 35: gitd.v1.PullRequestOptions
+	(*OpenedPullRequest)(nil),         // 36: gitd.v1.OpenedPullRequest
+	(*PublishedRepository)(nil),       // 37: gitd.v1.PublishedRepository
+	(*PublishResponse)(nil),           // 38: gitd.v1.PublishResponse
+	(*ChangesRequest)(nil),            // 39: gitd.v1.ChangesRequest
+	(*ChangedFile)(nil),               // 40: gitd.v1.ChangedFile
+	(*ChangesResponse)(nil),           // 41: gitd.v1.ChangesResponse
+	(*DiffRequest)(nil),               // 42: gitd.v1.DiffRequest
+	(*DiffResponse)(nil),              // 43: gitd.v1.DiffResponse
+	(*Side)(nil),                      // 44: gitd.v1.Side
+	(*CompareRequest)(nil),            // 45: gitd.v1.CompareRequest
+	(*CompareResponse)(nil),           // 46: gitd.v1.CompareResponse
+	(*ConflictsRequest)(nil),          // 47: gitd.v1.ConflictsRequest
+	(*Conflict)(nil),                  // 48: gitd.v1.Conflict
+	(*ConflictsResponse)(nil),         // 49: gitd.v1.ConflictsResponse
+	(*WatchRequest)(nil),              // 50: gitd.v1.WatchRequest
+	(*WatchResponse)(nil),             // 51: gitd.v1.WatchResponse
+	(*ProbeRequest)(nil),              // 52: gitd.v1.ProbeRequest
+	(*ProbeResponse)(nil),             // 53: gitd.v1.ProbeResponse
+	(*RetireRequest)(nil),             // 54: gitd.v1.RetireRequest
+	(*RetireResponse)(nil),            // 55: gitd.v1.RetireResponse
+	(*InfoRequest)(nil),               // 56: gitd.v1.InfoRequest
+	(*InfoResponse)(nil),              // 57: gitd.v1.InfoResponse
+	(*AuditRequest)(nil),              // 58: gitd.v1.AuditRequest
+	(*AuditResponse)(nil),             // 59: gitd.v1.AuditResponse
+	(*AuditEntry)(nil),                // 60: gitd.v1.AuditEntry
+	(*ConfigurationChange)(nil),       // 61: gitd.v1.ConfigurationChange
+	(*Connection)(nil),                // 62: gitd.v1.Connection
+	(*BeginGitHubAppRequest)(nil),     // 63: gitd.v1.BeginGitHubAppRequest
+	(*BeginGitHubAppResponse)(nil),    // 64: gitd.v1.BeginGitHubAppResponse
+	(*CompleteGitHubAppRequest)(nil),  // 65: gitd.v1.CompleteGitHubAppRequest
+	(*CompleteGitHubAppResponse)(nil), // 66: gitd.v1.CompleteGitHubAppResponse
+	(*StartGitHubLoginRequest)(nil),   // 67: gitd.v1.StartGitHubLoginRequest
+	(*StartGitHubLoginResponse)(nil),  // 68: gitd.v1.StartGitHubLoginResponse
+	(*FinishGitHubLoginRequest)(nil),  // 69: gitd.v1.FinishGitHubLoginRequest
+	(*FinishGitHubLoginResponse)(nil), // 70: gitd.v1.FinishGitHubLoginResponse
+	(*AddGitHubAppRequest)(nil),       // 71: gitd.v1.AddGitHubAppRequest
+	(*AddGitHubAppResponse)(nil),      // 72: gitd.v1.AddGitHubAppResponse
+	(*AddTokenRequest)(nil),           // 73: gitd.v1.AddTokenRequest
+	(*AddTokenResponse)(nil),          // 74: gitd.v1.AddTokenResponse
+	(*ListConnectionsRequest)(nil),    // 75: gitd.v1.ListConnectionsRequest
+	(*ListConnectionsResponse)(nil),   // 76: gitd.v1.ListConnectionsResponse
+	(*RemoveConnectionRequest)(nil),   // 77: gitd.v1.RemoveConnectionRequest
+	(*RemoveConnectionResponse)(nil),  // 78: gitd.v1.RemoveConnectionResponse
+	(*PublishSettings)(nil),           // 79: gitd.v1.PublishSettings
+	(*Preset)(nil),                    // 80: gitd.v1.Preset
+	(*PullRequestSettings)(nil),       // 81: gitd.v1.PullRequestSettings
+	(*GetSettingsRequest)(nil),        // 82: gitd.v1.GetSettingsRequest
+	(*GetSettingsResponse)(nil),       // 83: gitd.v1.GetSettingsResponse
+	(*SetSettingsRequest)(nil),        // 84: gitd.v1.SetSettingsRequest
+	(*SetSettingsResponse)(nil),       // 85: gitd.v1.SetSettingsResponse
+	(*RemoveSettingsRequest)(nil),     // 86: gitd.v1.RemoveSettingsRequest
+	(*RemoveSettingsResponse)(nil),    // 87: gitd.v1.RemoveSettingsResponse
+	(*ListPresetsRequest)(nil),        // 88: gitd.v1.ListPresetsRequest
+	(*ListPresetsResponse)(nil),       // 89: gitd.v1.ListPresetsResponse
+	(*SetPresetRequest)(nil),          // 90: gitd.v1.SetPresetRequest
+	(*SetPresetResponse)(nil),         // 91: gitd.v1.SetPresetResponse
+	(*RemovePresetRequest)(nil),       // 92: gitd.v1.RemovePresetRequest
+	(*RemovePresetResponse)(nil),      // 93: gitd.v1.RemovePresetResponse
+	nil,                               // 94: gitd.v1.ProbeResponse.CommitsEntry
+	(*timestamppb.Timestamp)(nil),     // 95: google.protobuf.Timestamp
 }
 var file_gitd_v1_gitd_proto_depIdxs = []int32{
 	14,  // 0: gitd.v1.PendingSubmodule.failure:type_name -> gitd.v1.GitFailure
@@ -6466,121 +6572,123 @@ var file_gitd_v1_gitd_proto_depIdxs = []int32{
 	11,  // 24: gitd.v1.AdoptResponse.progress:type_name -> gitd.v1.Progress
 	32,  // 25: gitd.v1.AdoptResponse.result:type_name -> gitd.v1.AdoptResult
 	9,   // 26: gitd.v1.PublishRequest.credentials:type_name -> gitd.v1.Credential
-	34,  // 27: gitd.v1.PublishRequest.pull_request:type_name -> gitd.v1.PullRequestOptions
-	36,  // 28: gitd.v1.PublishResponse.repository:type_name -> gitd.v1.PublishedRepository
-	36,  // 29: gitd.v1.PublishResponse.submodules:type_name -> gitd.v1.PublishedRepository
-	35,  // 30: gitd.v1.PublishResponse.pull_request:type_name -> gitd.v1.OpenedPullRequest
-	14,  // 31: gitd.v1.PublishResponse.pull_request_failure:type_name -> gitd.v1.GitFailure
-	2,   // 32: gitd.v1.ChangedFile.kind:type_name -> gitd.v1.ChangedFile.Kind
-	39,  // 33: gitd.v1.ChangesResponse.files:type_name -> gitd.v1.ChangedFile
-	43,  // 34: gitd.v1.CompareRequest.first:type_name -> gitd.v1.Side
-	43,  // 35: gitd.v1.CompareRequest.second:type_name -> gitd.v1.Side
-	39,  // 36: gitd.v1.CompareResponse.files:type_name -> gitd.v1.ChangedFile
-	43,  // 37: gitd.v1.ConflictsRequest.sides:type_name -> gitd.v1.Side
-	43,  // 38: gitd.v1.Conflict.first:type_name -> gitd.v1.Side
-	43,  // 39: gitd.v1.Conflict.second:type_name -> gitd.v1.Side
-	47,  // 40: gitd.v1.ConflictsResponse.conflicts:type_name -> gitd.v1.Conflict
-	3,   // 41: gitd.v1.WatchResponse.kind:type_name -> gitd.v1.WatchResponse.Kind
-	94,  // 42: gitd.v1.WatchResponse.time:type_name -> google.protobuf.Timestamp
-	9,   // 43: gitd.v1.ProbeRequest.credentials:type_name -> gitd.v1.Credential
-	4,   // 44: gitd.v1.ProbeResponse.access:type_name -> gitd.v1.ProbeResponse.Access
-	14,  // 45: gitd.v1.ProbeResponse.failure:type_name -> gitd.v1.GitFailure
-	93,  // 46: gitd.v1.ProbeResponse.commits:type_name -> gitd.v1.ProbeResponse.CommitsEntry
-	0,   // 47: gitd.v1.InfoResponse.strategy:type_name -> gitd.v1.Strategy
-	94,  // 48: gitd.v1.AuditRequest.since:type_name -> google.protobuf.Timestamp
-	59,  // 49: gitd.v1.AuditResponse.entries:type_name -> gitd.v1.AuditEntry
-	94,  // 50: gitd.v1.AuditEntry.time:type_name -> google.protobuf.Timestamp
-	36,  // 51: gitd.v1.AuditEntry.repository:type_name -> gitd.v1.PublishedRepository
-	36,  // 52: gitd.v1.AuditEntry.submodules:type_name -> gitd.v1.PublishedRepository
-	14,  // 53: gitd.v1.AuditEntry.refusal:type_name -> gitd.v1.GitFailure
-	35,  // 54: gitd.v1.AuditEntry.pull_request:type_name -> gitd.v1.OpenedPullRequest
-	14,  // 55: gitd.v1.AuditEntry.pull_request_failure:type_name -> gitd.v1.GitFailure
-	60,  // 56: gitd.v1.AuditEntry.change:type_name -> gitd.v1.ConfigurationChange
-	5,   // 57: gitd.v1.ConfigurationChange.action:type_name -> gitd.v1.ConfigurationChange.Action
-	6,   // 58: gitd.v1.Connection.kind:type_name -> gitd.v1.Connection.Kind
-	94,  // 59: gitd.v1.Connection.expires:type_name -> google.protobuf.Timestamp
-	94,  // 60: gitd.v1.Connection.created:type_name -> google.protobuf.Timestamp
-	61,  // 61: gitd.v1.CompleteGitHubAppResponse.connection:type_name -> gitd.v1.Connection
-	61,  // 62: gitd.v1.FinishGitHubLoginResponse.connection:type_name -> gitd.v1.Connection
-	61,  // 63: gitd.v1.AddGitHubAppResponse.connection:type_name -> gitd.v1.Connection
-	61,  // 64: gitd.v1.AddTokenResponse.connection:type_name -> gitd.v1.Connection
-	61,  // 65: gitd.v1.ListConnectionsResponse.connections:type_name -> gitd.v1.Connection
-	80,  // 66: gitd.v1.PublishSettings.pull_requests:type_name -> gitd.v1.PullRequestSettings
-	7,   // 67: gitd.v1.Preset.origin:type_name -> gitd.v1.Preset.Origin
-	8,   // 68: gitd.v1.PullRequestSettings.open:type_name -> gitd.v1.PullRequestSettings.Open
-	78,  // 69: gitd.v1.GetSettingsResponse.settings:type_name -> gitd.v1.PublishSettings
-	78,  // 70: gitd.v1.SetSettingsRequest.settings:type_name -> gitd.v1.PublishSettings
-	78,  // 71: gitd.v1.SetSettingsResponse.settings:type_name -> gitd.v1.PublishSettings
-	79,  // 72: gitd.v1.ListPresetsResponse.presets:type_name -> gitd.v1.Preset
-	79,  // 73: gitd.v1.SetPresetRequest.preset:type_name -> gitd.v1.Preset
-	79,  // 74: gitd.v1.SetPresetResponse.preset:type_name -> gitd.v1.Preset
-	15,  // 75: gitd.v1.WorkspaceService.Prepare:input_type -> gitd.v1.PrepareRequest
-	19,  // 76: gitd.v1.WorkspaceService.Update:input_type -> gitd.v1.UpdateRequest
-	21,  // 77: gitd.v1.WorkspaceService.Checkout:input_type -> gitd.v1.CheckoutRequest
-	23,  // 78: gitd.v1.WorkspaceService.SyncSubmodules:input_type -> gitd.v1.SyncSubmodulesRequest
-	26,  // 79: gitd.v1.WorkspaceService.Describe:input_type -> gitd.v1.DescribeRequest
-	28,  // 80: gitd.v1.WorkspaceService.Remove:input_type -> gitd.v1.RemoveRequest
-	30,  // 81: gitd.v1.WorkspaceService.Adopt:input_type -> gitd.v1.AdoptRequest
-	33,  // 82: gitd.v1.WorkspaceService.Publish:input_type -> gitd.v1.PublishRequest
-	38,  // 83: gitd.v1.WorkspaceService.Changes:input_type -> gitd.v1.ChangesRequest
-	41,  // 84: gitd.v1.WorkspaceService.Diff:input_type -> gitd.v1.DiffRequest
-	44,  // 85: gitd.v1.WorkspaceService.Compare:input_type -> gitd.v1.CompareRequest
-	46,  // 86: gitd.v1.WorkspaceService.Conflicts:input_type -> gitd.v1.ConflictsRequest
-	49,  // 87: gitd.v1.WorkspaceService.Watch:input_type -> gitd.v1.WatchRequest
-	51,  // 88: gitd.v1.RepositoryService.Probe:input_type -> gitd.v1.ProbeRequest
-	55,  // 89: gitd.v1.ServerService.Info:input_type -> gitd.v1.InfoRequest
-	53,  // 90: gitd.v1.ServerService.Retire:input_type -> gitd.v1.RetireRequest
-	57,  // 91: gitd.v1.ServerService.Audit:input_type -> gitd.v1.AuditRequest
-	62,  // 92: gitd.v1.ConnectionService.BeginGitHubApp:input_type -> gitd.v1.BeginGitHubAppRequest
-	64,  // 93: gitd.v1.ConnectionService.CompleteGitHubApp:input_type -> gitd.v1.CompleteGitHubAppRequest
-	66,  // 94: gitd.v1.ConnectionService.StartGitHubLogin:input_type -> gitd.v1.StartGitHubLoginRequest
-	68,  // 95: gitd.v1.ConnectionService.FinishGitHubLogin:input_type -> gitd.v1.FinishGitHubLoginRequest
-	70,  // 96: gitd.v1.ConnectionService.AddGitHubApp:input_type -> gitd.v1.AddGitHubAppRequest
-	72,  // 97: gitd.v1.ConnectionService.AddToken:input_type -> gitd.v1.AddTokenRequest
-	74,  // 98: gitd.v1.ConnectionService.ListConnections:input_type -> gitd.v1.ListConnectionsRequest
-	76,  // 99: gitd.v1.ConnectionService.RemoveConnection:input_type -> gitd.v1.RemoveConnectionRequest
-	81,  // 100: gitd.v1.PublishingService.GetSettings:input_type -> gitd.v1.GetSettingsRequest
-	83,  // 101: gitd.v1.PublishingService.SetSettings:input_type -> gitd.v1.SetSettingsRequest
-	85,  // 102: gitd.v1.PublishingService.RemoveSettings:input_type -> gitd.v1.RemoveSettingsRequest
-	87,  // 103: gitd.v1.PublishingService.ListPresets:input_type -> gitd.v1.ListPresetsRequest
-	89,  // 104: gitd.v1.PublishingService.SetPreset:input_type -> gitd.v1.SetPresetRequest
-	91,  // 105: gitd.v1.PublishingService.RemovePreset:input_type -> gitd.v1.RemovePresetRequest
-	17,  // 106: gitd.v1.WorkspaceService.Prepare:output_type -> gitd.v1.PrepareResponse
-	20,  // 107: gitd.v1.WorkspaceService.Update:output_type -> gitd.v1.UpdateResponse
-	22,  // 108: gitd.v1.WorkspaceService.Checkout:output_type -> gitd.v1.CheckoutResponse
-	24,  // 109: gitd.v1.WorkspaceService.SyncSubmodules:output_type -> gitd.v1.SyncSubmodulesResponse
-	27,  // 110: gitd.v1.WorkspaceService.Describe:output_type -> gitd.v1.DescribeResponse
-	29,  // 111: gitd.v1.WorkspaceService.Remove:output_type -> gitd.v1.RemoveResponse
-	31,  // 112: gitd.v1.WorkspaceService.Adopt:output_type -> gitd.v1.AdoptResponse
-	37,  // 113: gitd.v1.WorkspaceService.Publish:output_type -> gitd.v1.PublishResponse
-	40,  // 114: gitd.v1.WorkspaceService.Changes:output_type -> gitd.v1.ChangesResponse
-	42,  // 115: gitd.v1.WorkspaceService.Diff:output_type -> gitd.v1.DiffResponse
-	45,  // 116: gitd.v1.WorkspaceService.Compare:output_type -> gitd.v1.CompareResponse
-	48,  // 117: gitd.v1.WorkspaceService.Conflicts:output_type -> gitd.v1.ConflictsResponse
-	50,  // 118: gitd.v1.WorkspaceService.Watch:output_type -> gitd.v1.WatchResponse
-	52,  // 119: gitd.v1.RepositoryService.Probe:output_type -> gitd.v1.ProbeResponse
-	56,  // 120: gitd.v1.ServerService.Info:output_type -> gitd.v1.InfoResponse
-	54,  // 121: gitd.v1.ServerService.Retire:output_type -> gitd.v1.RetireResponse
-	58,  // 122: gitd.v1.ServerService.Audit:output_type -> gitd.v1.AuditResponse
-	63,  // 123: gitd.v1.ConnectionService.BeginGitHubApp:output_type -> gitd.v1.BeginGitHubAppResponse
-	65,  // 124: gitd.v1.ConnectionService.CompleteGitHubApp:output_type -> gitd.v1.CompleteGitHubAppResponse
-	67,  // 125: gitd.v1.ConnectionService.StartGitHubLogin:output_type -> gitd.v1.StartGitHubLoginResponse
-	69,  // 126: gitd.v1.ConnectionService.FinishGitHubLogin:output_type -> gitd.v1.FinishGitHubLoginResponse
-	71,  // 127: gitd.v1.ConnectionService.AddGitHubApp:output_type -> gitd.v1.AddGitHubAppResponse
-	73,  // 128: gitd.v1.ConnectionService.AddToken:output_type -> gitd.v1.AddTokenResponse
-	75,  // 129: gitd.v1.ConnectionService.ListConnections:output_type -> gitd.v1.ListConnectionsResponse
-	77,  // 130: gitd.v1.ConnectionService.RemoveConnection:output_type -> gitd.v1.RemoveConnectionResponse
-	82,  // 131: gitd.v1.PublishingService.GetSettings:output_type -> gitd.v1.GetSettingsResponse
-	84,  // 132: gitd.v1.PublishingService.SetSettings:output_type -> gitd.v1.SetSettingsResponse
-	86,  // 133: gitd.v1.PublishingService.RemoveSettings:output_type -> gitd.v1.RemoveSettingsResponse
-	88,  // 134: gitd.v1.PublishingService.ListPresets:output_type -> gitd.v1.ListPresetsResponse
-	90,  // 135: gitd.v1.PublishingService.SetPreset:output_type -> gitd.v1.SetPresetResponse
-	92,  // 136: gitd.v1.PublishingService.RemovePreset:output_type -> gitd.v1.RemovePresetResponse
-	106, // [106:137] is the sub-list for method output_type
-	75,  // [75:106] is the sub-list for method input_type
-	75,  // [75:75] is the sub-list for extension type_name
-	75,  // [75:75] is the sub-list for extension extendee
-	0,   // [0:75] is the sub-list for field type_name
+	35,  // 27: gitd.v1.PublishRequest.pull_request:type_name -> gitd.v1.PullRequestOptions
+	34,  // 28: gitd.v1.PublishRequest.provenance:type_name -> gitd.v1.Provenance
+	37,  // 29: gitd.v1.PublishResponse.repository:type_name -> gitd.v1.PublishedRepository
+	37,  // 30: gitd.v1.PublishResponse.submodules:type_name -> gitd.v1.PublishedRepository
+	36,  // 31: gitd.v1.PublishResponse.pull_request:type_name -> gitd.v1.OpenedPullRequest
+	14,  // 32: gitd.v1.PublishResponse.pull_request_failure:type_name -> gitd.v1.GitFailure
+	2,   // 33: gitd.v1.ChangedFile.kind:type_name -> gitd.v1.ChangedFile.Kind
+	40,  // 34: gitd.v1.ChangesResponse.files:type_name -> gitd.v1.ChangedFile
+	44,  // 35: gitd.v1.CompareRequest.first:type_name -> gitd.v1.Side
+	44,  // 36: gitd.v1.CompareRequest.second:type_name -> gitd.v1.Side
+	40,  // 37: gitd.v1.CompareResponse.files:type_name -> gitd.v1.ChangedFile
+	44,  // 38: gitd.v1.ConflictsRequest.sides:type_name -> gitd.v1.Side
+	44,  // 39: gitd.v1.Conflict.first:type_name -> gitd.v1.Side
+	44,  // 40: gitd.v1.Conflict.second:type_name -> gitd.v1.Side
+	48,  // 41: gitd.v1.ConflictsResponse.conflicts:type_name -> gitd.v1.Conflict
+	3,   // 42: gitd.v1.WatchResponse.kind:type_name -> gitd.v1.WatchResponse.Kind
+	95,  // 43: gitd.v1.WatchResponse.time:type_name -> google.protobuf.Timestamp
+	9,   // 44: gitd.v1.ProbeRequest.credentials:type_name -> gitd.v1.Credential
+	4,   // 45: gitd.v1.ProbeResponse.access:type_name -> gitd.v1.ProbeResponse.Access
+	14,  // 46: gitd.v1.ProbeResponse.failure:type_name -> gitd.v1.GitFailure
+	94,  // 47: gitd.v1.ProbeResponse.commits:type_name -> gitd.v1.ProbeResponse.CommitsEntry
+	0,   // 48: gitd.v1.InfoResponse.strategy:type_name -> gitd.v1.Strategy
+	95,  // 49: gitd.v1.AuditRequest.since:type_name -> google.protobuf.Timestamp
+	60,  // 50: gitd.v1.AuditResponse.entries:type_name -> gitd.v1.AuditEntry
+	95,  // 51: gitd.v1.AuditEntry.time:type_name -> google.protobuf.Timestamp
+	37,  // 52: gitd.v1.AuditEntry.repository:type_name -> gitd.v1.PublishedRepository
+	37,  // 53: gitd.v1.AuditEntry.submodules:type_name -> gitd.v1.PublishedRepository
+	14,  // 54: gitd.v1.AuditEntry.refusal:type_name -> gitd.v1.GitFailure
+	36,  // 55: gitd.v1.AuditEntry.pull_request:type_name -> gitd.v1.OpenedPullRequest
+	14,  // 56: gitd.v1.AuditEntry.pull_request_failure:type_name -> gitd.v1.GitFailure
+	61,  // 57: gitd.v1.AuditEntry.change:type_name -> gitd.v1.ConfigurationChange
+	34,  // 58: gitd.v1.AuditEntry.provenance:type_name -> gitd.v1.Provenance
+	5,   // 59: gitd.v1.ConfigurationChange.action:type_name -> gitd.v1.ConfigurationChange.Action
+	6,   // 60: gitd.v1.Connection.kind:type_name -> gitd.v1.Connection.Kind
+	95,  // 61: gitd.v1.Connection.expires:type_name -> google.protobuf.Timestamp
+	95,  // 62: gitd.v1.Connection.created:type_name -> google.protobuf.Timestamp
+	62,  // 63: gitd.v1.CompleteGitHubAppResponse.connection:type_name -> gitd.v1.Connection
+	62,  // 64: gitd.v1.FinishGitHubLoginResponse.connection:type_name -> gitd.v1.Connection
+	62,  // 65: gitd.v1.AddGitHubAppResponse.connection:type_name -> gitd.v1.Connection
+	62,  // 66: gitd.v1.AddTokenResponse.connection:type_name -> gitd.v1.Connection
+	62,  // 67: gitd.v1.ListConnectionsResponse.connections:type_name -> gitd.v1.Connection
+	81,  // 68: gitd.v1.PublishSettings.pull_requests:type_name -> gitd.v1.PullRequestSettings
+	7,   // 69: gitd.v1.Preset.origin:type_name -> gitd.v1.Preset.Origin
+	8,   // 70: gitd.v1.PullRequestSettings.open:type_name -> gitd.v1.PullRequestSettings.Open
+	79,  // 71: gitd.v1.GetSettingsResponse.settings:type_name -> gitd.v1.PublishSettings
+	79,  // 72: gitd.v1.SetSettingsRequest.settings:type_name -> gitd.v1.PublishSettings
+	79,  // 73: gitd.v1.SetSettingsResponse.settings:type_name -> gitd.v1.PublishSettings
+	80,  // 74: gitd.v1.ListPresetsResponse.presets:type_name -> gitd.v1.Preset
+	80,  // 75: gitd.v1.SetPresetRequest.preset:type_name -> gitd.v1.Preset
+	80,  // 76: gitd.v1.SetPresetResponse.preset:type_name -> gitd.v1.Preset
+	15,  // 77: gitd.v1.WorkspaceService.Prepare:input_type -> gitd.v1.PrepareRequest
+	19,  // 78: gitd.v1.WorkspaceService.Update:input_type -> gitd.v1.UpdateRequest
+	21,  // 79: gitd.v1.WorkspaceService.Checkout:input_type -> gitd.v1.CheckoutRequest
+	23,  // 80: gitd.v1.WorkspaceService.SyncSubmodules:input_type -> gitd.v1.SyncSubmodulesRequest
+	26,  // 81: gitd.v1.WorkspaceService.Describe:input_type -> gitd.v1.DescribeRequest
+	28,  // 82: gitd.v1.WorkspaceService.Remove:input_type -> gitd.v1.RemoveRequest
+	30,  // 83: gitd.v1.WorkspaceService.Adopt:input_type -> gitd.v1.AdoptRequest
+	33,  // 84: gitd.v1.WorkspaceService.Publish:input_type -> gitd.v1.PublishRequest
+	39,  // 85: gitd.v1.WorkspaceService.Changes:input_type -> gitd.v1.ChangesRequest
+	42,  // 86: gitd.v1.WorkspaceService.Diff:input_type -> gitd.v1.DiffRequest
+	45,  // 87: gitd.v1.WorkspaceService.Compare:input_type -> gitd.v1.CompareRequest
+	47,  // 88: gitd.v1.WorkspaceService.Conflicts:input_type -> gitd.v1.ConflictsRequest
+	50,  // 89: gitd.v1.WorkspaceService.Watch:input_type -> gitd.v1.WatchRequest
+	52,  // 90: gitd.v1.RepositoryService.Probe:input_type -> gitd.v1.ProbeRequest
+	56,  // 91: gitd.v1.ServerService.Info:input_type -> gitd.v1.InfoRequest
+	54,  // 92: gitd.v1.ServerService.Retire:input_type -> gitd.v1.RetireRequest
+	58,  // 93: gitd.v1.ServerService.Audit:input_type -> gitd.v1.AuditRequest
+	63,  // 94: gitd.v1.ConnectionService.BeginGitHubApp:input_type -> gitd.v1.BeginGitHubAppRequest
+	65,  // 95: gitd.v1.ConnectionService.CompleteGitHubApp:input_type -> gitd.v1.CompleteGitHubAppRequest
+	67,  // 96: gitd.v1.ConnectionService.StartGitHubLogin:input_type -> gitd.v1.StartGitHubLoginRequest
+	69,  // 97: gitd.v1.ConnectionService.FinishGitHubLogin:input_type -> gitd.v1.FinishGitHubLoginRequest
+	71,  // 98: gitd.v1.ConnectionService.AddGitHubApp:input_type -> gitd.v1.AddGitHubAppRequest
+	73,  // 99: gitd.v1.ConnectionService.AddToken:input_type -> gitd.v1.AddTokenRequest
+	75,  // 100: gitd.v1.ConnectionService.ListConnections:input_type -> gitd.v1.ListConnectionsRequest
+	77,  // 101: gitd.v1.ConnectionService.RemoveConnection:input_type -> gitd.v1.RemoveConnectionRequest
+	82,  // 102: gitd.v1.PublishingService.GetSettings:input_type -> gitd.v1.GetSettingsRequest
+	84,  // 103: gitd.v1.PublishingService.SetSettings:input_type -> gitd.v1.SetSettingsRequest
+	86,  // 104: gitd.v1.PublishingService.RemoveSettings:input_type -> gitd.v1.RemoveSettingsRequest
+	88,  // 105: gitd.v1.PublishingService.ListPresets:input_type -> gitd.v1.ListPresetsRequest
+	90,  // 106: gitd.v1.PublishingService.SetPreset:input_type -> gitd.v1.SetPresetRequest
+	92,  // 107: gitd.v1.PublishingService.RemovePreset:input_type -> gitd.v1.RemovePresetRequest
+	17,  // 108: gitd.v1.WorkspaceService.Prepare:output_type -> gitd.v1.PrepareResponse
+	20,  // 109: gitd.v1.WorkspaceService.Update:output_type -> gitd.v1.UpdateResponse
+	22,  // 110: gitd.v1.WorkspaceService.Checkout:output_type -> gitd.v1.CheckoutResponse
+	24,  // 111: gitd.v1.WorkspaceService.SyncSubmodules:output_type -> gitd.v1.SyncSubmodulesResponse
+	27,  // 112: gitd.v1.WorkspaceService.Describe:output_type -> gitd.v1.DescribeResponse
+	29,  // 113: gitd.v1.WorkspaceService.Remove:output_type -> gitd.v1.RemoveResponse
+	31,  // 114: gitd.v1.WorkspaceService.Adopt:output_type -> gitd.v1.AdoptResponse
+	38,  // 115: gitd.v1.WorkspaceService.Publish:output_type -> gitd.v1.PublishResponse
+	41,  // 116: gitd.v1.WorkspaceService.Changes:output_type -> gitd.v1.ChangesResponse
+	43,  // 117: gitd.v1.WorkspaceService.Diff:output_type -> gitd.v1.DiffResponse
+	46,  // 118: gitd.v1.WorkspaceService.Compare:output_type -> gitd.v1.CompareResponse
+	49,  // 119: gitd.v1.WorkspaceService.Conflicts:output_type -> gitd.v1.ConflictsResponse
+	51,  // 120: gitd.v1.WorkspaceService.Watch:output_type -> gitd.v1.WatchResponse
+	53,  // 121: gitd.v1.RepositoryService.Probe:output_type -> gitd.v1.ProbeResponse
+	57,  // 122: gitd.v1.ServerService.Info:output_type -> gitd.v1.InfoResponse
+	55,  // 123: gitd.v1.ServerService.Retire:output_type -> gitd.v1.RetireResponse
+	59,  // 124: gitd.v1.ServerService.Audit:output_type -> gitd.v1.AuditResponse
+	64,  // 125: gitd.v1.ConnectionService.BeginGitHubApp:output_type -> gitd.v1.BeginGitHubAppResponse
+	66,  // 126: gitd.v1.ConnectionService.CompleteGitHubApp:output_type -> gitd.v1.CompleteGitHubAppResponse
+	68,  // 127: gitd.v1.ConnectionService.StartGitHubLogin:output_type -> gitd.v1.StartGitHubLoginResponse
+	70,  // 128: gitd.v1.ConnectionService.FinishGitHubLogin:output_type -> gitd.v1.FinishGitHubLoginResponse
+	72,  // 129: gitd.v1.ConnectionService.AddGitHubApp:output_type -> gitd.v1.AddGitHubAppResponse
+	74,  // 130: gitd.v1.ConnectionService.AddToken:output_type -> gitd.v1.AddTokenResponse
+	76,  // 131: gitd.v1.ConnectionService.ListConnections:output_type -> gitd.v1.ListConnectionsResponse
+	78,  // 132: gitd.v1.ConnectionService.RemoveConnection:output_type -> gitd.v1.RemoveConnectionResponse
+	83,  // 133: gitd.v1.PublishingService.GetSettings:output_type -> gitd.v1.GetSettingsResponse
+	85,  // 134: gitd.v1.PublishingService.SetSettings:output_type -> gitd.v1.SetSettingsResponse
+	87,  // 135: gitd.v1.PublishingService.RemoveSettings:output_type -> gitd.v1.RemoveSettingsResponse
+	89,  // 136: gitd.v1.PublishingService.ListPresets:output_type -> gitd.v1.ListPresetsResponse
+	91,  // 137: gitd.v1.PublishingService.SetPreset:output_type -> gitd.v1.SetPresetResponse
+	93,  // 138: gitd.v1.PublishingService.RemovePreset:output_type -> gitd.v1.RemovePresetResponse
+	108, // [108:139] is the sub-list for method output_type
+	77,  // [77:108] is the sub-list for method input_type
+	77,  // [77:77] is the sub-list for extension type_name
+	77,  // [77:77] is the sub-list for extension extendee
+	0,   // [0:77] is the sub-list for field type_name
 }
 
 func init() { file_gitd_v1_gitd_proto_init() }
@@ -6616,20 +6724,20 @@ func file_gitd_v1_gitd_proto_init() {
 		(*AdoptResponse_Progress)(nil),
 		(*AdoptResponse_Result)(nil),
 	}
-	file_gitd_v1_gitd_proto_msgTypes[25].OneofWrappers = []any{}
-	file_gitd_v1_gitd_proto_msgTypes[34].OneofWrappers = []any{
+	file_gitd_v1_gitd_proto_msgTypes[26].OneofWrappers = []any{}
+	file_gitd_v1_gitd_proto_msgTypes[35].OneofWrappers = []any{
 		(*Side_Workspace)(nil),
 		(*Side_Branch)(nil),
 	}
-	file_gitd_v1_gitd_proto_msgTypes[69].OneofWrappers = []any{}
 	file_gitd_v1_gitd_proto_msgTypes[70].OneofWrappers = []any{}
+	file_gitd_v1_gitd_proto_msgTypes[71].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_gitd_v1_gitd_proto_rawDesc), len(file_gitd_v1_gitd_proto_rawDesc)),
 			NumEnums:      9,
-			NumMessages:   85,
+			NumMessages:   86,
 			NumExtensions: 0,
 			NumServices:   5,
 		},

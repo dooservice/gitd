@@ -364,6 +364,22 @@ message PublishRequest {
   string requested_by = 4;
   // This publish's pull request, beyond what the settings say.
   PullRequestOptions pull_request = 5;
+  // Where the work came from, written in the pull request and the audit log as told.
+  Provenance provenance = 6;
+}
+
+// Where a publish's work came from, as the platform says: gitd records it and never checks
+// it, nor writes it into a commit. Each field is one line of at most 200 characters, never
+// a secret; task_url is an https address.
+message Provenance {
+  // The agent, e.g. `claude-code` or `openhands`.
+  string agent = 1;
+  // The model it ran on.
+  string model = 2;
+  // The platform's name for the session or run.
+  string session = 3;
+  // Where the task is: an issue, a ticket.
+  string task_url = 4;
 }
 
 // A publish's own say on its pull request. Unset fields take the settings'.
@@ -612,6 +628,8 @@ message AuditEntry {
   GitFailure pull_request_failure = 10;
   // A change to connections or publishing settings; the other fields are then unset.
   ConfigurationChange change = 11;
+  // Where the work came from, as the publish said.
+  Provenance provenance = 12;
 }
 
 // A connection added or removed, or the settings of a prefix set or removed.
