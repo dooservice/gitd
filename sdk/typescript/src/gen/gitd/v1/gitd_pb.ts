@@ -4,13 +4,15 @@
 
 import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import type { Timestamp } from "@bufbuild/protobuf/wkt";
+import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file gitd/v1/gitd.proto.
  */
 export const file_gitd_v1_gitd: GenFile = /*@__PURE__*/
-  fileDesc("ChJnaXRkL3YxL2dpdGQucHJvdG8SB2dpdGQudjEibQoKQ3JlZGVudGlhbBISCgp1cmxfcHJlZml4GAEgASgJEhUKC2h0dHBzX3Rva2VuGAIgASgJSAASFgoMc3NoX2tleV9wYXRoGAMgASgJSAASEgoKaHR0cHNfdXNlchgEIAEoCUIICgZzZWNyZXQiOAoIUmV2aXNpb24SEAoGYnJhbmNoGAEgASgJSAASEAoGY29tbWl0GAIgASgJSABCCAoGdGFyZ2V0Ij4KCFByb2dyZXNzEg0KBXBoYXNlGAEgASgJEg8KB3BlcmNlbnQYAiABKAUSEgoKcmVwb3NpdG9yeRgDIAEoCSJQCg5TdWJtb2R1bGVTdGF0ZRIMCgRwYXRoGAEgASgJEgsKA3VybBgCIAEoCRIOCgZjb21taXQYAyABKAkSEwoLY2hlY2tlZF9vdXQYBCABKAgiUwoQUGVuZGluZ1N1Ym1vZHVsZRILCgN1cmwYASABKAkSDAoEcGF0aBgCIAEoCRIkCgdmYWlsdXJlGAMgASgLMhMuZ2l0ZC52MS5HaXRGYWlsdXJlIuMCCgpHaXRGYWlsdXJlEioKBnJlYXNvbhgBIAEoDjIaLmdpdGQudjEuR2l0RmFpbHVyZS5SZWFzb24SEAoIZ2l0X3NhaWQYAiABKAkSEgoKcmVwb3NpdG9yeRgDIAEoCSKCAgoGUmVhc29uEhYKElJFQVNPTl9VTlNQRUNJRklFRBAAEhgKFFJFQVNPTl9BVVRIX1JFUVVJUkVEEAESFwoTUkVBU09OX0FVVEhfUkVGVVNFRBACEhQKEFJFQVNPTl9OT1RfRk9VTkQQAxIWChJSRUFTT05fQkFEX0FERFJFU1MQBBIXChNSRUFTT05fUEFUSF9SRUZVU0VEEAUSDwoLUkVBU09OX0JVU1kQBhISCg5SRUFTT05fVElNRU9VVBAHEhIKDlJFQVNPTl9DT1JSVVBUEAgSFQoRUkVBU09OX0dJVF9GQUlMRUQQCRIWChJSRUFTT05fTk9USElOR19ORVcQCiLOAQoOUHJlcGFyZVJlcXVlc3QSCwoDdXJsGAEgASgJEgwKBHBhdGgYAiABKAkSIwoIcmV2aXNpb24YAyABKAsyES5naXRkLnYxLlJldmlzaW9uEhcKD3dpdGhfc3VibW9kdWxlcxgEIAEoCBIoCgtjcmVkZW50aWFscxgFIAMoCzITLmdpdGQudjEuQ3JlZGVudGlhbBIUCgxmdWxsX2hpc3RvcnkYBiABKAgSIwoIc3RyYXRlZ3kYByABKA4yES5naXRkLnYxLlN0cmF0ZWd5IjQKBkxheWVycxINCgVsb3dlchgBIAEoCRINCgV1cHBlchgCIAEoCRIMCgR3b3JrGAMgASgJIm0KD1ByZXBhcmVSZXNwb25zZRIlCghwcm9ncmVzcxgBIAEoCzIRLmdpdGQudjEuUHJvZ3Jlc3NIABIqCgZyZXN1bHQYAiABKAsyGC5naXRkLnYxLldvcmtzcGFjZVJlc3VsdEgAQgcKBWV2ZW50Iq4BCg9Xb3Jrc3BhY2VSZXN1bHQSDgoGY29tbWl0GAEgASgJEg4KBmJyYW5jaBgCIAEoCRI1ChJwZW5kaW5nX3N1Ym1vZHVsZXMYAyADKAsyGS5naXRkLnYxLlBlbmRpbmdTdWJtb2R1bGUSIwoIc3RyYXRlZ3kYBCABKA4yES5naXRkLnYxLlN0cmF0ZWd5Eh8KBmxheWVycxgFIAEoCzIPLmdpdGQudjEuTGF5ZXJzInAKDVVwZGF0ZVJlcXVlc3QSDAoEcGF0aBgBIAEoCRIOCgZicmFuY2gYAiABKAkSFwoPd2l0aF9zdWJtb2R1bGVzGAMgASgIEigKC2NyZWRlbnRpYWxzGAQgAygLMhMuZ2l0ZC52MS5DcmVkZW50aWFsImwKDlVwZGF0ZVJlc3BvbnNlEiUKCHByb2dyZXNzGAEgASgLMhEuZ2l0ZC52MS5Qcm9ncmVzc0gAEioKBnJlc3VsdBgCIAEoCzIYLmdpdGQudjEuV29ya3NwYWNlUmVzdWx0SABCBwoFZXZlbnQicgoPQ2hlY2tvdXRSZXF1ZXN0EgwKBHBhdGgYASABKAkSDgoGY29tbWl0GAIgASgJEhcKD3dpdGhfc3VibW9kdWxlcxgDIAEoCBIoCgtjcmVkZW50aWFscxgEIAMoCzITLmdpdGQudjEuQ3JlZGVudGlhbCJuChBDaGVja291dFJlc3BvbnNlEiUKCHByb2dyZXNzGAEgASgLMhEuZ2l0ZC52MS5Qcm9ncmVzc0gAEioKBnJlc3VsdBgCIAEoCzIYLmdpdGQudjEuV29ya3NwYWNlUmVzdWx0SABCBwoFZXZlbnQiYQoVU3luY1N1Ym1vZHVsZXNSZXF1ZXN0EgwKBHBhdGgYASABKAkSEAoIb25seV91cmwYAiABKAkSKAoLY3JlZGVudGlhbHMYAyADKAsyEy5naXRkLnYxLkNyZWRlbnRpYWwieQoWU3luY1N1Ym1vZHVsZXNSZXNwb25zZRIlCghwcm9ncmVzcxgBIAEoCzIRLmdpdGQudjEuUHJvZ3Jlc3NIABIvCgZyZXN1bHQYAiABKAsyHS5naXRkLnYxLlN5bmNTdWJtb2R1bGVzUmVzdWx0SABCBwoFZXZlbnQiegoUU3luY1N1Ym1vZHVsZXNSZXN1bHQSKwoKc3VibW9kdWxlcxgBIAMoCzIXLmdpdGQudjEuU3VibW9kdWxlU3RhdGUSNQoScGVuZGluZ19zdWJtb2R1bGVzGAIgAygLMhkuZ2l0ZC52MS5QZW5kaW5nU3VibW9kdWxlIh8KD0Rlc2NyaWJlUmVxdWVzdBIMCgRwYXRoGAEgASgJIsQBChBEZXNjcmliZVJlc3BvbnNlEgsKA3VybBgBIAEoCRIOCgZjb21taXQYAiABKAkSDgoGYnJhbmNoGAMgASgJEhAKCG1vZGlmaWVkGAQgASgIEisKCnN1Ym1vZHVsZXMYBSADKAsyFy5naXRkLnYxLlN1Ym1vZHVsZVN0YXRlEiMKCHN0cmF0ZWd5GAYgASgOMhEuZ2l0ZC52MS5TdHJhdGVneRIfCgZsYXllcnMYByABKAsyDy5naXRkLnYxLkxheWVycyIdCg1SZW1vdmVSZXF1ZXN0EgwKBHBhdGgYASABKAkiEAoOUmVtb3ZlUmVzcG9uc2UiHAoMQWRvcHRSZXF1ZXN0EgwKBHBhdGgYASABKAkiZwoNQWRvcHRSZXNwb25zZRIlCghwcm9ncmVzcxgBIAEoCzIRLmdpdGQudjEuUHJvZ3Jlc3NIABImCgZyZXN1bHQYAiABKAsyFC5naXRkLnYxLkFkb3B0UmVzdWx0SABCBwoFZXZlbnQiJQoLQWRvcHRSZXN1bHQSFgoOYnl0ZXNfcmVsZWFzZWQYASABKAMiWAoOUHVibGlzaFJlcXVlc3QSDAoEcGF0aBgBIAEoCRIOCgZicmFuY2gYAiABKAkSKAoLY3JlZGVudGlhbHMYAyADKAsyEy5naXRkLnYxLkNyZWRlbnRpYWwiUgoTUHVibGlzaGVkUmVwb3NpdG9yeRILCgN1cmwYASABKAkSDAoEcGF0aBgCIAEoCRIOCgZjb21taXQYAyABKAkSEAoIc3ViamVjdHMYBCADKAkihQEKD1B1Ymxpc2hSZXNwb25zZRIOCgZicmFuY2gYASABKAkSMAoKcmVwb3NpdG9yeRgCIAEoCzIcLmdpdGQudjEuUHVibGlzaGVkUmVwb3NpdG9yeRIwCgpzdWJtb2R1bGVzGAMgAygLMhwuZ2l0ZC52MS5QdWJsaXNoZWRSZXBvc2l0b3J5IkUKDFByb2JlUmVxdWVzdBILCgN1cmwYASABKAkSKAoLY3JlZGVudGlhbHMYAiADKAsyEy5naXRkLnYxLkNyZWRlbnRpYWwi0gIKDVByb2JlUmVzcG9uc2USLQoGYWNjZXNzGAEgASgOMh0uZ2l0ZC52MS5Qcm9iZVJlc3BvbnNlLkFjY2VzcxIQCghicmFuY2hlcxgCIAMoCRIWCg5kZWZhdWx0X2JyYW5jaBgDIAEoCRIkCgdmYWlsdXJlGAQgASgLMhMuZ2l0ZC52MS5HaXRGYWlsdXJlEjQKB2NvbW1pdHMYBSADKAsyIy5naXRkLnYxLlByb2JlUmVzcG9uc2UuQ29tbWl0c0VudHJ5Gi4KDENvbW1pdHNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIlwKBkFjY2VzcxIWChJBQ0NFU1NfVU5TUEVDSUZJRUQQABIRCg1BQ0NFU1NfUFVCTElDEAESFAoQQUNDRVNTX1JFQUNIQUJMRRACEhEKDUFDQ0VTU19ERU5JRUQQAyIrCg1SZXRpcmVSZXF1ZXN0EhoKEnVudXNlZF9mb3Jfc2Vjb25kcxgBIAEoAyI2Cg5SZXRpcmVSZXNwb25zZRIPCgdyZXRpcmVkGAEgASgFEhMKC2ZyZWVkX2J5dGVzGAIgASgDIg0KC0luZm9SZXF1ZXN0IsIBCgxJbmZvUmVzcG9uc2USDwoHdmVyc2lvbhgBIAEoCRITCgtnaXRfdmVyc2lvbhgCIAEoCRINCgVwb29scxgDIAEoBRITCgtwb29sc19ieXRlcxgEIAEoAxIjCghzdHJhdGVneRgFIAEoDjIRLmdpdGQudjEuU3RyYXRlZ3kSFwoPc3RyYXRlZ3lfcmVhc29uGAYgASgJEhEKCXRlbXBsYXRlcxgHIAEoBRIXCg90ZW1wbGF0ZXNfYnl0ZXMYCCABKAMqYwoIU3RyYXRlZ3kSGAoUU1RSQVRFR1lfVU5TUEVDSUZJRUQQABIRCg1TVFJBVEVHWV9DT1BZEAESFAoQU1RSQVRFR1lfT1ZFUkxBWRACEhQKEFNUUkFURUdZX1JFRkxJTksQAzKbBAoQV29ya3NwYWNlU2VydmljZRI+CgdQcmVwYXJlEhcuZ2l0ZC52MS5QcmVwYXJlUmVxdWVzdBoYLmdpdGQudjEuUHJlcGFyZVJlc3BvbnNlMAESOwoGVXBkYXRlEhYuZ2l0ZC52MS5VcGRhdGVSZXF1ZXN0GhcuZ2l0ZC52MS5VcGRhdGVSZXNwb25zZTABEkEKCENoZWNrb3V0EhguZ2l0ZC52MS5DaGVja291dFJlcXVlc3QaGS5naXRkLnYxLkNoZWNrb3V0UmVzcG9uc2UwARJTCg5TeW5jU3VibW9kdWxlcxIeLmdpdGQudjEuU3luY1N1Ym1vZHVsZXNSZXF1ZXN0Gh8uZ2l0ZC52MS5TeW5jU3VibW9kdWxlc1Jlc3BvbnNlMAESPwoIRGVzY3JpYmUSGC5naXRkLnYxLkRlc2NyaWJlUmVxdWVzdBoZLmdpdGQudjEuRGVzY3JpYmVSZXNwb25zZRI5CgZSZW1vdmUSFi5naXRkLnYxLlJlbW92ZVJlcXVlc3QaFy5naXRkLnYxLlJlbW92ZVJlc3BvbnNlEjgKBUFkb3B0EhUuZ2l0ZC52MS5BZG9wdFJlcXVlc3QaFi5naXRkLnYxLkFkb3B0UmVzcG9uc2UwARI8CgdQdWJsaXNoEhcuZ2l0ZC52MS5QdWJsaXNoUmVxdWVzdBoYLmdpdGQudjEuUHVibGlzaFJlc3BvbnNlMksKEVJlcG9zaXRvcnlTZXJ2aWNlEjYKBVByb2JlEhUuZ2l0ZC52MS5Qcm9iZVJlcXVlc3QaFi5naXRkLnYxLlByb2JlUmVzcG9uc2UyfwoNU2VydmVyU2VydmljZRIzCgRJbmZvEhQuZ2l0ZC52MS5JbmZvUmVxdWVzdBoVLmdpdGQudjEuSW5mb1Jlc3BvbnNlEjkKBlJldGlyZRIWLmdpdGQudjEuUmV0aXJlUmVxdWVzdBoXLmdpdGQudjEuUmV0aXJlUmVzcG9uc2VCMlowZ2l0aHViLmNvbS9kb29zZXJ2aWNlL2dpdGQvZ2VuL2dvL2dpdGQvdjE7Z2l0ZHYxYgZwcm90bzM");
+  fileDesc("ChJnaXRkL3YxL2dpdGQucHJvdG8SB2dpdGQudjEibQoKQ3JlZGVudGlhbBISCgp1cmxfcHJlZml4GAEgASgJEhUKC2h0dHBzX3Rva2VuGAIgASgJSAASFgoMc3NoX2tleV9wYXRoGAMgASgJSAASEgoKaHR0cHNfdXNlchgEIAEoCUIICgZzZWNyZXQiOAoIUmV2aXNpb24SEAoGYnJhbmNoGAEgASgJSAASEAoGY29tbWl0GAIgASgJSABCCAoGdGFyZ2V0Ij4KCFByb2dyZXNzEg0KBXBoYXNlGAEgASgJEg8KB3BlcmNlbnQYAiABKAUSEgoKcmVwb3NpdG9yeRgDIAEoCSJQCg5TdWJtb2R1bGVTdGF0ZRIMCgRwYXRoGAEgASgJEgsKA3VybBgCIAEoCRIOCgZjb21taXQYAyABKAkSEwoLY2hlY2tlZF9vdXQYBCABKAgiUwoQUGVuZGluZ1N1Ym1vZHVsZRILCgN1cmwYASABKAkSDAoEcGF0aBgCIAEoCRIkCgdmYWlsdXJlGAMgASgLMhMuZ2l0ZC52MS5HaXRGYWlsdXJlIv4CCgpHaXRGYWlsdXJlEioKBnJlYXNvbhgBIAEoDjIaLmdpdGQudjEuR2l0RmFpbHVyZS5SZWFzb24SEAoIZ2l0X3NhaWQYAiABKAkSEgoKcmVwb3NpdG9yeRgDIAEoCSKdAgoGUmVhc29uEhYKElJFQVNPTl9VTlNQRUNJRklFRBAAEhgKFFJFQVNPTl9BVVRIX1JFUVVJUkVEEAESFwoTUkVBU09OX0FVVEhfUkVGVVNFRBACEhQKEFJFQVNPTl9OT1RfRk9VTkQQAxIWChJSRUFTT05fQkFEX0FERFJFU1MQBBIXChNSRUFTT05fUEFUSF9SRUZVU0VEEAUSDwoLUkVBU09OX0JVU1kQBhISCg5SRUFTT05fVElNRU9VVBAHEhIKDlJFQVNPTl9DT1JSVVBUEAgSFQoRUkVBU09OX0dJVF9GQUlMRUQQCRIWChJSRUFTT05fTk9USElOR19ORVcQChIZChVSRUFTT05fQlJBTkNIX1JFRlVTRUQQCyLOAQoOUHJlcGFyZVJlcXVlc3QSCwoDdXJsGAEgASgJEgwKBHBhdGgYAiABKAkSIwoIcmV2aXNpb24YAyABKAsyES5naXRkLnYxLlJldmlzaW9uEhcKD3dpdGhfc3VibW9kdWxlcxgEIAEoCBIoCgtjcmVkZW50aWFscxgFIAMoCzITLmdpdGQudjEuQ3JlZGVudGlhbBIUCgxmdWxsX2hpc3RvcnkYBiABKAgSIwoIc3RyYXRlZ3kYByABKA4yES5naXRkLnYxLlN0cmF0ZWd5IjQKBkxheWVycxINCgVsb3dlchgBIAEoCRINCgV1cHBlchgCIAEoCRIMCgR3b3JrGAMgASgJIm0KD1ByZXBhcmVSZXNwb25zZRIlCghwcm9ncmVzcxgBIAEoCzIRLmdpdGQudjEuUHJvZ3Jlc3NIABIqCgZyZXN1bHQYAiABKAsyGC5naXRkLnYxLldvcmtzcGFjZVJlc3VsdEgAQgcKBWV2ZW50Iq4BCg9Xb3Jrc3BhY2VSZXN1bHQSDgoGY29tbWl0GAEgASgJEg4KBmJyYW5jaBgCIAEoCRI1ChJwZW5kaW5nX3N1Ym1vZHVsZXMYAyADKAsyGS5naXRkLnYxLlBlbmRpbmdTdWJtb2R1bGUSIwoIc3RyYXRlZ3kYBCABKA4yES5naXRkLnYxLlN0cmF0ZWd5Eh8KBmxheWVycxgFIAEoCzIPLmdpdGQudjEuTGF5ZXJzInAKDVVwZGF0ZVJlcXVlc3QSDAoEcGF0aBgBIAEoCRIOCgZicmFuY2gYAiABKAkSFwoPd2l0aF9zdWJtb2R1bGVzGAMgASgIEigKC2NyZWRlbnRpYWxzGAQgAygLMhMuZ2l0ZC52MS5DcmVkZW50aWFsImwKDlVwZGF0ZVJlc3BvbnNlEiUKCHByb2dyZXNzGAEgASgLMhEuZ2l0ZC52MS5Qcm9ncmVzc0gAEioKBnJlc3VsdBgCIAEoCzIYLmdpdGQudjEuV29ya3NwYWNlUmVzdWx0SABCBwoFZXZlbnQicgoPQ2hlY2tvdXRSZXF1ZXN0EgwKBHBhdGgYASABKAkSDgoGY29tbWl0GAIgASgJEhcKD3dpdGhfc3VibW9kdWxlcxgDIAEoCBIoCgtjcmVkZW50aWFscxgEIAMoCzITLmdpdGQudjEuQ3JlZGVudGlhbCJuChBDaGVja291dFJlc3BvbnNlEiUKCHByb2dyZXNzGAEgASgLMhEuZ2l0ZC52MS5Qcm9ncmVzc0gAEioKBnJlc3VsdBgCIAEoCzIYLmdpdGQudjEuV29ya3NwYWNlUmVzdWx0SABCBwoFZXZlbnQiYQoVU3luY1N1Ym1vZHVsZXNSZXF1ZXN0EgwKBHBhdGgYASABKAkSEAoIb25seV91cmwYAiABKAkSKAoLY3JlZGVudGlhbHMYAyADKAsyEy5naXRkLnYxLkNyZWRlbnRpYWwieQoWU3luY1N1Ym1vZHVsZXNSZXNwb25zZRIlCghwcm9ncmVzcxgBIAEoCzIRLmdpdGQudjEuUHJvZ3Jlc3NIABIvCgZyZXN1bHQYAiABKAsyHS5naXRkLnYxLlN5bmNTdWJtb2R1bGVzUmVzdWx0SABCBwoFZXZlbnQiegoUU3luY1N1Ym1vZHVsZXNSZXN1bHQSKwoKc3VibW9kdWxlcxgBIAMoCzIXLmdpdGQudjEuU3VibW9kdWxlU3RhdGUSNQoScGVuZGluZ19zdWJtb2R1bGVzGAIgAygLMhkuZ2l0ZC52MS5QZW5kaW5nU3VibW9kdWxlIh8KD0Rlc2NyaWJlUmVxdWVzdBIMCgRwYXRoGAEgASgJIsQBChBEZXNjcmliZVJlc3BvbnNlEgsKA3VybBgBIAEoCRIOCgZjb21taXQYAiABKAkSDgoGYnJhbmNoGAMgASgJEhAKCG1vZGlmaWVkGAQgASgIEisKCnN1Ym1vZHVsZXMYBSADKAsyFy5naXRkLnYxLlN1Ym1vZHVsZVN0YXRlEiMKCHN0cmF0ZWd5GAYgASgOMhEuZ2l0ZC52MS5TdHJhdGVneRIfCgZsYXllcnMYByABKAsyDy5naXRkLnYxLkxheWVycyIdCg1SZW1vdmVSZXF1ZXN0EgwKBHBhdGgYASABKAkiEAoOUmVtb3ZlUmVzcG9uc2UiHAoMQWRvcHRSZXF1ZXN0EgwKBHBhdGgYASABKAkiZwoNQWRvcHRSZXNwb25zZRIlCghwcm9ncmVzcxgBIAEoCzIRLmdpdGQudjEuUHJvZ3Jlc3NIABImCgZyZXN1bHQYAiABKAsyFC5naXRkLnYxLkFkb3B0UmVzdWx0SABCBwoFZXZlbnQiJQoLQWRvcHRSZXN1bHQSFgoOYnl0ZXNfcmVsZWFzZWQYASABKAMiWAoOUHVibGlzaFJlcXVlc3QSDAoEcGF0aBgBIAEoCRIOCgZicmFuY2gYAiABKAkSKAoLY3JlZGVudGlhbHMYAyADKAsyEy5naXRkLnYxLkNyZWRlbnRpYWwiUgoTUHVibGlzaGVkUmVwb3NpdG9yeRILCgN1cmwYASABKAkSDAoEcGF0aBgCIAEoCRIOCgZjb21taXQYAyABKAkSEAoIc3ViamVjdHMYBCADKAkihQEKD1B1Ymxpc2hSZXNwb25zZRIOCgZicmFuY2gYASABKAkSMAoKcmVwb3NpdG9yeRgCIAEoCzIcLmdpdGQudjEuUHVibGlzaGVkUmVwb3NpdG9yeRIwCgpzdWJtb2R1bGVzGAMgAygLMhwuZ2l0ZC52MS5QdWJsaXNoZWRSZXBvc2l0b3J5IkUKDFByb2JlUmVxdWVzdBILCgN1cmwYASABKAkSKAoLY3JlZGVudGlhbHMYAiADKAsyEy5naXRkLnYxLkNyZWRlbnRpYWwi0gIKDVByb2JlUmVzcG9uc2USLQoGYWNjZXNzGAEgASgOMh0uZ2l0ZC52MS5Qcm9iZVJlc3BvbnNlLkFjY2VzcxIQCghicmFuY2hlcxgCIAMoCRIWCg5kZWZhdWx0X2JyYW5jaBgDIAEoCRIkCgdmYWlsdXJlGAQgASgLMhMuZ2l0ZC52MS5HaXRGYWlsdXJlEjQKB2NvbW1pdHMYBSADKAsyIy5naXRkLnYxLlByb2JlUmVzcG9uc2UuQ29tbWl0c0VudHJ5Gi4KDENvbW1pdHNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIlwKBkFjY2VzcxIWChJBQ0NFU1NfVU5TUEVDSUZJRUQQABIRCg1BQ0NFU1NfUFVCTElDEAESFAoQQUNDRVNTX1JFQUNIQUJMRRACEhEKDUFDQ0VTU19ERU5JRUQQAyIrCg1SZXRpcmVSZXF1ZXN0EhoKEnVudXNlZF9mb3Jfc2Vjb25kcxgBIAEoAyI2Cg5SZXRpcmVSZXNwb25zZRIPCgdyZXRpcmVkGAEgASgFEhMKC2ZyZWVkX2J5dGVzGAIgASgDIg0KC0luZm9SZXF1ZXN0IsIBCgxJbmZvUmVzcG9uc2USDwoHdmVyc2lvbhgBIAEoCRITCgtnaXRfdmVyc2lvbhgCIAEoCRINCgVwb29scxgDIAEoBRITCgtwb29sc19ieXRlcxgEIAEoAxIjCghzdHJhdGVneRgFIAEoDjIRLmdpdGQudjEuU3RyYXRlZ3kSFwoPc3RyYXRlZ3lfcmVhc29uGAYgASgJEhEKCXRlbXBsYXRlcxgHIAEoBRIXCg90ZW1wbGF0ZXNfYnl0ZXMYCCABKAMiVQoMQXVkaXRSZXF1ZXN0EikKBXNpbmNlGAEgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBILCgN1cmwYAiABKAkSDQoFbGltaXQYAyABKAUiNQoNQXVkaXRSZXNwb25zZRIkCgdlbnRyaWVzGAEgAygLMhMuZ2l0ZC52MS5BdWRpdEVudHJ5IvABCgpBdWRpdEVudHJ5EigKBHRpbWUYASABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhEKCXdvcmtzcGFjZRgCIAEoCRILCgN1cmwYAyABKAkSDgoGYnJhbmNoGAQgASgJEjAKCnJlcG9zaXRvcnkYBSABKAsyHC5naXRkLnYxLlB1Ymxpc2hlZFJlcG9zaXRvcnkSMAoKc3VibW9kdWxlcxgGIAMoCzIcLmdpdGQudjEuUHVibGlzaGVkUmVwb3NpdG9yeRIkCgdyZWZ1c2FsGAcgASgLMhMuZ2l0ZC52MS5HaXRGYWlsdXJlKmMKCFN0cmF0ZWd5EhgKFFNUUkFURUdZX1VOU1BFQ0lGSUVEEAASEQoNU1RSQVRFR1lfQ09QWRABEhQKEFNUUkFURUdZX09WRVJMQVkQAhIUChBTVFJBVEVHWV9SRUZMSU5LEAMymwQKEFdvcmtzcGFjZVNlcnZpY2USPgoHUHJlcGFyZRIXLmdpdGQudjEuUHJlcGFyZVJlcXVlc3QaGC5naXRkLnYxLlByZXBhcmVSZXNwb25zZTABEjsKBlVwZGF0ZRIWLmdpdGQudjEuVXBkYXRlUmVxdWVzdBoXLmdpdGQudjEuVXBkYXRlUmVzcG9uc2UwARJBCghDaGVja291dBIYLmdpdGQudjEuQ2hlY2tvdXRSZXF1ZXN0GhkuZ2l0ZC52MS5DaGVja291dFJlc3BvbnNlMAESUwoOU3luY1N1Ym1vZHVsZXMSHi5naXRkLnYxLlN5bmNTdWJtb2R1bGVzUmVxdWVzdBofLmdpdGQudjEuU3luY1N1Ym1vZHVsZXNSZXNwb25zZTABEj8KCERlc2NyaWJlEhguZ2l0ZC52MS5EZXNjcmliZVJlcXVlc3QaGS5naXRkLnYxLkRlc2NyaWJlUmVzcG9uc2USOQoGUmVtb3ZlEhYuZ2l0ZC52MS5SZW1vdmVSZXF1ZXN0GhcuZ2l0ZC52MS5SZW1vdmVSZXNwb25zZRI4CgVBZG9wdBIVLmdpdGQudjEuQWRvcHRSZXF1ZXN0GhYuZ2l0ZC52MS5BZG9wdFJlc3BvbnNlMAESPAoHUHVibGlzaBIXLmdpdGQudjEuUHVibGlzaFJlcXVlc3QaGC5naXRkLnYxLlB1Ymxpc2hSZXNwb25zZTJLChFSZXBvc2l0b3J5U2VydmljZRI2CgVQcm9iZRIVLmdpdGQudjEuUHJvYmVSZXF1ZXN0GhYuZ2l0ZC52MS5Qcm9iZVJlc3BvbnNlMrcBCg1TZXJ2ZXJTZXJ2aWNlEjMKBEluZm8SFC5naXRkLnYxLkluZm9SZXF1ZXN0GhUuZ2l0ZC52MS5JbmZvUmVzcG9uc2USOQoGUmV0aXJlEhYuZ2l0ZC52MS5SZXRpcmVSZXF1ZXN0GhcuZ2l0ZC52MS5SZXRpcmVSZXNwb25zZRI2CgVBdWRpdBIVLmdpdGQudjEuQXVkaXRSZXF1ZXN0GhYuZ2l0ZC52MS5BdWRpdFJlc3BvbnNlQjJaMGdpdGh1Yi5jb20vZG9vc2VydmljZS9naXRkL2dlbi9nby9naXRkL3YxO2dpdGR2MWIGcHJvdG8z", [file_google_protobuf_timestamp]);
 
 /**
  * What opens repositories whose address starts with `url_prefix`, on any host:
@@ -281,6 +283,13 @@ export enum GitFailure_Reason {
    * @generated from enum value: REASON_NOTHING_NEW = 10;
    */
   NOTHING_NEW = 10,
+
+  /**
+   * The branch is outside the prefix publishing is limited to.
+   *
+   * @generated from enum value: REASON_BRANCH_REFUSED = 11;
+   */
+  BRANCH_REFUSED = 11,
 }
 
 /**
@@ -829,7 +838,8 @@ export type PublishRequest = Message<"gitd.v1.PublishRequest"> & {
   path: string;
 
   /**
-   * A branch that does not exist yet: nothing is ever pushed over one that does.
+   * A branch that does not exist yet: nothing is ever pushed over one that does. It must
+   * start with `[publish] branch_prefix`, when the configuration sets one.
    *
    * @generated from field: string branch = 2;
    */
@@ -1126,6 +1136,114 @@ export const InfoResponseSchema: GenMessage<InfoResponse> = /*@__PURE__*/
   messageDesc(file_gitd_v1_gitd, 32);
 
 /**
+ * @generated from message gitd.v1.AuditRequest
+ */
+export type AuditRequest = Message<"gitd.v1.AuditRequest"> & {
+  /**
+   * Only the entries from this time on; all of them when unset.
+   *
+   * @generated from field: google.protobuf.Timestamp since = 1;
+   */
+  since?: Timestamp | undefined;
+
+  /**
+   * Only the publishes of this repository, as its URL is written in the entries.
+   *
+   * @generated from field: string url = 2;
+   */
+  url: string;
+
+  /**
+   * At most this many, newest first: 100 when unset, never more than 1000.
+   *
+   * @generated from field: int32 limit = 3;
+   */
+  limit: number;
+};
+
+/**
+ * Describes the message gitd.v1.AuditRequest.
+ * Use `create(AuditRequestSchema)` to create a new message.
+ */
+export const AuditRequestSchema: GenMessage<AuditRequest> = /*@__PURE__*/
+  messageDesc(file_gitd_v1_gitd, 33);
+
+/**
+ * @generated from message gitd.v1.AuditResponse
+ */
+export type AuditResponse = Message<"gitd.v1.AuditResponse"> & {
+  /**
+   * @generated from field: repeated gitd.v1.AuditEntry entries = 1;
+   */
+  entries: AuditEntry[];
+};
+
+/**
+ * Describes the message gitd.v1.AuditResponse.
+ * Use `create(AuditResponseSchema)` to create a new message.
+ */
+export const AuditResponseSchema: GenMessage<AuditResponse> = /*@__PURE__*/
+  messageDesc(file_gitd_v1_gitd, 34);
+
+/**
+ * One publish, done or refused, as the audit log keeps it: one per line of the log file,
+ * in this message's JSON form.
+ *
+ * @generated from message gitd.v1.AuditEntry
+ */
+export type AuditEntry = Message<"gitd.v1.AuditEntry"> & {
+  /**
+   * @generated from field: google.protobuf.Timestamp time = 1;
+   */
+  time?: Timestamp | undefined;
+
+  /**
+   * The workspace's path, as the caller gave it.
+   *
+   * @generated from field: string workspace = 2;
+   */
+  workspace: string;
+
+  /**
+   * The workspace's repository; empty when the workspace could not be opened.
+   *
+   * @generated from field: string url = 3;
+   */
+  url: string;
+
+  /**
+   * @generated from field: string branch = 4;
+   */
+  branch: string;
+
+  /**
+   * What was pushed: the workspace's repository, then each submodule. Unset when refused.
+   *
+   * @generated from field: gitd.v1.PublishedRepository repository = 5;
+   */
+  repository?: PublishedRepository | undefined;
+
+  /**
+   * @generated from field: repeated gitd.v1.PublishedRepository submodules = 6;
+   */
+  submodules: PublishedRepository[];
+
+  /**
+   * Why it was refused. Unset when it was published.
+   *
+   * @generated from field: gitd.v1.GitFailure refusal = 7;
+   */
+  refusal?: GitFailure | undefined;
+};
+
+/**
+ * Describes the message gitd.v1.AuditEntry.
+ * Use `create(AuditEntrySchema)` to create a new message.
+ */
+export const AuditEntrySchema: GenMessage<AuditEntry> = /*@__PURE__*/
+  messageDesc(file_gitd_v1_gitd, 35);
+
+/**
  * How a workspace was made.
  *
  * @generated from enum gitd.v1.Strategy
@@ -1242,7 +1360,8 @@ export const WorkspaceService: GenService<{
   /**
    * Push what was committed in a workspace to a new branch, with a token, so a pull or merge
    * request can be opened from it. New commits of its submodules go first, each to a
-   * branch of the same name in its own repository.
+   * branch of the same name in its own repository. The branch must start with the
+   * configured prefix, if there is one; every publish, done or refused, is in the audit log.
    *
    * @generated from rpc gitd.v1.WorkspaceService.Publish
    */
@@ -1295,6 +1414,16 @@ export const ServerService: GenService<{
     methodKind: "unary";
     input: typeof RetireRequestSchema;
     output: typeof RetireResponseSchema;
+  },
+  /**
+   * The audit log: every publish, done or refused, newest first.
+   *
+   * @generated from rpc gitd.v1.ServerService.Audit
+   */
+  audit: {
+    methodKind: "unary";
+    input: typeof AuditRequestSchema;
+    output: typeof AuditResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_gitd_v1_gitd, 2);

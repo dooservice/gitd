@@ -8,8 +8,7 @@ import grpc
 from grpc_status import rpc_status
 
 from . import messages
-
-REASON_PREFIX = "REASON_"
+from .models import Refusal
 
 
 class GitdError(Exception):
@@ -33,6 +32,5 @@ class GitdError(Exception):
             if detail.Is(messages.GitFailure.DESCRIPTOR):
                 failure: Any = messages.GitFailure()
                 detail.Unpack(failure)
-                reason = messages.REASON.name(failure.reason).removeprefix(REASON_PREFIX)
-                return cls(reason, failure.git_said, error.code())
+                return cls(Refusal.reason_of(failure), failure.git_said, error.code())
         return cls("", error.details() or "", error.code())

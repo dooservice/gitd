@@ -4,16 +4,19 @@ messages are made from the contract at run time, so their fields are typed here 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from enum import Enum
+from datetime import datetime
+from enum import StrEnum
 from typing import Any
 
 from . import messages
+from .timestamps import Timestamp
 
 STRATEGY_PREFIX = "STRATEGY_"
 ACCESS_PREFIX = "ACCESS_"
+REASON_PREFIX = "REASON_"
 
 
-class Strategy(str, Enum):
+class Strategy(StrEnum):
     """How a workspace is made: a layer on a shared template, a block clone, or every file written."""
 
     OVERLAY = "overlay"
@@ -32,7 +35,7 @@ class Strategy(str, Enum):
         return messages.STRATEGY.number(STRATEGY_PREFIX + name)
 
 
-class Access(str, Enum):
+class Access(StrEnum):
     """Whether a repository can be read: by anyone, with a credential gitd keeps, or not at all."""
 
     PUBLIC = "public"
@@ -171,6 +174,22 @@ class PublishedRepository:
 
 
 @dataclass(frozen=True)
+class Refusal:
+    """Why gitd refused a call: its reason (BRANCH_REFUSED, AUTH_REQUIRED, …) and what git said."""
+
+    reason: str
+    said: str
+
+    @classmethod
+    def from_message(cls, failure: Any) -> Refusal:
+        return cls(reason=cls.reason_of(failure), said=failure.git_said)
+
+    @staticmethod
+    def reason_of(failure: Any) -> str:
+        return messages.REASON.name(failure.reason).removeprefix(REASON_PREFIX)
+
+
+@dataclass(frozen=True)
 class Published:
     """What a publish pushed: the workspace's repository first, then each submodule."""
 
@@ -230,4 +249,30 @@ class Probe:
             default_branch=response.default_branch,
             branches=dict(response.commits),
             denied=response.failure.git_said if response.HasField("failure") else None,
+        )
+
+
+@dataclass(frozen=True)
+class AuditEntry:
+    """One publish, done or refused, as the audit log keeps it. url is the workspace's
+    repository, empty when the workspace could not be opened; repositories is what was
+    pushed, the workspace's repository first, empty when refused."""
+
+    time: datetime
+    workspace: str
+    url: str
+    branch: str
+    repositories: list[PublishedRepository] = field(default_factory=list)
+    refused: Refusal | None = None
+
+    @classmethod
+    def from_message(cls, entry: Any) -> AuditEntry:
+        pushed = [entry.repository, *entry.submodules] if entry.HasField("repository") else []
+        return cls(
+            time=Timestamp.to_datetime(entry.time),
+            workspace=entry.workspace,
+            url=entry.url,
+            branch=entry.branch,
+            repositories=[PublishedRepository.from_message(repository) for repository in pushed],
+            refused=Refusal.from_message(entry.refusal) if entry.HasField("refusal") else None,
         )

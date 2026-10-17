@@ -1,12 +1,16 @@
 import type { MessageInitShape } from "@bufbuild/protobuf";
+import { timestampDate } from "@bufbuild/protobuf/wkt";
 
 import {
+  GitFailure_Reason,
   ProbeResponse_Access,
   Strategy,
+  type AuditEntry as AuditEntryMessage,
+  type PublishedRepository as PublishedRepositoryMessage,
   type RevisionSchema,
   type WorkspaceResult,
 } from "./gen/gitd/v1/gitd_pb.js";
-import type { Probe, StrategyName, Workspace } from "./types.js";
+import type { AuditEntry, Probe, PublishedRepository, StrategyName, Workspace } from "./types.js";
 
 export function toWorkspace(path: string, result: WorkspaceResult): Workspace {
   const layers = result.layers;
@@ -71,4 +75,29 @@ export function revisionOf(
     return { target: { case: "branch", value: branch } };
   }
   return undefined;
+}
+
+/** What a publish pushed: the workspace's repository first, then each submodule. */
+export function pushedOf(
+  repository: PublishedRepositoryMessage | undefined,
+  submodules: PublishedRepositoryMessage[],
+): PublishedRepository[] {
+  return [repository, ...submodules]
+    .filter((pushed) => pushed !== undefined)
+    .map((pushed) => ({ url: pushed.url, path: pushed.path, commit: pushed.commit, subjects: pushed.subjects }));
+}
+
+export function toAuditEntry(entry: AuditEntryMessage): AuditEntry {
+  const refusal = entry.refusal;
+  return {
+    time: entry.time ? timestampDate(entry.time) : new Date(0),
+    workspace: entry.workspace,
+    url: entry.url,
+    branch: entry.branch,
+    repositories: pushedOf(entry.repository, entry.submodules),
+    refused: refusal && {
+      reason: GitFailure_Reason[refusal.reason].replace("REASON_", ""),
+      said: refusal.gitSaid,
+    },
+  };
 }

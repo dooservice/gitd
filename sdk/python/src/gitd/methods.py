@@ -22,6 +22,7 @@ class Method:
 
 
 INFO = Method("ServerService", "Info", messages.InfoResponse)
+AUDIT = Method("ServerService", "Audit", messages.AuditResponse)
 PROBE = Method("RepositoryService", "Probe", messages.ProbeResponse)
 PREPARE = Method("WorkspaceService", "Prepare", messages.PrepareResponse)
 UPDATE = Method("WorkspaceService", "Update", messages.UpdateResponse)

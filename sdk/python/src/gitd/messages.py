@@ -21,6 +21,8 @@ PublishRequest = contract.message("PublishRequest")
 PublishResponse = contract.message("PublishResponse")
 RemoveRequest = contract.message("RemoveRequest")
 RemoveResponse = contract.message("RemoveResponse")
+AuditRequest = contract.message("AuditRequest")
+AuditResponse = contract.message("AuditResponse")
 GitFailure = contract.message("GitFailure")
 
 STRATEGY = contract.enumeration("Strategy")

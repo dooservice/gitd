@@ -83,6 +83,29 @@ export interface Probe {
   denied?: string;
 }
 
+/** One publish, done or refused, as the audit log keeps it. */
+export interface AuditEntry {
+  time: Date;
+  /** The workspace's path, as the caller gave it. */
+  workspace: string;
+  /** The workspace's repository; empty when the workspace could not be opened. */
+  url: string;
+  branch: string;
+  /** What was pushed, the workspace's repository first; empty when refused. */
+  repositories: PublishedRepository[];
+  /** Why it was refused, when it was. */
+  refused?: { reason: string; said: string };
+}
+
+export interface AuditOptions {
+  /** Only the publishes from this time on. */
+  since?: Date;
+  /** Only the publishes of this repository, by its URL. */
+  url?: string;
+  /** At most this many: 100 by default, never more than 1000. */
+  limit?: number;
+}
+
 /** Options of a call that streams progress. */
 export interface Progressing {
   /** Told what git is doing while the call runs. */

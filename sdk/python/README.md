@@ -33,9 +33,11 @@ No call takes a credential: gitd reads and publishes with the ones it keeps.
 | `remove(path)` | Deleted; its pool stays |
 | `probe(url)` | Whether it can be read, its default branch and branches |
 | `info()` | Which gitd answers, and how it makes workspaces here and why |
+| `audit(*, since, url, limit)` | Every publish, done or refused, newest first |
 
 A refusal raises `GitdError`, with `reason` (`AUTH_REQUIRED`, `NOT_FOUND`, `PATH_REFUSED`,
-`BUSY`, …) and `said`, what git said. Decide from the reason, never from the message.
+`BRANCH_REFUSED`, `BUSY`, …) and `said`, what git said. Decide from the reason, never from
+the message.
 
 [`examples/agent.py`](examples/agent.py) is an agent's whole round trip.
 
@@ -46,6 +48,7 @@ A refusal raises `GitdError`, with `reason` (`AUTH_REQUIRED`, `NOT_FOUND`, `PATH
 | `src/gitd/client.py` | `Gitd`, the client |
 | `src/gitd/models.py` | What gitd answers, as dataclasses |
 | `src/gitd/errors.py` | `GitdError` |
+| `src/gitd/timestamps.py` | Between the contract's timestamps and `datetime` |
 | `src/gitd/connection.py` | The channel to the socket, and how calls are made |
 | `src/gitd/methods.py` | The gitd methods called, by their gRPC path |
 | `src/gitd/messages.py` | The messages of the contract the client uses |

@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+from datetime import datetime
+from typing import Any
+
 from . import messages, methods
 from .connection import Connection, OnProgress
-from .models import Description, Info, Probe, Published, Strategy, Workspace
+from .models import AuditEntry, Description, Info, Probe, Published, Strategy, Workspace
+from .timestamps import Timestamp
 
 
 class Gitd:
@@ -103,3 +107,18 @@ class Gitd:
     def remove(self, path: str) -> None:
         """Deletes a workspace; its pool stays."""
         self.connection.call(methods.REMOVE, messages.RemoveRequest(path=path))
+
+    def audit(
+        self,
+        *,
+        since: datetime | None = None,
+        url: str | None = None,
+        limit: int | None = None,
+    ) -> list[AuditEntry]:
+        """The audit log: every publish, done or refused, newest first; from since on, of
+        the repository at url, at most limit of them (100 by default, never more than 1000)."""
+        request: Any = messages.AuditRequest(url=url or "", limit=limit or 0)
+        if since is not None:
+            Timestamp.fill(request.since, since)
+        response = self.connection.call(methods.AUDIT, request)
+        return [AuditEntry.from_message(entry) for entry in response.entries]

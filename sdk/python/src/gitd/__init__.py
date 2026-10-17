@@ -5,6 +5,7 @@ from .connection import DEFAULT_SOCKET, SOCKET_VARIABLE
 from .errors import GitdError
 from .models import (
     Access,
+    AuditEntry,
     Description,
     Info,
     Layers,
@@ -13,6 +14,7 @@ from .models import (
     Progress,
     Published,
     PublishedRepository,
+    Refusal,
     Strategy,
     Submodule,
     Workspace,
@@ -22,6 +24,7 @@ __all__ = [
     "DEFAULT_SOCKET",
     "SOCKET_VARIABLE",
     "Access",
+    "AuditEntry",
     "Description",
     "Gitd",
     "GitdError",
@@ -32,6 +35,7 @@ __all__ = [
     "Progress",
     "Published",
     "PublishedRepository",
+    "Refusal",
     "Strategy",
     "Submodule",
     "Workspace",

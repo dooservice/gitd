@@ -1,10 +1,21 @@
+import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { createConnectTransport } from "@connectrpc/connect-node";
 
 import { RepositoryService, ServerService, WorkspaceService } from "./gen/gitd/v1/gitd_pb.js";
 import { call, drain } from "./calls.js";
-import { accessName, revisionOf, strategyName, strategyProto, toWorkspace } from "./convert.js";
+import {
+  accessName,
+  pushedOf,
+  revisionOf,
+  strategyName,
+  strategyProto,
+  toAuditEntry,
+  toWorkspace,
+} from "./convert.js";
 import type {
+  AuditEntry,
+  AuditOptions,
   CheckoutOptions,
   Description,
   Info,
@@ -115,16 +126,18 @@ export class Gitd {
   /** Pushes what was committed in a workspace to a new branch, with the token gitd keeps. */
   async publish(path: string, branch: string): Promise<Published> {
     const answer = await call(() => this.workspaces.publish({ path, branch }));
-    const pushed = [answer.repository, ...answer.submodules].filter((repository) => repository !== undefined);
-    return {
-      branch: answer.branch,
-      repositories: pushed.map((repository) => ({
-        url: repository.url,
-        path: repository.path,
-        commit: repository.commit,
-        subjects: repository.subjects,
-      })),
+    return { branch: answer.branch, repositories: pushedOf(answer.repository, answer.submodules) };
+  }
+
+  /** The audit log: every publish, done or refused, newest first. */
+  async audit(options: AuditOptions = {}): Promise<AuditEntry[]> {
+    const request = {
+      since: options.since && timestampFromDate(options.since),
+      url: options.url ?? "",
+      limit: options.limit ?? 0,
     };
+    const answer = await call(() => this.server.audit(request));
+    return answer.entries.map(toAuditEntry);
   }
 
   /** Deletes a workspace; its pool stays. */
