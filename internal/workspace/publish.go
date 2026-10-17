@@ -23,8 +23,11 @@ func (workspaces *Workspaces) Publish(
 	ctx context.Context, request *gitdv1.PublishRequest,
 ) (answer *gitdv1.PublishResponse, err error) {
 	branch := request.GetBranch()
-	entry := &gitdv1.AuditEntry{Workspace: request.GetPath(), Branch: branch}
+	entry := &gitdv1.AuditEntry{Workspace: request.GetPath(), Branch: branch, RequestedBy: request.GetRequestedBy()}
 	defer func() { workspaces.record(entry, answer, err) }()
+	if err := validRequester(request.GetRequestedBy()); err != nil {
+		return nil, err
+	}
 
 	path, repository, release, err := workspaces.open(ctx, request.GetPath())
 	if err != nil {
@@ -73,5 +76,6 @@ func (workspaces *Workspaces) Publish(
 		return nil, err
 	}
 	answer.Repository = &gitdv1.PublishedRepository{Url: repository.HTTPS(), Commit: commit, Subjects: subjects}
+	workspaces.openPullRequest(ctx, request, repository, rules, answer)
 	return answer, nil
 }

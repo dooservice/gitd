@@ -10,10 +10,12 @@ import (
 
 // Publishing is the rules a publish follows: Settings, when set, say per repository the
 // branch prefix, the paths a publish may not change or delete and how many files it may
-// change; Recorder, when set, keeps every publish, done or refused.
+// change, and how pull requests are opened; PullRequests, when set, opens them; Recorder,
+// when set, keeps every publish, done or refused.
 type Publishing struct {
-	Settings Settings
-	Recorder Recorder
+	Settings     Settings
+	PullRequests PullRequestOpener
+	Recorder     Recorder
 }
 
 // Recorder keeps a record of a publish: the audit log.
@@ -49,6 +51,7 @@ func (workspaces *Workspaces) record(entry *gitdv1.AuditEntry, answer *gitdv1.Pu
 		entry.Refusal = failure.Proto()
 	} else {
 		entry.Repository, entry.Submodules = answer.GetRepository(), answer.GetSubmodules()
+		entry.PullRequest, entry.PullRequestFailure = answer.GetPullRequest(), answer.GetPullRequestFailure()
 	}
 	if err := recorder.Record(entry); err != nil {
 		slog.Error("a publish is missing from the audit log", "workspace", entry.GetWorkspace(),
