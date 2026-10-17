@@ -12,7 +12,9 @@ func TestABodySaysWhoAskedAndWhatGitdChecked(t *testing.T) {
 		RequestedBy: "josue",
 		Subjects:    []string{"fix login redirect", "add test for expired session"},
 		Files:       4, Added: 82, Removed: 17,
-		Rules:      publishing.Effective{Rules: publishing.Rules{Protected: []string{".github/workflows/**"}, MaxFiles: 200}, Applied: []string{"https://github.com/acme"}},
+		Rules: publishing.Effective{MaxFiles: 200, Groups: []publishing.Group{{
+			From: "https://github.com/acme", Protected: []string{".github/workflows/**"}, Allowed: []string{".gitmodules"},
+		}}},
 		Submodules: []string{"libs/auth"},
 	})
 	for _, want := range []string{
@@ -20,7 +22,8 @@ func TestABodySaysWhoAskedAndWhatGitdChecked(t *testing.T) {
 		"**Checked by gitd**",
 		"- Commits: 2 — fix login redirect · add test for expired session",
 		"- Changes: 4 files, +82 −17",
-		"- Rules: passed (unchanged: `.github/workflows/**`; at most 200 files) from the settings of https://github.com/acme",
+		"- Rules of https://github.com/acme: passed (unchanged: `.github/workflows/**`; free: `.gitmodules`)",
+		"- At most 200 files: passed",
 		"- Submodules published: libs/auth",
 	} {
 		if !strings.Contains(body, want) {

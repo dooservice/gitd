@@ -35,26 +35,30 @@ func (workspaces *Workspaces) checkRules(
 	if !rules.HasRules() {
 		return nil
 	}
-	which := "the publishing settings of " + strings.Join(rules.Applied, " and ")
-	if len(rules.Protected) > 0 {
-		touched, err := workspaces.pools.Touched(ctx, repository, branch, pool.Paths{Among: rules.Protected})
-		if err != nil {
-			return err
+	for _, group := range rules.Groups {
+		which := "the publishing settings of " + group.From
+		if len(group.Protected) > 0 {
+			touched, err := workspaces.pools.Touched(ctx, repository, branch, pool.Paths{Among: group.Protected, Except: group.Allowed})
+			if err != nil {
+				return err
+			}
+			if len(touched) > 0 {
+				return refused(repository, "%s changes %s, which %s protect", branch, listed(touched), which)
+			}
 		}
-		if len(touched) > 0 {
-			return refused(repository, "%s changes %s, which %s protect", branch, listed(touched), which)
-		}
-	}
-	if len(rules.Kept) > 0 {
-		deleted, err := workspaces.pools.Touched(ctx, repository, branch, pool.Paths{Among: rules.Kept, Deleted: true})
-		if err != nil {
-			return err
-		}
-		if len(deleted) > 0 {
-			return refused(repository, "%s deletes or renames away %s, which %s keep", branch, listed(deleted), which)
+		if len(group.Kept) > 0 {
+			deleted, err := workspaces.pools.Touched(ctx, repository, branch,
+				pool.Paths{Among: group.Kept, Except: group.Allowed, Deleted: true})
+			if err != nil {
+				return err
+			}
+			if len(deleted) > 0 {
+				return refused(repository, "%s deletes or renames away %s, which %s keep", branch, listed(deleted), which)
+			}
 		}
 	}
 	if rules.MaxFiles > 0 {
+		which := "the publishing settings of " + strings.Join(rules.Applied, " and ")
 		changed, err := workspaces.pools.Touched(ctx, repository, branch, pool.Paths{})
 		if err != nil {
 			return err

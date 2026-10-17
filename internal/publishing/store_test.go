@@ -13,7 +13,7 @@ import (
 
 func TestSettingsSetThroughTheAPIAreKeptAcrossRestarts(t *testing.T) {
 	directory := filepath.Join(t.TempDir(), "publishing")
-	store, err := Open(directory, nil)
+	store, err := Open(directory, File{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -27,7 +27,7 @@ func TestSettingsSetThroughTheAPIAreKeptAcrossRestarts(t *testing.T) {
 	if set.GetUrlPrefix() != "https://github.com/acme" {
 		t.Errorf("the prefix kept is %q", set.GetUrlPrefix())
 	}
-	again, err := Open(directory, nil)
+	again, err := Open(directory, File{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -37,7 +37,7 @@ func TestSettingsSetThroughTheAPIAreKeptAcrossRestarts(t *testing.T) {
 }
 
 func TestSettingsReplaceThoseOfTheirPrefixAndAreRemoved(t *testing.T) {
-	store, err := Open(t.TempDir(), nil)
+	store, err := Open(t.TempDir(), File{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -81,7 +81,7 @@ func TestTheFilesSettingsAreShownAndNeverChangedThroughTheAPI(t *testing.T) {
 }
 
 func TestANarrowerBranchPrefixMayNotLoosenABroaderOne(t *testing.T) {
-	store, err := Open(t.TempDir(), nil)
+	store, err := Open(t.TempDir(), File{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -97,7 +97,7 @@ func TestANarrowerBranchPrefixMayNotLoosenABroaderOne(t *testing.T) {
 }
 
 func TestSettingsThatCannotBeKeptAreRefusedSayingWhy(t *testing.T) {
-	store, err := Open(t.TempDir(), nil)
+	store, err := Open(t.TempDir(), File{})
 	if err != nil {
 		t.Fatal(err)
 	}

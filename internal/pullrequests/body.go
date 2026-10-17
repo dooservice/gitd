@@ -37,7 +37,15 @@ func Body(platform string, account Account) string {
 	body.WriteString("---\n**Checked by gitd**\n")
 	body.WriteString(fmt.Sprintf("- Commits: %d — %s\n", len(account.Subjects), subjects(account.Subjects)))
 	body.WriteString(fmt.Sprintf("- Changes: %s, +%d −%d\n", plural(account.Files, "file"), account.Added, account.Removed))
-	body.WriteString("- Rules: " + rules(account.Rules) + "\n")
+	if !account.Rules.HasRules() {
+		body.WriteString("- Rules: none set\n")
+	}
+	for _, group := range account.Rules.Groups {
+		body.WriteString("- Rules of " + group.From + ": passed (" + groupRules(group) + ")\n")
+	}
+	if limit := account.Rules.MaxFiles; limit > 0 {
+		body.WriteString(fmt.Sprintf("- At most %d files: passed\n", limit))
+	}
 	if len(account.Submodules) > 0 {
 		body.WriteString("- Submodules published: " + strings.Join(account.Submodules, ", ") + "\n")
 	}
@@ -51,22 +59,19 @@ func subjects(listed []string) string {
 	return fmt.Sprintf("%s · and %d more", strings.Join(listed[:maxSubjects], " · "), len(listed)-maxSubjects)
 }
 
-// rules says what the publish passed.
-func rules(effective publishing.Effective) string {
-	if !effective.HasRules() {
-		return "none set"
-	}
+// groupRules says what one setting's rules asked of the publish.
+func groupRules(group publishing.Group) string {
 	var passed []string
-	if len(effective.Protected) > 0 {
-		passed = append(passed, "unchanged: "+code(effective.Protected))
+	if len(group.Protected) > 0 {
+		passed = append(passed, "unchanged: "+code(group.Protected))
 	}
-	if len(effective.Kept) > 0 {
-		passed = append(passed, "none deleted: "+code(effective.Kept))
+	if len(group.Kept) > 0 {
+		passed = append(passed, "none deleted: "+code(group.Kept))
 	}
-	if effective.MaxFiles > 0 {
-		passed = append(passed, fmt.Sprintf("at most %d files", effective.MaxFiles))
+	if len(group.Allowed) > 0 {
+		passed = append(passed, "free: "+code(group.Allowed))
 	}
-	return "passed (" + strings.Join(passed, "; ") + ") from the settings of " + strings.Join(effective.Applied, " and ")
+	return strings.Join(passed, "; ")
 }
 
 func code(paths []string) string {

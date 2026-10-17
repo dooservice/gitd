@@ -23,21 +23,31 @@ var (
 // settingsFile is where the settings set through the API are kept.
 const settingsFile = "settings.json"
 
-// Store is every setting: the configuration file's, then those set through the API.
+// Store is every setting and preset: the configuration file's, then those set through the
+// API.
 type Store struct {
-	path     string
-	fromFile []*gitdv1.PublishSettings
-	guard    sync.RWMutex
-	set      []*gitdv1.PublishSettings
+	path        string
+	presetsPath string
+	fromFile    []*gitdv1.PublishSettings
+	filePresets []*gitdv1.Preset
+	guard       sync.RWMutex
+	set         []*gitdv1.PublishSettings
+	setPresets  []*gitdv1.Preset
 }
 
-// Open reads the settings kept in directory, making it if it is not there, beside those of
-// the configuration file (FromFile).
-func Open(directory string, fromFile []*gitdv1.PublishSettings) (*Store, error) {
+// Open reads the settings and presets kept in directory, making it if it is not there,
+// beside those of the configuration file (FromFile).
+func Open(directory string, fromFile File) (*Store, error) {
 	if err := os.MkdirAll(directory, 0o700); err != nil {
 		return nil, fmt.Errorf("publishing settings: %w", err)
 	}
-	store := &Store{path: filepath.Join(directory, settingsFile), fromFile: fromFile}
+	store := &Store{
+		path: filepath.Join(directory, settingsFile), presetsPath: filepath.Join(directory, presetsFile),
+		fromFile: fromFile.Settings, filePresets: fromFile.Presets,
+	}
+	if err := store.readPresets(); err != nil {
+		return nil, err
+	}
 	data, err := os.ReadFile(store.path)
 	if errors.Is(err, os.ErrNotExist) {
 		return store, nil
@@ -76,6 +86,9 @@ func (store *Store) Set(settings *gitdv1.PublishSettings) (*gitdv1.PublishSettin
 	defer store.guard.Unlock()
 	if store.fileHas(kept.GetUrlPrefix()) {
 		return nil, ErrFromFile
+	}
+	if found, _ := store.namedLocked(kept.GetPreset()); kept.GetPreset() != "" && !found {
+		return nil, invalid("no preset %q", kept.GetPreset())
 	}
 	changed := slices.DeleteFunc(slices.Clone(store.set), func(earlier *gitdv1.PublishSettings) bool {
 		return earlier.GetUrlPrefix() == kept.GetUrlPrefix()

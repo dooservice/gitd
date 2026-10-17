@@ -30,7 +30,7 @@ func TestEveryPublishIsRecordedAndABranchOutsideThePrefixRefused(t *testing.T) {
 	repository := repo.Repo{Host: "github.com", Path: "acme/web"}
 	workspaces, roots := newTestWorkspaces(t, repository)
 	recorded := &entries{}
-	settings, err := publishing.Open(t.TempDir(), nil)
+	settings, err := publishing.Open(t.TempDir(), publishing.File{})
 	if err != nil {
 		t.Fatal(err)
 	}

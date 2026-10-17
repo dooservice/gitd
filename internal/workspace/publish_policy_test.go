@@ -32,7 +32,7 @@ func committed(t *testing.T, path string, files map[string]string) {
 func TestAPublishThatBreaksARuleIsRefusedBeforeAnythingIsPushed(t *testing.T) {
 	repository := repo.Repo{Host: "github.com", Path: "acme/web"}
 	workspaces, roots := newTestWorkspaces(t, repository)
-	settings, err := publishing.Open(t.TempDir(), nil)
+	settings, err := publishing.Open(t.TempDir(), publishing.File{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -66,5 +66,34 @@ func TestAPublishThatBreaksARuleIsRefusedBeforeAnythingIsPushed(t *testing.T) {
 	}
 	if len(recorded.kept) != len(cases) || recorded.kept[0].GetRefusal().GetReason() != git.PolicyRefused {
 		t.Errorf("recorded = %v", recorded.kept)
+	}
+}
+
+func TestAnAllowedPathPassesItsSettingsPresetAndNothingElse(t *testing.T) {
+	repository := repo.Repo{Host: "github.com", Path: "acme/web"}
+	workspaces, roots := newTestWorkspaces(t, repository)
+	settings, err := publishing.Open(t.TempDir(), publishing.File{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := settings.Set(&gitdv1.PublishSettings{
+		UrlPrefix: "https://github.com/acme", Preset: publishing.RecommendedName, AllowedPaths: []string{".gitmodules"},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	workspaces.UsePublishing(Publishing{Settings: settings})
+	for name, attempt := range map[string]struct {
+		files  map[string]string
+		reason git.Reason
+	}{
+		"submodules": {map[string]string{".gitmodules": "[submodule]\n"}, git.AuthRequired},
+		"ci":         {map[string]string{".github/workflows/ci.yml": "evil\n"}, git.PolicyRefused},
+	} {
+		path := made(t, workspaces, roots, name, repository)
+		committed(t, path, attempt.files)
+		_, err := workspaces.Publish(context.Background(), &gitdv1.PublishRequest{Path: path, Branch: "agents/" + name})
+		if failure, ok := git.AsFailure(err); !ok || failure.Reason != attempt.reason {
+			t.Errorf("%s: %v; want %v", name, err, attempt.reason)
+		}
 	}
 }
