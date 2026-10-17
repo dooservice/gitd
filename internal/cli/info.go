@@ -18,8 +18,10 @@ func infoCommand(app *app) *cobra.Command {
 				return err
 			}
 			app.print(answer, func(out io.Writer) {
-				fmt.Fprintf(out, "gitd %s on %s\n%d pools, %s\n",
-					answer.GetVersion(), answer.GetGitVersion(), answer.GetPools(), size(answer.GetPoolsBytes()))
+				fmt.Fprintf(out, "gitd %s on %s\n%d pools, %s; %d templates, %s\nworkspaces made by %s: %s\n",
+					answer.GetVersion(), answer.GetGitVersion(), answer.GetPools(), size(answer.GetPoolsBytes()),
+					answer.GetTemplates(), size(answer.GetTemplatesBytes()),
+					strategyName(answer.GetStrategy()), answer.GetStrategyReason())
 			})
 			return nil
 		},

@@ -107,10 +107,11 @@ type pending struct {
 }
 
 type workspaceOutput struct {
-	Path    string    `json:"path"`
-	Commit  string    `json:"commit"`
-	Branch  string    `json:"branch,omitempty" jsonschema:"the branch it follows; empty when detached"`
-	Pending []pending `json:"pending_submodules,omitempty" jsonschema:"submodules that could not be checked out, and why"`
+	Path     string    `json:"path"`
+	Commit   string    `json:"commit"`
+	Strategy string    `json:"strategy" jsonschema:"how it was made: overlay (milliseconds, a shared template), reflink or copy"`
+	Branch   string    `json:"branch,omitempty" jsonschema:"the branch it follows; empty when detached"`
+	Pending  []pending `json:"pending_submodules,omitempty" jsonschema:"submodules that could not be checked out, and why"`
 }
 
 type submodule struct {
@@ -122,6 +123,7 @@ type submodule struct {
 
 type describeOutput struct {
 	URL        string      `json:"url"`
+	Strategy   string      `json:"strategy" jsonschema:"how it was made: overlay, reflink or copy"`
 	Commit     string      `json:"commit"`
 	Branch     string      `json:"branch,omitempty"`
 	Modified   bool        `json:"modified" jsonschema:"whether there are uncommitted changes"`
@@ -182,7 +184,7 @@ func (tools *tools) describe(ctx context.Context, _ *mcp.CallToolRequest, in pat
 	if err != nil {
 		return nil, describeOutput{}, refusal(err)
 	}
-	out := describeOutput{URL: answer.GetUrl(), Commit: answer.GetCommit(), Branch: answer.GetBranch(), Modified: answer.GetModified()}
+	out := describeOutput{URL: answer.GetUrl(), Commit: answer.GetCommit(), Branch: answer.GetBranch(), Modified: answer.GetModified(), Strategy: made(answer.GetStrategy())}
 	for _, state := range answer.GetSubmodules() {
 		out.Submodules = append(out.Submodules, submodule{Path: state.GetPath(), URL: state.GetUrl(), Commit: state.GetCommit(), CheckedOut: state.GetCheckedOut()})
 	}
@@ -224,7 +226,7 @@ func (tools *tools) probe(ctx context.Context, _ *mcp.CallToolRequest, in probeI
 
 // workspace is where a workspace ended up, as the agent reads it.
 func workspace(path string, result *gitdv1.WorkspaceResult) workspaceOutput {
-	out := workspaceOutput{Path: path, Commit: result.GetCommit(), Branch: result.GetBranch()}
+	out := workspaceOutput{Path: path, Commit: result.GetCommit(), Branch: result.GetBranch(), Strategy: made(result.GetStrategy())}
 	for _, left := range result.GetPendingSubmodules() {
 		out.Pending = append(out.Pending, pending{Path: left.GetPath(), URL: left.GetUrl(), Reason: left.GetFailure().GetGitSaid()})
 	}
@@ -252,4 +254,14 @@ func access(value gitdv1.ProbeResponse_Access) string {
 		return "denied"
 	}
 	return "unknown"
+}
+
+func made(strategy gitdv1.Strategy) string {
+	switch strategy {
+	case gitdv1.Strategy_STRATEGY_OVERLAY:
+		return "overlay"
+	case gitdv1.Strategy_STRATEGY_REFLINK:
+		return "reflink"
+	}
+	return "copy"
 }

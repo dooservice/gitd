@@ -13,8 +13,19 @@ func workspaceLine(out io.Writer, path string, result *gitdv1.WorkspaceResult) {
 	if result.GetBranch() != "" {
 		on = "on " + result.GetBranch()
 	}
-	fmt.Fprintf(out, "%s at %s, %s\n", path, short(result.GetCommit()), on)
+	fmt.Fprintf(out, "%s at %s, %s, made by %s\n", path, short(result.GetCommit()), on, strategyName(result.GetStrategy()))
 	pending(out, result.GetPendingSubmodules())
+}
+
+// strategyName is how a workspace was made, as people read it.
+func strategyName(strategy gitdv1.Strategy) string {
+	switch strategy {
+	case gitdv1.Strategy_STRATEGY_OVERLAY:
+		return "overlay"
+	case gitdv1.Strategy_STRATEGY_REFLINK:
+		return "reflink"
+	}
+	return "copy"
 }
 
 func states(out io.Writer, submodules []*gitdv1.SubmoduleState) {

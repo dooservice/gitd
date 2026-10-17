@@ -26,7 +26,7 @@ func describeCommand(app *app) *cobra.Command {
 				if answer.GetModified() {
 					changed = ", modified"
 				}
-				fmt.Fprintf(out, "%s\n%s, %s%s\n", answer.GetUrl(), short(answer.GetCommit()), on, changed)
+				fmt.Fprintf(out, "%s\n%s, %s%s, made by %s\n", answer.GetUrl(), short(answer.GetCommit()), on, changed, strategyName(answer.GetStrategy()))
 				states(out, answer.GetSubmodules())
 			})
 			return nil
