@@ -1,35 +1,24 @@
-// Command gitd keeps the copies of git repositories on one server.
+// Command gitd keeps one copy of each git repository and makes workspaces that borrow from
+// it. `gitd` alone serves; `gitd prepare …` and the other commands call the gitd that
+// serves (internal/cli).
 package main
 
 import (
 	"context"
-	"flag"
-	"fmt"
 	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
 
-	"github.com/dooservice/gitd/internal/config"
-	"github.com/dooservice/gitd/internal/daemon"
+	"github.com/dooservice/gitd/internal/cli"
 )
 
 var version = "dev"
 
 func main() {
-	path := flag.String("config", config.DefaultPath, "configuration file")
-	socket := flag.String("socket", "", "Unix socket to answer on, over the configuration's")
-	showVersion := flag.Bool("version", false, "print the version and exit")
-	flag.Parse()
-	if *showVersion {
-		fmt.Println(version)
-		return
-	}
 	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, nil)))
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	defer stop()
-	if err := daemon.Run(ctx, *path, *socket, version); err != nil {
-		slog.Error("gitd stopped", "error", err)
-		os.Exit(1)
-	}
+	code := cli.Execute(ctx, os.Args[1:], version)
+	stop()
+	os.Exit(code)
 }
