@@ -198,6 +198,10 @@ the credential that pushed: from the App's bot, the person who asked for the wor
 the files and lines they change, and the rules they passed. If the pull request cannot be
 opened, the branch stays published and the answer says why.
 
+Rules by path cannot know what the CI runs: a test or a `Makefile` an agent changed runs in
+the CI of its branch. [`docs/GITHUB.md`](docs/GITHUB.md) sets GitHub up so that agents'
+branches never receive the repository's secrets.
+
 Every publish, done or refused, and every change to connections and settings, is on the
 record:
 

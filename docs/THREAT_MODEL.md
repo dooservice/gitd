@@ -225,6 +225,7 @@ Known, and left to the deployment or to a later version:
 | **A caller on the socket is fully trusted** | The socket has no authentication in 0.8: whoever can open it may prepare, remove or publish any workspace, send credentials, connect GitHub, add or remove credentials and change the publishing rules | Give the socket's group to the platform only. 0.9 adds tokens and tenants, and an administrator key for connections and settings |
 | **Kept secrets are on gitd's disk** | Without `secrets_key_file`, connections' secrets are files only gitd's user reads; with it, whoever reads the key and the files reads them | Set `secrets_key_file` from a systemd credential, and keep the key out of backups of the state directory |
 | **Publishing rules see paths, not intent** | They refuse changes to protected paths, deleted kept paths and too many files; harmful code in any other file passes them | Keep reviewing pull requests; protect the branches they merge into on the host |
+| **The CI runs what an agent changed** | Rules by path cannot know which files the CI executes: a test, a `Makefile`, `package.json`'s scripts. GitHub gives repository and organisation secrets to the workflows of every branch of the same repository, an agent's included | Keep secrets in environments agents' branches cannot use, make the workflow token read only, and run nothing privileged for `agents/*` ([GITHUB.md](GITHUB.md)) |
 | **A sign-in acts as the person** | A person's token reaches what they and gitd's public App reach, and cannot be narrowed to one repository per operation as an App's can | Prefer the organisation's own App for anything shared; sign in only for one person's own work |
 | **An agent with MCP is a caller on the socket** | `gitd mcp` calls the socket; an agent that runs it, or has a shell where the socket is reachable, can do what any caller can — to other agents' workspaces too | Run `gitd mcp` for one agent at a time, and never mount the socket into a sandbox. 0.9 scopes each token to one workspace |
 | **Sandboxes read every pool they are given** | A workspace reads its pool's objects through `alternates`; a sandbox given the whole pools directory reads every repository in it | Mount only the pools a sandbox's workspace borrows from. 0.9 keeps tenants' pools apart |
@@ -248,8 +249,10 @@ Known, and left to the deployment or to a later version:
    on; keep other tokens in systemd credentials (`LoadCredential=`), each with a prefix
    naming its host and organization: `https://github.com/your-org`. Set
    `secrets_key_file`.
-4. Set publishing settings with a branch prefix and the `recommended` preset, and protect
-   that prefix on the git host as you would any branch an outsider proposes.
+4. Set publishing settings with a branch prefix and the `recommended` preset, and treat that
+   prefix on the git host as you would any branch an outsider proposes: no secrets for its
+   workflows, a read-only workflow token, and a person's approval before merging
+   ([GITHUB.md](GITHUB.md)).
 5. Mount into each sandbox its workspace, read-write, and only the pools it borrows from,
    read-only. Run sandboxes with user namespaces.
 6. Stop or pause a workspace's sandbox while gitd updates, checks out, publishes or
