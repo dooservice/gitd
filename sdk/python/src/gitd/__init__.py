@@ -1,5 +1,6 @@
 """Client for gitd: instant, secretless git checkouts for agent sandboxes."""
 
+from .changes import ChangedFile, ChangeKind, Changes, Diff
 from .client import Gitd
 from .connection import DEFAULT_SOCKET, SOCKET_VARIABLE
 from .errors import GitdError
@@ -32,6 +33,10 @@ from .publishing_settings import (
 )
 
 __all__ = [
+    "ChangeKind",
+    "ChangedFile",
+    "Changes",
+    "Diff",
     "AppToCreate",
     "ConfigurationChange",
     "Connected",

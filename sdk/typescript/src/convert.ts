@@ -2,11 +2,13 @@ import type { MessageInitShape } from "@bufbuild/protobuf";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 
 import {
+  ChangedFile_Kind,
   ConfigurationChange_Action,
   GitFailure_Reason,
   ProbeResponse_Access,
   Strategy,
   type AuditEntry as AuditEntryMessage,
+  type ChangesResponse,
   type GitFailure,
   type OpenedPullRequest as OpenedPullRequestMessage,
   type PublishResponse,
@@ -15,7 +17,17 @@ import {
   type WorkspaceResult,
 } from "./gen/gitd/v1/gitd_pb.js";
 import type { OpenedPullRequest } from "./publishing-types.js";
-import type { AuditEntry, Probe, Published, PublishedRepository, Refusal, StrategyName, Workspace } from "./types.js";
+import type {
+  AuditEntry,
+  ChangeKind,
+  Changes,
+  Probe,
+  Published,
+  PublishedRepository,
+  Refusal,
+  StrategyName,
+  Workspace,
+} from "./types.js";
 
 export function toWorkspace(path: string, result: WorkspaceResult): Workspace {
   const layers = result.layers;
@@ -129,4 +141,29 @@ function openedOf(opened: OpenedPullRequestMessage | undefined): OpenedPullReque
 
 function refusalOf(failure: GitFailure | undefined): Refusal | undefined {
   return failure && { reason: (GitFailure_Reason[failure.reason] ?? "").replace("REASON_", ""), said: failure.gitSaid };
+}
+
+export function toChanges(answer: ChangesResponse): Changes {
+  return {
+    base: answer.base,
+    fromLayer: answer.fromLayer,
+    files: answer.files.map((file) => ({
+      path: file.path,
+      kind: kindName(file.kind),
+      addedLines: file.addedLines,
+      removedLines: file.removedLines,
+      binary: file.binary,
+    })),
+  };
+}
+
+function kindName(kind: ChangedFile_Kind): ChangeKind {
+  switch (kind) {
+    case ChangedFile_Kind.ADDED:
+      return "added";
+    case ChangedFile_Kind.DELETED:
+      return "deleted";
+    default:
+      return "modified";
+  }
 }

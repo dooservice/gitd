@@ -30,6 +30,8 @@ CHECKOUT = Method("WorkspaceService", "Checkout", messages.CheckoutResponse)
 DESCRIBE = Method("WorkspaceService", "Describe", messages.DescribeResponse)
 PUBLISH = Method("WorkspaceService", "Publish", messages.PublishResponse)
 REMOVE = Method("WorkspaceService", "Remove", messages.RemoveResponse)
+CHANGES = Method("WorkspaceService", "Changes", messages.ChangesResponse)
+DIFF = Method("WorkspaceService", "Diff", messages.DiffResponse)
 
 LIST_CONNECTIONS = Method("ConnectionService", "ListConnections", messages.ListConnectionsResponse)
 REMOVE_CONNECTION = Method("ConnectionService", "RemoveConnection", messages.RemoveConnectionResponse)

@@ -21,13 +21,17 @@ import {
   strategyName,
   strategyProto,
   toAuditEntry,
+  toChanges,
   toWorkspace,
 } from "./convert.js";
 import type {
   AuditEntry,
   AuditOptions,
+  Changes,
   CheckoutOptions,
   Description,
+  Diff,
+  DiffOptions,
   Info,
   PrepareOptions,
   Probe,
@@ -166,6 +170,24 @@ export class Gitd {
     };
     const answer = await call(() => this.server.audit(request));
     return answer.entries.map(toAuditEntry);
+  }
+
+  /** What was changed in a workspace since gitd put it on its commit, committed or not. */
+  async changes(path: string, includeIgnored = false): Promise<Changes> {
+    return toChanges(await call(() => this.workspaces.changes({ path, includeIgnored })));
+  }
+
+  /** The unified diff of a workspace's changes, of some files or all, cut short at a size. */
+  async diff(path: string, options: DiffOptions = {}): Promise<Diff> {
+    const answer = await call(() =>
+      this.workspaces.diff({
+        path,
+        files: options.files ?? [],
+        maxBytes: BigInt(options.maxBytes ?? 0),
+        includeIgnored: options.includeIgnored ?? false,
+      }),
+    );
+    return { base: answer.base, diff: answer.diff, truncated: answer.truncated };
   }
 
   /** Deletes a workspace; its pool stays. */

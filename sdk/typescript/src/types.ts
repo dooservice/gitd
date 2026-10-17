@@ -77,6 +77,42 @@ export interface PublishedRepository {
   subjects: string[];
 }
 
+/** How a file changed. */
+export type ChangeKind = "added" | "modified" | "deleted";
+
+/** A file changed, relative to the workspace, with its lines; a binary one counts none. */
+export interface ChangedFile {
+  path: string;
+  kind: ChangeKind;
+  addedLines: number;
+  removedLines: number;
+  binary: boolean;
+}
+
+/** What was changed in a workspace since gitd put it on `base`, committed or not. */
+export interface Changes {
+  base: string;
+  /** Read from the agent's own layer, with no git run in the workspace. */
+  fromLayer: boolean;
+  files: ChangedFile[];
+}
+
+/** The unified diff of a workspace's changes. */
+export interface Diff {
+  base: string;
+  diff: string;
+  /** Cut short at maxBytes. */
+  truncated: boolean;
+}
+
+export interface DiffOptions {
+  /** Only these files, relative to the workspace. */
+  files?: string[];
+  /** At most this many bytes: 512 KiB by default, never more than 8 MiB. */
+  maxBytes?: number;
+  includeIgnored?: boolean;
+}
+
 /** Which gitd answers, and how it makes workspaces on its machine. */
 export interface Info {
   version: string;

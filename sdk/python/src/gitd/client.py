@@ -6,6 +6,7 @@ from datetime import datetime
 from typing import Any
 
 from . import messages, methods
+from .changes import Changes, Diff
 from .connection import Connection, OnProgress
 from .credentials_calls import Credentials
 from .models import AuditEntry, Description, Info, Probe, Published, Strategy, Workspace
@@ -120,6 +121,26 @@ class Gitd:
         if pull_request is not None:
             request.pull_request.CopyFrom(pull_request.to_message())
         return Published.from_message(self.connection.call(methods.PUBLISH, request))
+
+    def changes(self, path: str, *, include_ignored: bool = False) -> Changes:
+        """What was changed in a workspace since gitd put it on its commit, committed or not."""
+        request = messages.ChangesRequest(path=path, include_ignored=include_ignored)
+        return Changes.from_message(self.connection.call(methods.CHANGES, request))
+
+    def diff(
+        self,
+        path: str,
+        files: list[str] | None = None,
+        *,
+        max_bytes: int = 0,
+        include_ignored: bool = False,
+    ) -> Diff:
+        """The unified diff of a workspace's changes, of some files or all, cut short at
+        max_bytes (512 KiB by default)."""
+        request = messages.DiffRequest(
+            path=path, files=files or [], max_bytes=max_bytes, include_ignored=include_ignored
+        )
+        return Diff.from_message(self.connection.call(methods.DIFF, request))
 
     def remove(self, path: str) -> None:
         """Deletes a workspace; its pool stays."""
