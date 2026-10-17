@@ -26,7 +26,7 @@ var permissions = map[credentials.Purpose]map[string]string{
 
 // ErrNotInstalled is a repository the App cannot reach: not installed on its owner, or not
 // on that repository.
-var ErrNotInstalled = errors.New("the GitHub App is not installed on this repository")
+var ErrNotInstalled = fmt.Errorf("%w: the GitHub App is not installed on it", credentials.ErrUnreachable)
 
 // App makes the installation tokens of one GitHub App, each for one repository and one
 // purpose, kept in memory until shortly before they expire and never written anywhere.

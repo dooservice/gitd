@@ -31,6 +31,13 @@ type Store struct {
 	guard     sync.RWMutex
 	records   map[string]Record
 	opened    map[string][]byte
+	github    GitHub
+	apps      apps
+}
+
+// UseGitHub says how the GitHub Apps of the connections reach GitHub's API.
+func (store *Store) UseGitHub(github GitHub) {
+	store.github = github
 }
 
 // Open reads the connections kept in directory, making it if it is not there. A secret
@@ -130,6 +137,7 @@ func (store *Store) Remove(id string) error {
 	}
 	delete(store.records, id)
 	delete(store.opened, id)
+	store.forget(id)
 	return nil
 }
 
