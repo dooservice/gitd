@@ -21,6 +21,8 @@ type Client struct {
 	Workspaces   gitdv1connect.WorkspaceServiceClient
 	Repositories gitdv1connect.RepositoryServiceClient
 	Server       gitdv1connect.ServerServiceClient
+	Connections  gitdv1connect.ConnectionServiceClient
+	Publishing   gitdv1connect.PublishingServiceClient
 }
 
 // New returns the gitd that answers on socket. Nothing is dialled until the first call.
@@ -37,6 +39,8 @@ func New(socket string) *Client {
 		Workspaces:   gitdv1connect.NewWorkspaceServiceClient(httpClient, base),
 		Repositories: gitdv1connect.NewRepositoryServiceClient(httpClient, base),
 		Server:       gitdv1connect.NewServerServiceClient(httpClient, base),
+		Connections:  gitdv1connect.NewConnectionServiceClient(httpClient, base),
+		Publishing:   gitdv1connect.NewPublishingServiceClient(httpClient, base),
 	}
 }
 
