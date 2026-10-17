@@ -120,7 +120,20 @@ which wins over a kept one of the same prefix.
 
 ## Benchmark
 
-<!-- benchmark -->
+Ten agents on [kubernetes](https://github.com/kubernetes/kubernetes), each getting its own
+copy, on a GitHub runner:
+
+| History | How | Time | Disk | Network |
+|---|---|---|---|---|
+| Tip only | 10 × `git clone --depth 1` | 119.5 s | 4,190 MB | 10 fetches |
+| Tip only | 10 × `gitd prepare` | **37.7 s** (first 12.3 s, then 2.8 s each) | 3,786 MB | **1 fetch** |
+| Whole | 10 × `git clone` | 1,093 s | 17,103 MB | 10 fetches |
+| Whole | 10 × `gitd prepare --full-history` | **128.6 s** (first 99.5 s, then 3.2 s each) | **5,132 MB** | **1 fetch** |
+
+With the whole history, gitd is 8.5× faster and takes a third of the disk; with the tip
+only, 3.2× faster, and most of the disk is each copy's own files. Those files are what the
+next version stops writing: in its first measurements, a kubernetes workspace made by
+kernel overlay takes 2 ms and 1.1 MB (see the [roadmap](docs/ROADMAP.md)).
 
 Run it yourself: `docker build -t gitd:bench . && benchmarks/agents.sh REPO N`, or the
 *benchmark* workflow of this repository.
