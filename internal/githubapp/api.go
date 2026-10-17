@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -58,6 +59,37 @@ func APIBase(host string, httpsPort int) string {
 	return "https://" + host + "/api/v3"
 }
 
+// failureMessage is what GitHub said of a failure: its message, and the message or field
+// and code of each error it lists, as a validation failure says what was invalid only there.
+func failureMessage(status int, data []byte) string {
+	var said struct {
+		Message string `json:"message"`
+		Errors  []struct {
+			Message string `json:"message"`
+			Field   string `json:"field"`
+			Code    string `json:"code"`
+		} `json:"errors"`
+	}
+	_ = json.Unmarshal(data, &said)
+	message := said.Message
+	if message == "" {
+		message = http.StatusText(status)
+	}
+	var details []string
+	for _, listed := range said.Errors {
+		switch {
+		case listed.Message != "":
+			details = append(details, listed.Message)
+		case listed.Field != "":
+			details = append(details, listed.Field+" "+listed.Code)
+		}
+	}
+	if len(details) > 0 {
+		message += ": " + strings.Join(details, "; ")
+	}
+	return message
+}
+
 // call sends a request with an Authorization header (empty for none) and, when given, a
 // JSON body, and reads the JSON answer into answer.
 func (api *API) call(ctx context.Context, method, path, authorization string, body, answer any) error {
@@ -92,14 +124,7 @@ func (api *API) call(ctx context.Context, method, path, authorization string, bo
 		return fmt.Errorf("reading GitHub's answer: %w", err)
 	}
 	if response.StatusCode < 200 || response.StatusCode > 299 {
-		var said struct {
-			Message string `json:"message"`
-		}
-		_ = json.Unmarshal(data, &said)
-		if said.Message == "" {
-			said.Message = http.StatusText(response.StatusCode)
-		}
-		return &APIError{Status: response.StatusCode, Message: said.Message}
+		return &APIError{Status: response.StatusCode, Message: failureMessage(response.StatusCode, data)}
 	}
 	if answer == nil || len(data) == 0 {
 		return nil

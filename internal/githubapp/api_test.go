@@ -69,3 +69,18 @@ func TestAFailureSaysWhatGitHubSaidAndARedirectIsNotFollowed(t *testing.T) {
 		t.Errorf("redirect: %v", err)
 	}
 }
+
+func TestAValidationFailureSaysWhatWasInvalid(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
+		writer.WriteHeader(http.StatusUnprocessableEntity)
+		_, _ = writer.Write([]byte(`{"message": "Validation Failed", "errors": [
+			{"resource": "PullRequest", "code": "custom", "message": "Draft pull requests are not supported in this repository."},
+			{"resource": "PullRequest", "field": "base", "code": "invalid"}]}`))
+	}))
+	defer server.Close()
+	err := NewAPI(server.URL, "gitd/test").call(context.Background(), http.MethodPost, "/x", "", nil, nil)
+	want := "GitHub answered 422: Validation Failed: Draft pull requests are not supported in this repository.; base invalid"
+	if err == nil || err.Error() != want {
+		t.Errorf("err = %v", err)
+	}
+}
