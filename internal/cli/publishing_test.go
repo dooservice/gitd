@@ -3,6 +3,9 @@ package cli
 import (
 	"bytes"
 	"testing"
+	"time"
+
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	gitdv1 "github.com/dooservice/gitd/gen/go/gitd/v1"
 )
@@ -44,6 +47,21 @@ func TestChangesReadAsGitStatusDoesWithTheirLines(t *testing.T) {
 	}})
 	want := "since " + short("0123456789abcdef") + ", read from the agent's layer\n" +
 		"  M  +3 -1        src/app.go\n  A  binary       logo.png\n2 files, +3 -1\n"
+	if out.String() != want {
+		t.Errorf("got:\n%s\nwant:\n%s", out.String(), want)
+	}
+}
+
+func TestConflictsAndEventsReadAsTheyHappened(t *testing.T) {
+	var out bytes.Buffer
+	conflictLines(&out, &gitdv1.ConflictsResponse{Conflicts: []*gitdv1.Conflict{{
+		First: sideOf("/w/agent-2"), Second: sideOf("agents/fix"), Paths: []string{"auth.go", "go.mod"},
+	}}})
+	conflictLines(&out, &gitdv1.ConflictsResponse{})
+	eventLine(&out, &gitdv1.WatchResponse{Kind: gitdv1.WatchResponse_KIND_PUBLISHED, Path: "/w/agent-2", Branch: "agents/fix",
+		Detail: "https://github.com/acme/web/pull/7", Time: timestamppb.New(time.Date(2026, 10, 17, 12, 30, 5, 0, time.UTC))})
+	want := "/w/agent-2 and agents/fix conflict on auth.go, go.mod\nevery pair merges cleanly\n" +
+		"12:30:05  published /w/agent-2  agents/fix  https://github.com/acme/web/pull/7\n"
 	if out.String() != want {
 		t.Errorf("got:\n%s\nwant:\n%s", out.String(), want)
 	}

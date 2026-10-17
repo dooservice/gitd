@@ -73,7 +73,9 @@ func changesLines(out io.Writer, answer *gitdv1.ChangesResponse) {
 	if answer.GetFromLayer() {
 		read = "the agent's layer"
 	}
-	fmt.Fprintf(out, "since %s, read from %s\n", short(answer.GetBase()), read)
+	if answer.GetBase() != "" {
+		fmt.Fprintf(out, "since %s, read from %s\n", short(answer.GetBase()), read)
+	}
 	if len(answer.GetFiles()) == 0 {
 		fmt.Fprintln(out, "  nothing changed")
 		return

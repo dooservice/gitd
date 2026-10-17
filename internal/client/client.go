@@ -222,3 +222,29 @@ func (client *Client) Changes(ctx context.Context, request *gitdv1.ChangesReques
 func (client *Client) Diff(ctx context.Context, request *gitdv1.DiffRequest) (*gitdv1.DiffResponse, error) {
 	return unary(ctx, client.Workspaces.Diff, request)
 }
+
+// Compare says how two works differ.
+func (client *Client) Compare(ctx context.Context, request *gitdv1.CompareRequest) (*gitdv1.CompareResponse, error) {
+	return unary(ctx, client.Workspaces.Compare, request)
+}
+
+// Conflicts says which pairs of works do not merge cleanly.
+func (client *Client) Conflicts(ctx context.Context, request *gitdv1.ConflictsRequest) (*gitdv1.ConflictsResponse, error) {
+	return unary(ctx, client.Workspaces.Conflicts, request)
+}
+
+// Watch hands each event of the workspaces at paths, or of every one, to told, until ctx
+// ends or gitd ends the watch.
+func (client *Client) Watch(ctx context.Context, paths []string, told func(*gitdv1.WatchResponse)) error {
+	stream, err := client.Workspaces.Watch(ctx, connect.NewRequest(&gitdv1.WatchRequest{Paths: paths}))
+	if err != nil {
+		return err
+	}
+	for stream.Receive() {
+		told(stream.Msg())
+	}
+	if err := stream.Err(); err != nil && ctx.Err() == nil {
+		return err
+	}
+	return nil
+}
