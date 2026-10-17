@@ -1,0 +1,23 @@
+# gitd and the git it runs. The image serves by default (`docker run … ghcr.io/dooservice/gitd`)
+# and is also the command line: `docker exec <container> gitd prepare …`.
+FROM --platform=$BUILDPLATFORM golang:1.27.2-bookworm AS build
+WORKDIR /src
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+ARG VERSION=dev TARGETOS TARGETARCH
+# Cross-compiled on the build machine: no emulation for Go, whatever the image's platform.
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -ldflags "-s -w -X main.version=${VERSION}" -o /gitd ./cmd/gitd
+
+FROM debian:12-slim
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends git openssh-client ca-certificates \
+ && rm -rf /var/lib/apt/lists/* \
+ && useradd --system --uid 1000 --user-group --home-dir /var/lib/gitd gitd \
+ && mkdir -p /var/lib/gitd/workspaces /run/gitd /etc/gitd \
+ && chown -R gitd:gitd /var/lib/gitd /run/gitd
+COPY --from=build /gitd /usr/local/bin/gitd
+USER gitd
+ENV GITD_SOCKET=/run/gitd/gitd.sock
+VOLUME ["/var/lib/gitd", "/run/gitd"]
+ENTRYPOINT ["gitd"]
