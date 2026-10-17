@@ -2,11 +2,10 @@
 
 `gitd` gives **instant, secretless git checkouts to agent sandboxes**: AI agents, CI jobs
 or preview environments get a workspace of a repository in the seconds it takes to write
-its files, with no download, work in it
-with plain git, and have their commits published as a branch, without ever holding the
-credential. To do so it keeps, on one server, a cache of each repository (its pool), the
-workspaces that borrow from it, their submodules, and the credentials they are read and
-published with. Repositories live on any git host — GitHub, GitLab (with its nested
+its files, with no download, work in it with plain git, and have their commits published
+as a branch, without ever holding the credential. To do so it keeps, on one server, a
+cache of each repository (its pool), the workspaces that borrow from it, their submodules,
+and the credentials they are read and published with. Repositories live on any git host — GitHub, GitLab (with its nested
 groups), Bitbucket, Gitea, Forgejo, Codeberg or a self-hosted one; `gitd` hosts none.
 
 It runs on one server and answers on a Unix socket: to a program through its API, to a
