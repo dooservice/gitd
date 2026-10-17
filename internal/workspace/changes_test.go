@@ -90,6 +90,21 @@ func TestChangesAreWhatTheAgentDidSinceGitdPutTheWorkspaceOnItsCommit(t *testing
 	}
 }
 
+func TestTheLinesOfAWorkspaceThatOnlyAddedAFileAreCounted(t *testing.T) {
+	repository := repo.Repo{Host: "github.com", Path: "acme/web"}
+	workspaces, roots := newTestWorkspacesOf(t, baseFiles, repository)
+	path := copied(t, workspaces, roots, "agent", repository)
+	write(t, filepath.Join(path, "notes/run.md"), "one\ntwo\n")
+
+	answer, err := workspaces.Changes(context.Background(), &gitdv1.ChangesRequest{Path: path})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if files := answer.GetFiles(); len(files) != 1 || files[0].GetAddedLines() != 2 {
+		t.Errorf("changed = %v; want notes/run.md with its two lines", files)
+	}
+}
+
 func TestALayerSaysWhatItsAgentTouchedAndWhatItHides(t *testing.T) {
 	root := t.TempDir()
 	lower, upper, merged := filepath.Join(root, "lower"), filepath.Join(root, "upper"), filepath.Join(root, "merged")

@@ -65,11 +65,19 @@ func (workspaces *Workspaces) copyAside(ctx context.Context, set changeSet, file
 	return copied, nil
 }
 
-// newAside makes a private directory to copy files aside into.
+// newAside makes a private directory to copy files aside into, with both sides: git
+// compares nothing, and says so as it says a difference, when one is missing — as when
+// every change adds a file.
 func newAside() (*aside, error) {
 	directory, err := os.MkdirTemp("", "gitd-changes-*")
 	if err != nil {
 		return nil, err
+	}
+	for _, side := range []string{"a", "b"} {
+		if err := os.Mkdir(filepath.Join(directory, side), 0o700); err != nil {
+			_ = os.RemoveAll(directory)
+			return nil, err
+		}
 	}
 	return &aside{directory: directory, large: map[string]bool{}}, nil
 }
