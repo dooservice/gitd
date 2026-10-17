@@ -46,8 +46,50 @@ service ServerService {
   // Remove now the pools no workspace borrows from and nothing has used for at least
   // `unused_for_seconds`, as the maintenance round does after `retire_after`.
   rpc Retire(RetireRequest) returns (RetireResponse);
-  // The audit log: every publish, done or refused, newest first.
+  // The audit log: every publish, done or refused, and every change to connections and
+  // publishing settings, newest first.
   rpc Audit(AuditRequest) returns (AuditResponse);
+}
+
+// The credentials gitd keeps, managed by a platform from its own pages instead of a file:
+// GitHub connected through the organisation's own App, by signing in, or through an App
+// the platform already has; and tokens for any host. gitd keeps them under its state
+// directory, applies them at once, and never answers with a secret. None of this is
+// offered to agents through MCP.
+service ConnectionService {
+  // Start creating the organisation's own GitHub App from a manifest: the answer says
+  // where the person's browser posts the manifest. GitHub then sends the person to
+  // `redirect_url` with a code and the state, for CompleteGitHubApp.
+  rpc BeginGitHubApp(BeginGitHubAppRequest) returns (BeginGitHubAppResponse);
+  // Finish creating the App: gitd exchanges the code for the App's ID and private key and
+  // keeps them. The person then installs the App on the repositories it may reach.
+  rpc CompleteGitHubApp(CompleteGitHubAppRequest) returns (CompleteGitHubAppResponse);
+  // Start signing in to GitHub with gitd's public App (GitHub's device flow): the answer
+  // has the code the person enters at GitHub.
+  rpc StartGitHubLogin(StartGitHubLoginRequest) returns (StartGitHubLoginResponse);
+  // Wait until the person has entered the code, and keep the sign-in. Pull requests then
+  // appear as that person.
+  rpc FinishGitHubLogin(FinishGitHubLoginRequest) returns (FinishGitHubLoginResponse);
+  // Keep a GitHub App the platform already has, by its ID and private key.
+  rpc AddGitHubApp(AddGitHubAppRequest) returns (AddGitHubAppResponse);
+  // Keep a token for the repositories under a prefix, on any host.
+  rpc AddToken(AddTokenRequest) returns (AddTokenResponse);
+  // The connections gitd keeps, those of the configuration file included, never a secret.
+  rpc ListConnections(ListConnectionsRequest) returns (ListConnectionsResponse);
+  // Forget a connection made through the API. One from the configuration file is refused.
+  rpc RemoveConnection(RemoveConnectionRequest) returns (RemoveConnectionResponse);
+}
+
+// The rules publishing follows, per repository prefix, managed by a platform from its own
+// pages instead of a file: which paths a publish may not change or delete, how many files
+// it may change, the branch prefix, and how pull requests are opened.
+service PublishingService {
+  // Every setting, those of the configuration file included.
+  rpc GetSettings(GetSettingsRequest) returns (GetSettingsResponse);
+  // Keep the settings of a prefix, replacing those it had.
+  rpc SetSettings(SetSettingsRequest) returns (SetSettingsResponse);
+  // Forget the settings of a prefix. Those of the configuration file are refused.
+  rpc RemoveSettings(RemoveSettingsRequest) returns (RemoveSettingsResponse);
 }
 
 // What opens repositories whose address starts with `url_prefix`, on any host:
@@ -120,6 +162,12 @@ message GitFailure {
     // as a filter or a hook path: whoever writes in the workspace could otherwise have gitd
     // run a command of theirs.
     REASON_CONFIG_REFUSED = 12;
+    // What a publish brings breaks a publishing rule: a protected path changed, a kept
+    // path deleted, or too many files changed. Nothing was pushed.
+    REASON_POLICY_REFUSED = 13;
+    // What was asked cannot be done with this host, such as a pull request where gitd does
+    // not know the host's API.
+    REASON_UNSUPPORTED = 14;
   }
   Reason reason = 1;
   // The last useful line git wrote, e.g. "remote: Repository not found.".
@@ -285,6 +333,31 @@ message PublishRequest {
   // start with `[publish] branch_prefix`, when the configuration sets one.
   string branch = 2;
   repeated Credential credentials = 3;
+  // Who asked for the work, as their account on the git host, e.g. `josue`: written in the
+  // pull request and the audit log, and asked to review when the settings say so. gitd
+  // records it as told.
+  string requested_by = 4;
+  // This publish's pull request, beyond what the settings say.
+  PullRequestOptions pull_request = 5;
+}
+
+// A publish's own say on its pull request. Unset fields take the settings'.
+message PullRequestOptions {
+  // Open one even when the settings open them only when asked.
+  bool open = 1;
+  // Empty: the subject of the newest commit.
+  string title = 2;
+  // The platform's text; gitd's account of what it checked follows it.
+  string body = 3;
+  // The branch it asks to merge into. Empty: the repository's default branch.
+  string base = 4;
+  optional bool draft = 5;
+}
+
+// A pull request gitd opened.
+message OpenedPullRequest {
+  string url = 1;
+  int64 number = 2;
 }
 
 message PublishedRepository {
@@ -300,6 +373,11 @@ message PublishResponse {
   string branch = 1;
   PublishedRepository repository = 2;
   repeated PublishedRepository submodules = 3;
+  // The pull request opened, when one was.
+  OpenedPullRequest pull_request = 4;
+  // Why the pull request could not be opened, when it was to be. The branch is published
+  // all the same.
+  GitFailure pull_request_failure = 5;
 }
 
 message ProbeRequest {
@@ -356,7 +434,7 @@ message InfoResponse {
 message AuditRequest {
   // Only the entries from this time on; all of them when unset.
   google.protobuf.Timestamp since = 1;
-  // Only the publishes of this repository, as its URL is written in the entries.
+  // Only the entries of this repository, as its URL is written in them.
   string url = 2;
   // At most this many, newest first: 100 when unset, never more than 1000.
   int32 limit = 3;
@@ -366,8 +444,8 @@ message AuditResponse {
   repeated AuditEntry entries = 1;
 }
 
-// One publish, done or refused, as the audit log keeps it: one per line of the log file,
-// in this message's JSON form.
+// One publish, done or refused, or one change to connections or publishing settings, as
+// the audit log keeps it: one per line of the log file, in this message's JSON form.
 message AuditEntry {
   google.protobuf.Timestamp time = 1;
   // The workspace's path, as the caller gave it.
@@ -380,4 +458,219 @@ message AuditEntry {
   repeated PublishedRepository submodules = 6;
   // Why it was refused. Unset when it was published.
   GitFailure refusal = 7;
+  // Who asked for the work, as the publish said.
+  string requested_by = 8;
+  // The pull request opened, or why it could not be.
+  OpenedPullRequest pull_request = 9;
+  GitFailure pull_request_failure = 10;
+  // A change to connections or publishing settings; the other fields are then unset.
+  ConfigurationChange change = 11;
 }
+
+// A connection added or removed, or the settings of a prefix set or removed.
+message ConfigurationChange {
+  enum Action {
+    ACTION_UNSPECIFIED = 0;
+    ACTION_CONNECTION_ADDED = 1;
+    ACTION_CONNECTION_REMOVED = 2;
+    ACTION_SETTINGS_SET = 3;
+    ACTION_SETTINGS_REMOVED = 4;
+  }
+  Action action = 1;
+  // The connection's ID, or the settings' prefix.
+  string subject = 2;
+  // What it opens or applies to, e.g. `https://github.com/acme`.
+  string url_prefix = 3;
+}
+
+// One credential gitd keeps.
+message Connection {
+  enum Kind {
+    KIND_UNSPECIFIED = 0;
+    KIND_TOKEN = 1;
+    KIND_SSH_KEY = 2;
+    // A GitHub App: its installation tokens open one repository each, for an hour.
+    KIND_GITHUB_APP = 3;
+    // A person signed in through gitd's public App: their tokens, renewed by gitd.
+    KIND_GITHUB_LOGIN = 4;
+  }
+  // gitd's name for it, to remove it by.
+  string id = 1;
+  Kind kind = 2;
+  // The repositories it opens: those whose address starts with this.
+  string url_prefix = 3;
+  // Whom it acts as: the App's bot (`acme-agents[bot]`) or the person (`josue`). Empty for
+  // a token or a key.
+  string acts_as = 4;
+  // For an App: its ID, and where its installations are managed.
+  int64 app_id = 5;
+  string manage_url = 6;
+  // When it stops working unless renewed: a sign-in's renewal ends then.
+  google.protobuf.Timestamp expires = 7;
+  // From the configuration file: shown, never changed through the API.
+  bool from_file = 8;
+  google.protobuf.Timestamp created = 9;
+}
+
+message BeginGitHubAppRequest {
+  // The GitHub host: empty for github.com, or a GitHub Enterprise Server's.
+  string host = 1;
+  // The organisation that owns the App. Empty: the account of the person creating it.
+  string organization = 2;
+  // The App's name on GitHub, e.g. `acme-agents`; its bot is `acme-agents[bot]`.
+  string name = 3;
+  // Where GitHub sends the person once the App is created: the platform's page, which
+  // hands the code and state to CompleteGitHubApp.
+  string redirect_url = 4;
+}
+
+message BeginGitHubAppResponse {
+  // Where the person's browser posts the manifest, as a form field named `manifest`.
+  string form_action = 1;
+  // The manifest, in JSON: the App's name, its permissions (contents and pull requests,
+  // read and write; metadata, read), no webhook.
+  string manifest = 2;
+  // Ties GitHub's answer to this request; expires in an hour.
+  string state = 3;
+}
+
+message CompleteGitHubAppRequest {
+  string code = 1;
+  string state = 2;
+}
+
+message CompleteGitHubAppResponse {
+  Connection connection = 1;
+  // Where the person installs the App on the repositories it may reach.
+  string install_url = 2;
+}
+
+message StartGitHubLoginRequest {
+  // The GitHub host: empty for github.com.
+  string host = 1;
+}
+
+message StartGitHubLoginResponse {
+  // What the person enters at `verification_url`.
+  string user_code = 1;
+  string verification_url = 2;
+  // Hands this sign-in to FinishGitHubLogin.
+  string login_id = 3;
+  // How long the code is good for.
+  int32 expires_in_seconds = 4;
+}
+
+message FinishGitHubLoginRequest {
+  string login_id = 1;
+}
+
+message FinishGitHubLoginResponse {
+  Connection connection = 1;
+  // Where the person installs gitd's App on the repositories it may reach, if not yet.
+  string install_url = 2;
+}
+
+message AddGitHubAppRequest {
+  // The GitHub host: empty for github.com.
+  string host = 1;
+  int64 app_id = 2;
+  // The App's private key, in PEM.
+  string private_key = 3;
+  // The repositories it opens. Empty: every repository on the host its installations reach.
+  string url_prefix = 4;
+}
+
+message AddGitHubAppResponse {
+  Connection connection = 1;
+}
+
+message AddTokenRequest {
+  // Must name the host, e.g. `https://gitlab.example.com/acme`.
+  string url_prefix = 1;
+  string token = 2;
+  // As `Credential.https_user`.
+  string user = 3;
+}
+
+message AddTokenResponse {
+  Connection connection = 1;
+}
+
+message ListConnectionsRequest {}
+
+message ListConnectionsResponse {
+  repeated Connection connections = 1;
+}
+
+message RemoveConnectionRequest {
+  string id = 1;
+}
+
+message RemoveConnectionResponse {}
+
+// The rules publishing follows for the repositories under a prefix.
+//
+// Every setting whose prefix opens a repository applies to it: their paths add up and the
+// smallest file limit wins, so a narrower setting never loosens a broader one. A branch
+// prefix and pull request choices are the most specific setting's, and a narrower branch
+// prefix must start with every broader one.
+message PublishSettings {
+  // The repositories these apply to; empty for every repository.
+  string url_prefix = 1;
+  // A ready set of rules, which the fields below add to.
+  Preset preset = 2;
+  // Paths a publish may not change, as git's glob pathspecs, e.g. `.github/workflows/**`.
+  repeated string protected_paths = 3;
+  // Paths a publish may change but not delete or rename away, e.g. `tests/**`.
+  repeated string kept_paths = 4;
+  // At most this many files changed; unset for the preset's, or no limit.
+  optional int32 max_changed_files = 5;
+  // What every published branch must start with, e.g. `agents/`.
+  string branch_prefix = 6;
+  PullRequestSettings pull_requests = 7;
+  // From the configuration file: shown, never changed through the API.
+  bool from_file = 8;
+}
+
+enum Preset {
+  PRESET_UNSPECIFIED = 0;
+  // Protects `.github/workflows/**`, `.gitlab-ci.yml`, `CODEOWNERS` and `.gitmodules`;
+  // keeps tests (`**/*_test.*`, `**/*.test.*`, `**/test/**`, `**/tests/**`,
+  // `**/__tests__/**`); at most 200 files changed.
+  PRESET_RECOMMENDED = 1;
+}
+
+// How publishes open pull requests.
+message PullRequestSettings {
+  enum Open {
+    OPEN_UNSPECIFIED = 0;
+    // Only when the publish asks (`PullRequestOptions.open`).
+    OPEN_WHEN_ASKED = 1;
+    OPEN_ALWAYS = 2;
+  }
+  Open open = 1;
+  bool draft = 2;
+  repeated string labels = 3;
+  // Ask the person the publish names in `requested_by` to review it.
+  bool request_review_from_requester = 4;
+}
+
+message GetSettingsRequest {}
+
+message GetSettingsResponse {
+  repeated PublishSettings settings = 1;
+}
+
+message SetSettingsRequest {
+  PublishSettings settings = 1;
+}
+
+message SetSettingsResponse {
+  PublishSettings settings = 1;
+}
+
+message RemoveSettingsRequest {
+  string url_prefix = 1;
+}
+
+message RemoveSettingsResponse {}

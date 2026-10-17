@@ -27,6 +27,10 @@ const (
 	RepositoryServiceName = "gitd.v1.RepositoryService"
 	// ServerServiceName is the fully-qualified name of the ServerService service.
 	ServerServiceName = "gitd.v1.ServerService"
+	// ConnectionServiceName is the fully-qualified name of the ConnectionService service.
+	ConnectionServiceName = "gitd.v1.ConnectionService"
+	// PublishingServiceName is the fully-qualified name of the PublishingService service.
+	PublishingServiceName = "gitd.v1.PublishingService"
 )
 
 // These constants are the fully-qualified names of the RPCs defined in this package. They're
@@ -66,6 +70,39 @@ const (
 	ServerServiceRetireProcedure = "/gitd.v1.ServerService/Retire"
 	// ServerServiceAuditProcedure is the fully-qualified name of the ServerService's Audit RPC.
 	ServerServiceAuditProcedure = "/gitd.v1.ServerService/Audit"
+	// ConnectionServiceBeginGitHubAppProcedure is the fully-qualified name of the ConnectionService's
+	// BeginGitHubApp RPC.
+	ConnectionServiceBeginGitHubAppProcedure = "/gitd.v1.ConnectionService/BeginGitHubApp"
+	// ConnectionServiceCompleteGitHubAppProcedure is the fully-qualified name of the
+	// ConnectionService's CompleteGitHubApp RPC.
+	ConnectionServiceCompleteGitHubAppProcedure = "/gitd.v1.ConnectionService/CompleteGitHubApp"
+	// ConnectionServiceStartGitHubLoginProcedure is the fully-qualified name of the ConnectionService's
+	// StartGitHubLogin RPC.
+	ConnectionServiceStartGitHubLoginProcedure = "/gitd.v1.ConnectionService/StartGitHubLogin"
+	// ConnectionServiceFinishGitHubLoginProcedure is the fully-qualified name of the
+	// ConnectionService's FinishGitHubLogin RPC.
+	ConnectionServiceFinishGitHubLoginProcedure = "/gitd.v1.ConnectionService/FinishGitHubLogin"
+	// ConnectionServiceAddGitHubAppProcedure is the fully-qualified name of the ConnectionService's
+	// AddGitHubApp RPC.
+	ConnectionServiceAddGitHubAppProcedure = "/gitd.v1.ConnectionService/AddGitHubApp"
+	// ConnectionServiceAddTokenProcedure is the fully-qualified name of the ConnectionService's
+	// AddToken RPC.
+	ConnectionServiceAddTokenProcedure = "/gitd.v1.ConnectionService/AddToken"
+	// ConnectionServiceListConnectionsProcedure is the fully-qualified name of the ConnectionService's
+	// ListConnections RPC.
+	ConnectionServiceListConnectionsProcedure = "/gitd.v1.ConnectionService/ListConnections"
+	// ConnectionServiceRemoveConnectionProcedure is the fully-qualified name of the ConnectionService's
+	// RemoveConnection RPC.
+	ConnectionServiceRemoveConnectionProcedure = "/gitd.v1.ConnectionService/RemoveConnection"
+	// PublishingServiceGetSettingsProcedure is the fully-qualified name of the PublishingService's
+	// GetSettings RPC.
+	PublishingServiceGetSettingsProcedure = "/gitd.v1.PublishingService/GetSettings"
+	// PublishingServiceSetSettingsProcedure is the fully-qualified name of the PublishingService's
+	// SetSettings RPC.
+	PublishingServiceSetSettingsProcedure = "/gitd.v1.PublishingService/SetSettings"
+	// PublishingServiceRemoveSettingsProcedure is the fully-qualified name of the PublishingService's
+	// RemoveSettings RPC.
+	PublishingServiceRemoveSettingsProcedure = "/gitd.v1.PublishingService/RemoveSettings"
 )
 
 // WorkspaceServiceClient is a client for the gitd.v1.WorkspaceService service.
@@ -421,7 +458,8 @@ type ServerServiceClient interface {
 	// Remove now the pools no workspace borrows from and nothing has used for at least
 	// `unused_for_seconds`, as the maintenance round does after `retire_after`.
 	Retire(context.Context, *connect.Request[v1.RetireRequest]) (*connect.Response[v1.RetireResponse], error)
-	// The audit log: every publish, done or refused, newest first.
+	// The audit log: every publish, done or refused, and every change to connections and
+	// publishing settings, newest first.
 	Audit(context.Context, *connect.Request[v1.AuditRequest]) (*connect.Response[v1.AuditResponse], error)
 }
 
@@ -486,7 +524,8 @@ type ServerServiceHandler interface {
 	// Remove now the pools no workspace borrows from and nothing has used for at least
 	// `unused_for_seconds`, as the maintenance round does after `retire_after`.
 	Retire(context.Context, *connect.Request[v1.RetireRequest]) (*connect.Response[v1.RetireResponse], error)
-	// The audit log: every publish, done or refused, newest first.
+	// The audit log: every publish, done or refused, and every change to connections and
+	// publishing settings, newest first.
 	Audit(context.Context, *connect.Request[v1.AuditRequest]) (*connect.Response[v1.AuditResponse], error)
 }
 
@@ -542,4 +581,410 @@ func (UnimplementedServerServiceHandler) Retire(context.Context, *connect.Reques
 
 func (UnimplementedServerServiceHandler) Audit(context.Context, *connect.Request[v1.AuditRequest]) (*connect.Response[v1.AuditResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("gitd.v1.ServerService.Audit is not implemented"))
+}
+
+// ConnectionServiceClient is a client for the gitd.v1.ConnectionService service.
+type ConnectionServiceClient interface {
+	// Start creating the organisation's own GitHub App from a manifest: the answer says
+	// where the person's browser posts the manifest. GitHub then sends the person to
+	// `redirect_url` with a code and the state, for CompleteGitHubApp.
+	BeginGitHubApp(context.Context, *connect.Request[v1.BeginGitHubAppRequest]) (*connect.Response[v1.BeginGitHubAppResponse], error)
+	// Finish creating the App: gitd exchanges the code for the App's ID and private key and
+	// keeps them. The person then installs the App on the repositories it may reach.
+	CompleteGitHubApp(context.Context, *connect.Request[v1.CompleteGitHubAppRequest]) (*connect.Response[v1.CompleteGitHubAppResponse], error)
+	// Start signing in to GitHub with gitd's public App (GitHub's device flow): the answer
+	// has the code the person enters at GitHub.
+	StartGitHubLogin(context.Context, *connect.Request[v1.StartGitHubLoginRequest]) (*connect.Response[v1.StartGitHubLoginResponse], error)
+	// Wait until the person has entered the code, and keep the sign-in. Pull requests then
+	// appear as that person.
+	FinishGitHubLogin(context.Context, *connect.Request[v1.FinishGitHubLoginRequest]) (*connect.Response[v1.FinishGitHubLoginResponse], error)
+	// Keep a GitHub App the platform already has, by its ID and private key.
+	AddGitHubApp(context.Context, *connect.Request[v1.AddGitHubAppRequest]) (*connect.Response[v1.AddGitHubAppResponse], error)
+	// Keep a token for the repositories under a prefix, on any host.
+	AddToken(context.Context, *connect.Request[v1.AddTokenRequest]) (*connect.Response[v1.AddTokenResponse], error)
+	// The connections gitd keeps, those of the configuration file included, never a secret.
+	ListConnections(context.Context, *connect.Request[v1.ListConnectionsRequest]) (*connect.Response[v1.ListConnectionsResponse], error)
+	// Forget a connection made through the API. One from the configuration file is refused.
+	RemoveConnection(context.Context, *connect.Request[v1.RemoveConnectionRequest]) (*connect.Response[v1.RemoveConnectionResponse], error)
+}
+
+// NewConnectionServiceClient constructs a client for the gitd.v1.ConnectionService service. By
+// default, it uses the Connect protocol with the binary Protobuf Codec, asks for gzipped responses,
+// and sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the
+// connect.WithGRPC() or connect.WithGRPCWeb() options.
+//
+// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
+// http://api.acme.com or https://acme.com/grpc).
+func NewConnectionServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) ConnectionServiceClient {
+	baseURL = strings.TrimRight(baseURL, "/")
+	connectionServiceMethods := v1.File_gitd_v1_gitd_proto.Services().ByName("ConnectionService").Methods()
+	return &connectionServiceClient{
+		beginGitHubApp: connect.NewClient[v1.BeginGitHubAppRequest, v1.BeginGitHubAppResponse](
+			httpClient,
+			baseURL+ConnectionServiceBeginGitHubAppProcedure,
+			connect.WithSchema(connectionServiceMethods.ByName("BeginGitHubApp")),
+			connect.WithClientOptions(opts...),
+		),
+		completeGitHubApp: connect.NewClient[v1.CompleteGitHubAppRequest, v1.CompleteGitHubAppResponse](
+			httpClient,
+			baseURL+ConnectionServiceCompleteGitHubAppProcedure,
+			connect.WithSchema(connectionServiceMethods.ByName("CompleteGitHubApp")),
+			connect.WithClientOptions(opts...),
+		),
+		startGitHubLogin: connect.NewClient[v1.StartGitHubLoginRequest, v1.StartGitHubLoginResponse](
+			httpClient,
+			baseURL+ConnectionServiceStartGitHubLoginProcedure,
+			connect.WithSchema(connectionServiceMethods.ByName("StartGitHubLogin")),
+			connect.WithClientOptions(opts...),
+		),
+		finishGitHubLogin: connect.NewClient[v1.FinishGitHubLoginRequest, v1.FinishGitHubLoginResponse](
+			httpClient,
+			baseURL+ConnectionServiceFinishGitHubLoginProcedure,
+			connect.WithSchema(connectionServiceMethods.ByName("FinishGitHubLogin")),
+			connect.WithClientOptions(opts...),
+		),
+		addGitHubApp: connect.NewClient[v1.AddGitHubAppRequest, v1.AddGitHubAppResponse](
+			httpClient,
+			baseURL+ConnectionServiceAddGitHubAppProcedure,
+			connect.WithSchema(connectionServiceMethods.ByName("AddGitHubApp")),
+			connect.WithClientOptions(opts...),
+		),
+		addToken: connect.NewClient[v1.AddTokenRequest, v1.AddTokenResponse](
+			httpClient,
+			baseURL+ConnectionServiceAddTokenProcedure,
+			connect.WithSchema(connectionServiceMethods.ByName("AddToken")),
+			connect.WithClientOptions(opts...),
+		),
+		listConnections: connect.NewClient[v1.ListConnectionsRequest, v1.ListConnectionsResponse](
+			httpClient,
+			baseURL+ConnectionServiceListConnectionsProcedure,
+			connect.WithSchema(connectionServiceMethods.ByName("ListConnections")),
+			connect.WithClientOptions(opts...),
+		),
+		removeConnection: connect.NewClient[v1.RemoveConnectionRequest, v1.RemoveConnectionResponse](
+			httpClient,
+			baseURL+ConnectionServiceRemoveConnectionProcedure,
+			connect.WithSchema(connectionServiceMethods.ByName("RemoveConnection")),
+			connect.WithClientOptions(opts...),
+		),
+	}
+}
+
+// connectionServiceClient implements ConnectionServiceClient.
+type connectionServiceClient struct {
+	beginGitHubApp    *connect.Client[v1.BeginGitHubAppRequest, v1.BeginGitHubAppResponse]
+	completeGitHubApp *connect.Client[v1.CompleteGitHubAppRequest, v1.CompleteGitHubAppResponse]
+	startGitHubLogin  *connect.Client[v1.StartGitHubLoginRequest, v1.StartGitHubLoginResponse]
+	finishGitHubLogin *connect.Client[v1.FinishGitHubLoginRequest, v1.FinishGitHubLoginResponse]
+	addGitHubApp      *connect.Client[v1.AddGitHubAppRequest, v1.AddGitHubAppResponse]
+	addToken          *connect.Client[v1.AddTokenRequest, v1.AddTokenResponse]
+	listConnections   *connect.Client[v1.ListConnectionsRequest, v1.ListConnectionsResponse]
+	removeConnection  *connect.Client[v1.RemoveConnectionRequest, v1.RemoveConnectionResponse]
+}
+
+// BeginGitHubApp calls gitd.v1.ConnectionService.BeginGitHubApp.
+func (c *connectionServiceClient) BeginGitHubApp(ctx context.Context, req *connect.Request[v1.BeginGitHubAppRequest]) (*connect.Response[v1.BeginGitHubAppResponse], error) {
+	return c.beginGitHubApp.CallUnary(ctx, req)
+}
+
+// CompleteGitHubApp calls gitd.v1.ConnectionService.CompleteGitHubApp.
+func (c *connectionServiceClient) CompleteGitHubApp(ctx context.Context, req *connect.Request[v1.CompleteGitHubAppRequest]) (*connect.Response[v1.CompleteGitHubAppResponse], error) {
+	return c.completeGitHubApp.CallUnary(ctx, req)
+}
+
+// StartGitHubLogin calls gitd.v1.ConnectionService.StartGitHubLogin.
+func (c *connectionServiceClient) StartGitHubLogin(ctx context.Context, req *connect.Request[v1.StartGitHubLoginRequest]) (*connect.Response[v1.StartGitHubLoginResponse], error) {
+	return c.startGitHubLogin.CallUnary(ctx, req)
+}
+
+// FinishGitHubLogin calls gitd.v1.ConnectionService.FinishGitHubLogin.
+func (c *connectionServiceClient) FinishGitHubLogin(ctx context.Context, req *connect.Request[v1.FinishGitHubLoginRequest]) (*connect.Response[v1.FinishGitHubLoginResponse], error) {
+	return c.finishGitHubLogin.CallUnary(ctx, req)
+}
+
+// AddGitHubApp calls gitd.v1.ConnectionService.AddGitHubApp.
+func (c *connectionServiceClient) AddGitHubApp(ctx context.Context, req *connect.Request[v1.AddGitHubAppRequest]) (*connect.Response[v1.AddGitHubAppResponse], error) {
+	return c.addGitHubApp.CallUnary(ctx, req)
+}
+
+// AddToken calls gitd.v1.ConnectionService.AddToken.
+func (c *connectionServiceClient) AddToken(ctx context.Context, req *connect.Request[v1.AddTokenRequest]) (*connect.Response[v1.AddTokenResponse], error) {
+	return c.addToken.CallUnary(ctx, req)
+}
+
+// ListConnections calls gitd.v1.ConnectionService.ListConnections.
+func (c *connectionServiceClient) ListConnections(ctx context.Context, req *connect.Request[v1.ListConnectionsRequest]) (*connect.Response[v1.ListConnectionsResponse], error) {
+	return c.listConnections.CallUnary(ctx, req)
+}
+
+// RemoveConnection calls gitd.v1.ConnectionService.RemoveConnection.
+func (c *connectionServiceClient) RemoveConnection(ctx context.Context, req *connect.Request[v1.RemoveConnectionRequest]) (*connect.Response[v1.RemoveConnectionResponse], error) {
+	return c.removeConnection.CallUnary(ctx, req)
+}
+
+// ConnectionServiceHandler is an implementation of the gitd.v1.ConnectionService service.
+type ConnectionServiceHandler interface {
+	// Start creating the organisation's own GitHub App from a manifest: the answer says
+	// where the person's browser posts the manifest. GitHub then sends the person to
+	// `redirect_url` with a code and the state, for CompleteGitHubApp.
+	BeginGitHubApp(context.Context, *connect.Request[v1.BeginGitHubAppRequest]) (*connect.Response[v1.BeginGitHubAppResponse], error)
+	// Finish creating the App: gitd exchanges the code for the App's ID and private key and
+	// keeps them. The person then installs the App on the repositories it may reach.
+	CompleteGitHubApp(context.Context, *connect.Request[v1.CompleteGitHubAppRequest]) (*connect.Response[v1.CompleteGitHubAppResponse], error)
+	// Start signing in to GitHub with gitd's public App (GitHub's device flow): the answer
+	// has the code the person enters at GitHub.
+	StartGitHubLogin(context.Context, *connect.Request[v1.StartGitHubLoginRequest]) (*connect.Response[v1.StartGitHubLoginResponse], error)
+	// Wait until the person has entered the code, and keep the sign-in. Pull requests then
+	// appear as that person.
+	FinishGitHubLogin(context.Context, *connect.Request[v1.FinishGitHubLoginRequest]) (*connect.Response[v1.FinishGitHubLoginResponse], error)
+	// Keep a GitHub App the platform already has, by its ID and private key.
+	AddGitHubApp(context.Context, *connect.Request[v1.AddGitHubAppRequest]) (*connect.Response[v1.AddGitHubAppResponse], error)
+	// Keep a token for the repositories under a prefix, on any host.
+	AddToken(context.Context, *connect.Request[v1.AddTokenRequest]) (*connect.Response[v1.AddTokenResponse], error)
+	// The connections gitd keeps, those of the configuration file included, never a secret.
+	ListConnections(context.Context, *connect.Request[v1.ListConnectionsRequest]) (*connect.Response[v1.ListConnectionsResponse], error)
+	// Forget a connection made through the API. One from the configuration file is refused.
+	RemoveConnection(context.Context, *connect.Request[v1.RemoveConnectionRequest]) (*connect.Response[v1.RemoveConnectionResponse], error)
+}
+
+// NewConnectionServiceHandler builds an HTTP handler from the service implementation. It returns
+// the path on which to mount the handler and the handler itself.
+//
+// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
+// and JSON codecs. They also support gzip compression.
+func NewConnectionServiceHandler(svc ConnectionServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
+	connectionServiceMethods := v1.File_gitd_v1_gitd_proto.Services().ByName("ConnectionService").Methods()
+	connectionServiceBeginGitHubAppHandler := connect.NewUnaryHandler(
+		ConnectionServiceBeginGitHubAppProcedure,
+		svc.BeginGitHubApp,
+		connect.WithSchema(connectionServiceMethods.ByName("BeginGitHubApp")),
+		connect.WithHandlerOptions(opts...),
+	)
+	connectionServiceCompleteGitHubAppHandler := connect.NewUnaryHandler(
+		ConnectionServiceCompleteGitHubAppProcedure,
+		svc.CompleteGitHubApp,
+		connect.WithSchema(connectionServiceMethods.ByName("CompleteGitHubApp")),
+		connect.WithHandlerOptions(opts...),
+	)
+	connectionServiceStartGitHubLoginHandler := connect.NewUnaryHandler(
+		ConnectionServiceStartGitHubLoginProcedure,
+		svc.StartGitHubLogin,
+		connect.WithSchema(connectionServiceMethods.ByName("StartGitHubLogin")),
+		connect.WithHandlerOptions(opts...),
+	)
+	connectionServiceFinishGitHubLoginHandler := connect.NewUnaryHandler(
+		ConnectionServiceFinishGitHubLoginProcedure,
+		svc.FinishGitHubLogin,
+		connect.WithSchema(connectionServiceMethods.ByName("FinishGitHubLogin")),
+		connect.WithHandlerOptions(opts...),
+	)
+	connectionServiceAddGitHubAppHandler := connect.NewUnaryHandler(
+		ConnectionServiceAddGitHubAppProcedure,
+		svc.AddGitHubApp,
+		connect.WithSchema(connectionServiceMethods.ByName("AddGitHubApp")),
+		connect.WithHandlerOptions(opts...),
+	)
+	connectionServiceAddTokenHandler := connect.NewUnaryHandler(
+		ConnectionServiceAddTokenProcedure,
+		svc.AddToken,
+		connect.WithSchema(connectionServiceMethods.ByName("AddToken")),
+		connect.WithHandlerOptions(opts...),
+	)
+	connectionServiceListConnectionsHandler := connect.NewUnaryHandler(
+		ConnectionServiceListConnectionsProcedure,
+		svc.ListConnections,
+		connect.WithSchema(connectionServiceMethods.ByName("ListConnections")),
+		connect.WithHandlerOptions(opts...),
+	)
+	connectionServiceRemoveConnectionHandler := connect.NewUnaryHandler(
+		ConnectionServiceRemoveConnectionProcedure,
+		svc.RemoveConnection,
+		connect.WithSchema(connectionServiceMethods.ByName("RemoveConnection")),
+		connect.WithHandlerOptions(opts...),
+	)
+	return "/gitd.v1.ConnectionService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case ConnectionServiceBeginGitHubAppProcedure:
+			connectionServiceBeginGitHubAppHandler.ServeHTTP(w, r)
+		case ConnectionServiceCompleteGitHubAppProcedure:
+			connectionServiceCompleteGitHubAppHandler.ServeHTTP(w, r)
+		case ConnectionServiceStartGitHubLoginProcedure:
+			connectionServiceStartGitHubLoginHandler.ServeHTTP(w, r)
+		case ConnectionServiceFinishGitHubLoginProcedure:
+			connectionServiceFinishGitHubLoginHandler.ServeHTTP(w, r)
+		case ConnectionServiceAddGitHubAppProcedure:
+			connectionServiceAddGitHubAppHandler.ServeHTTP(w, r)
+		case ConnectionServiceAddTokenProcedure:
+			connectionServiceAddTokenHandler.ServeHTTP(w, r)
+		case ConnectionServiceListConnectionsProcedure:
+			connectionServiceListConnectionsHandler.ServeHTTP(w, r)
+		case ConnectionServiceRemoveConnectionProcedure:
+			connectionServiceRemoveConnectionHandler.ServeHTTP(w, r)
+		default:
+			http.NotFound(w, r)
+		}
+	})
+}
+
+// UnimplementedConnectionServiceHandler returns CodeUnimplemented from all methods.
+type UnimplementedConnectionServiceHandler struct{}
+
+func (UnimplementedConnectionServiceHandler) BeginGitHubApp(context.Context, *connect.Request[v1.BeginGitHubAppRequest]) (*connect.Response[v1.BeginGitHubAppResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("gitd.v1.ConnectionService.BeginGitHubApp is not implemented"))
+}
+
+func (UnimplementedConnectionServiceHandler) CompleteGitHubApp(context.Context, *connect.Request[v1.CompleteGitHubAppRequest]) (*connect.Response[v1.CompleteGitHubAppResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("gitd.v1.ConnectionService.CompleteGitHubApp is not implemented"))
+}
+
+func (UnimplementedConnectionServiceHandler) StartGitHubLogin(context.Context, *connect.Request[v1.StartGitHubLoginRequest]) (*connect.Response[v1.StartGitHubLoginResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("gitd.v1.ConnectionService.StartGitHubLogin is not implemented"))
+}
+
+func (UnimplementedConnectionServiceHandler) FinishGitHubLogin(context.Context, *connect.Request[v1.FinishGitHubLoginRequest]) (*connect.Response[v1.FinishGitHubLoginResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("gitd.v1.ConnectionService.FinishGitHubLogin is not implemented"))
+}
+
+func (UnimplementedConnectionServiceHandler) AddGitHubApp(context.Context, *connect.Request[v1.AddGitHubAppRequest]) (*connect.Response[v1.AddGitHubAppResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("gitd.v1.ConnectionService.AddGitHubApp is not implemented"))
+}
+
+func (UnimplementedConnectionServiceHandler) AddToken(context.Context, *connect.Request[v1.AddTokenRequest]) (*connect.Response[v1.AddTokenResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("gitd.v1.ConnectionService.AddToken is not implemented"))
+}
+
+func (UnimplementedConnectionServiceHandler) ListConnections(context.Context, *connect.Request[v1.ListConnectionsRequest]) (*connect.Response[v1.ListConnectionsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("gitd.v1.ConnectionService.ListConnections is not implemented"))
+}
+
+func (UnimplementedConnectionServiceHandler) RemoveConnection(context.Context, *connect.Request[v1.RemoveConnectionRequest]) (*connect.Response[v1.RemoveConnectionResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("gitd.v1.ConnectionService.RemoveConnection is not implemented"))
+}
+
+// PublishingServiceClient is a client for the gitd.v1.PublishingService service.
+type PublishingServiceClient interface {
+	// Every setting, those of the configuration file included.
+	GetSettings(context.Context, *connect.Request[v1.GetSettingsRequest]) (*connect.Response[v1.GetSettingsResponse], error)
+	// Keep the settings of a prefix, replacing those it had.
+	SetSettings(context.Context, *connect.Request[v1.SetSettingsRequest]) (*connect.Response[v1.SetSettingsResponse], error)
+	// Forget the settings of a prefix. Those of the configuration file are refused.
+	RemoveSettings(context.Context, *connect.Request[v1.RemoveSettingsRequest]) (*connect.Response[v1.RemoveSettingsResponse], error)
+}
+
+// NewPublishingServiceClient constructs a client for the gitd.v1.PublishingService service. By
+// default, it uses the Connect protocol with the binary Protobuf Codec, asks for gzipped responses,
+// and sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the
+// connect.WithGRPC() or connect.WithGRPCWeb() options.
+//
+// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
+// http://api.acme.com or https://acme.com/grpc).
+func NewPublishingServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) PublishingServiceClient {
+	baseURL = strings.TrimRight(baseURL, "/")
+	publishingServiceMethods := v1.File_gitd_v1_gitd_proto.Services().ByName("PublishingService").Methods()
+	return &publishingServiceClient{
+		getSettings: connect.NewClient[v1.GetSettingsRequest, v1.GetSettingsResponse](
+			httpClient,
+			baseURL+PublishingServiceGetSettingsProcedure,
+			connect.WithSchema(publishingServiceMethods.ByName("GetSettings")),
+			connect.WithClientOptions(opts...),
+		),
+		setSettings: connect.NewClient[v1.SetSettingsRequest, v1.SetSettingsResponse](
+			httpClient,
+			baseURL+PublishingServiceSetSettingsProcedure,
+			connect.WithSchema(publishingServiceMethods.ByName("SetSettings")),
+			connect.WithClientOptions(opts...),
+		),
+		removeSettings: connect.NewClient[v1.RemoveSettingsRequest, v1.RemoveSettingsResponse](
+			httpClient,
+			baseURL+PublishingServiceRemoveSettingsProcedure,
+			connect.WithSchema(publishingServiceMethods.ByName("RemoveSettings")),
+			connect.WithClientOptions(opts...),
+		),
+	}
+}
+
+// publishingServiceClient implements PublishingServiceClient.
+type publishingServiceClient struct {
+	getSettings    *connect.Client[v1.GetSettingsRequest, v1.GetSettingsResponse]
+	setSettings    *connect.Client[v1.SetSettingsRequest, v1.SetSettingsResponse]
+	removeSettings *connect.Client[v1.RemoveSettingsRequest, v1.RemoveSettingsResponse]
+}
+
+// GetSettings calls gitd.v1.PublishingService.GetSettings.
+func (c *publishingServiceClient) GetSettings(ctx context.Context, req *connect.Request[v1.GetSettingsRequest]) (*connect.Response[v1.GetSettingsResponse], error) {
+	return c.getSettings.CallUnary(ctx, req)
+}
+
+// SetSettings calls gitd.v1.PublishingService.SetSettings.
+func (c *publishingServiceClient) SetSettings(ctx context.Context, req *connect.Request[v1.SetSettingsRequest]) (*connect.Response[v1.SetSettingsResponse], error) {
+	return c.setSettings.CallUnary(ctx, req)
+}
+
+// RemoveSettings calls gitd.v1.PublishingService.RemoveSettings.
+func (c *publishingServiceClient) RemoveSettings(ctx context.Context, req *connect.Request[v1.RemoveSettingsRequest]) (*connect.Response[v1.RemoveSettingsResponse], error) {
+	return c.removeSettings.CallUnary(ctx, req)
+}
+
+// PublishingServiceHandler is an implementation of the gitd.v1.PublishingService service.
+type PublishingServiceHandler interface {
+	// Every setting, those of the configuration file included.
+	GetSettings(context.Context, *connect.Request[v1.GetSettingsRequest]) (*connect.Response[v1.GetSettingsResponse], error)
+	// Keep the settings of a prefix, replacing those it had.
+	SetSettings(context.Context, *connect.Request[v1.SetSettingsRequest]) (*connect.Response[v1.SetSettingsResponse], error)
+	// Forget the settings of a prefix. Those of the configuration file are refused.
+	RemoveSettings(context.Context, *connect.Request[v1.RemoveSettingsRequest]) (*connect.Response[v1.RemoveSettingsResponse], error)
+}
+
+// NewPublishingServiceHandler builds an HTTP handler from the service implementation. It returns
+// the path on which to mount the handler and the handler itself.
+//
+// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
+// and JSON codecs. They also support gzip compression.
+func NewPublishingServiceHandler(svc PublishingServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
+	publishingServiceMethods := v1.File_gitd_v1_gitd_proto.Services().ByName("PublishingService").Methods()
+	publishingServiceGetSettingsHandler := connect.NewUnaryHandler(
+		PublishingServiceGetSettingsProcedure,
+		svc.GetSettings,
+		connect.WithSchema(publishingServiceMethods.ByName("GetSettings")),
+		connect.WithHandlerOptions(opts...),
+	)
+	publishingServiceSetSettingsHandler := connect.NewUnaryHandler(
+		PublishingServiceSetSettingsProcedure,
+		svc.SetSettings,
+		connect.WithSchema(publishingServiceMethods.ByName("SetSettings")),
+		connect.WithHandlerOptions(opts...),
+	)
+	publishingServiceRemoveSettingsHandler := connect.NewUnaryHandler(
+		PublishingServiceRemoveSettingsProcedure,
+		svc.RemoveSettings,
+		connect.WithSchema(publishingServiceMethods.ByName("RemoveSettings")),
+		connect.WithHandlerOptions(opts...),
+	)
+	return "/gitd.v1.PublishingService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case PublishingServiceGetSettingsProcedure:
+			publishingServiceGetSettingsHandler.ServeHTTP(w, r)
+		case PublishingServiceSetSettingsProcedure:
+			publishingServiceSetSettingsHandler.ServeHTTP(w, r)
+		case PublishingServiceRemoveSettingsProcedure:
+			publishingServiceRemoveSettingsHandler.ServeHTTP(w, r)
+		default:
+			http.NotFound(w, r)
+		}
+	})
+}
+
+// UnimplementedPublishingServiceHandler returns CodeUnimplemented from all methods.
+type UnimplementedPublishingServiceHandler struct{}
+
+func (UnimplementedPublishingServiceHandler) GetSettings(context.Context, *connect.Request[v1.GetSettingsRequest]) (*connect.Response[v1.GetSettingsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("gitd.v1.PublishingService.GetSettings is not implemented"))
+}
+
+func (UnimplementedPublishingServiceHandler) SetSettings(context.Context, *connect.Request[v1.SetSettingsRequest]) (*connect.Response[v1.SetSettingsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("gitd.v1.PublishingService.SetSettings is not implemented"))
+}
+
+func (UnimplementedPublishingServiceHandler) RemoveSettings(context.Context, *connect.Request[v1.RemoveSettingsRequest]) (*connect.Response[v1.RemoveSettingsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("gitd.v1.PublishingService.RemoveSettings is not implemented"))
 }

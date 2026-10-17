@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file gitd/v1/gitd.proto.
  */
 export const file_gitd_v1_gitd: GenFile = /*@__PURE__*/
-  fileDesc("ChJnaXRkL3YxL2dpdGQucHJvdG8SB2dpdGQudjEibQoKQ3JlZGVudGlhbBISCgp1cmxfcHJlZml4GAEgASgJEhUKC2h0dHBzX3Rva2VuGAIgASgJSAASFgoMc3NoX2tleV9wYXRoGAMgASgJSAASEgoKaHR0cHNfdXNlchgEIAEoCUIICgZzZWNyZXQiOAoIUmV2aXNpb24SEAoGYnJhbmNoGAEgASgJSAASEAoGY29tbWl0GAIgASgJSABCCAoGdGFyZ2V0Ij4KCFByb2dyZXNzEg0KBXBoYXNlGAEgASgJEg8KB3BlcmNlbnQYAiABKAUSEgoKcmVwb3NpdG9yeRgDIAEoCSJQCg5TdWJtb2R1bGVTdGF0ZRIMCgRwYXRoGAEgASgJEgsKA3VybBgCIAEoCRIOCgZjb21taXQYAyABKAkSEwoLY2hlY2tlZF9vdXQYBCABKAgiUwoQUGVuZGluZ1N1Ym1vZHVsZRILCgN1cmwYASABKAkSDAoEcGF0aBgCIAEoCRIkCgdmYWlsdXJlGAMgASgLMhMuZ2l0ZC52MS5HaXRGYWlsdXJlIpkDCgpHaXRGYWlsdXJlEioKBnJlYXNvbhgBIAEoDjIaLmdpdGQudjEuR2l0RmFpbHVyZS5SZWFzb24SEAoIZ2l0X3NhaWQYAiABKAkSEgoKcmVwb3NpdG9yeRgDIAEoCSK4AgoGUmVhc29uEhYKElJFQVNPTl9VTlNQRUNJRklFRBAAEhgKFFJFQVNPTl9BVVRIX1JFUVVJUkVEEAESFwoTUkVBU09OX0FVVEhfUkVGVVNFRBACEhQKEFJFQVNPTl9OT1RfRk9VTkQQAxIWChJSRUFTT05fQkFEX0FERFJFU1MQBBIXChNSRUFTT05fUEFUSF9SRUZVU0VEEAUSDwoLUkVBU09OX0JVU1kQBhISCg5SRUFTT05fVElNRU9VVBAHEhIKDlJFQVNPTl9DT1JSVVBUEAgSFQoRUkVBU09OX0dJVF9GQUlMRUQQCRIWChJSRUFTT05fTk9USElOR19ORVcQChIZChVSRUFTT05fQlJBTkNIX1JFRlVTRUQQCxIZChVSRUFTT05fQ09ORklHX1JFRlVTRUQQDCLOAQoOUHJlcGFyZVJlcXVlc3QSCwoDdXJsGAEgASgJEgwKBHBhdGgYAiABKAkSIwoIcmV2aXNpb24YAyABKAsyES5naXRkLnYxLlJldmlzaW9uEhcKD3dpdGhfc3VibW9kdWxlcxgEIAEoCBIoCgtjcmVkZW50aWFscxgFIAMoCzITLmdpdGQudjEuQ3JlZGVudGlhbBIUCgxmdWxsX2hpc3RvcnkYBiABKAgSIwoIc3RyYXRlZ3kYByABKA4yES5naXRkLnYxLlN0cmF0ZWd5IjQKBkxheWVycxINCgVsb3dlchgBIAEoCRINCgV1cHBlchgCIAEoCRIMCgR3b3JrGAMgASgJIm0KD1ByZXBhcmVSZXNwb25zZRIlCghwcm9ncmVzcxgBIAEoCzIRLmdpdGQudjEuUHJvZ3Jlc3NIABIqCgZyZXN1bHQYAiABKAsyGC5naXRkLnYxLldvcmtzcGFjZVJlc3VsdEgAQgcKBWV2ZW50IsQBCg9Xb3Jrc3BhY2VSZXN1bHQSDgoGY29tbWl0GAEgASgJEg4KBmJyYW5jaBgCIAEoCRI1ChJwZW5kaW5nX3N1Ym1vZHVsZXMYAyADKAsyGS5naXRkLnYxLlBlbmRpbmdTdWJtb2R1bGUSIwoIc3RyYXRlZ3kYBCABKA4yES5naXRkLnYxLlN0cmF0ZWd5Eh8KBmxheWVycxgFIAEoCzIPLmdpdGQudjEuTGF5ZXJzEhQKDGxmc19wYXR0ZXJucxgGIAMoCSJwCg1VcGRhdGVSZXF1ZXN0EgwKBHBhdGgYASABKAkSDgoGYnJhbmNoGAIgASgJEhcKD3dpdGhfc3VibW9kdWxlcxgDIAEoCBIoCgtjcmVkZW50aWFscxgEIAMoCzITLmdpdGQudjEuQ3JlZGVudGlhbCJsCg5VcGRhdGVSZXNwb25zZRIlCghwcm9ncmVzcxgBIAEoCzIRLmdpdGQudjEuUHJvZ3Jlc3NIABIqCgZyZXN1bHQYAiABKAsyGC5naXRkLnYxLldvcmtzcGFjZVJlc3VsdEgAQgcKBWV2ZW50InIKD0NoZWNrb3V0UmVxdWVzdBIMCgRwYXRoGAEgASgJEg4KBmNvbW1pdBgCIAEoCRIXCg93aXRoX3N1Ym1vZHVsZXMYAyABKAgSKAoLY3JlZGVudGlhbHMYBCADKAsyEy5naXRkLnYxLkNyZWRlbnRpYWwibgoQQ2hlY2tvdXRSZXNwb25zZRIlCghwcm9ncmVzcxgBIAEoCzIRLmdpdGQudjEuUHJvZ3Jlc3NIABIqCgZyZXN1bHQYAiABKAsyGC5naXRkLnYxLldvcmtzcGFjZVJlc3VsdEgAQgcKBWV2ZW50ImEKFVN5bmNTdWJtb2R1bGVzUmVxdWVzdBIMCgRwYXRoGAEgASgJEhAKCG9ubHlfdXJsGAIgASgJEigKC2NyZWRlbnRpYWxzGAMgAygLMhMuZ2l0ZC52MS5DcmVkZW50aWFsInkKFlN5bmNTdWJtb2R1bGVzUmVzcG9uc2USJQoIcHJvZ3Jlc3MYASABKAsyES5naXRkLnYxLlByb2dyZXNzSAASLwoGcmVzdWx0GAIgASgLMh0uZ2l0ZC52MS5TeW5jU3VibW9kdWxlc1Jlc3VsdEgAQgcKBWV2ZW50InoKFFN5bmNTdWJtb2R1bGVzUmVzdWx0EisKCnN1Ym1vZHVsZXMYASADKAsyFy5naXRkLnYxLlN1Ym1vZHVsZVN0YXRlEjUKEnBlbmRpbmdfc3VibW9kdWxlcxgCIAMoCzIZLmdpdGQudjEuUGVuZGluZ1N1Ym1vZHVsZSIfCg9EZXNjcmliZVJlcXVlc3QSDAoEcGF0aBgBIAEoCSLaAQoQRGVzY3JpYmVSZXNwb25zZRILCgN1cmwYASABKAkSDgoGY29tbWl0GAIgASgJEg4KBmJyYW5jaBgDIAEoCRIQCghtb2RpZmllZBgEIAEoCBIrCgpzdWJtb2R1bGVzGAUgAygLMhcuZ2l0ZC52MS5TdWJtb2R1bGVTdGF0ZRIjCghzdHJhdGVneRgGIAEoDjIRLmdpdGQudjEuU3RyYXRlZ3kSHwoGbGF5ZXJzGAcgASgLMg8uZ2l0ZC52MS5MYXllcnMSFAoMbGZzX3BhdHRlcm5zGAggAygJIh0KDVJlbW92ZVJlcXVlc3QSDAoEcGF0aBgBIAEoCSIQCg5SZW1vdmVSZXNwb25zZSIcCgxBZG9wdFJlcXVlc3QSDAoEcGF0aBgBIAEoCSJnCg1BZG9wdFJlc3BvbnNlEiUKCHByb2dyZXNzGAEgASgLMhEuZ2l0ZC52MS5Qcm9ncmVzc0gAEiYKBnJlc3VsdBgCIAEoCzIULmdpdGQudjEuQWRvcHRSZXN1bHRIAEIHCgVldmVudCIlCgtBZG9wdFJlc3VsdBIWCg5ieXRlc19yZWxlYXNlZBgBIAEoAyJYCg5QdWJsaXNoUmVxdWVzdBIMCgRwYXRoGAEgASgJEg4KBmJyYW5jaBgCIAEoCRIoCgtjcmVkZW50aWFscxgDIAMoCzITLmdpdGQudjEuQ3JlZGVudGlhbCJSChNQdWJsaXNoZWRSZXBvc2l0b3J5EgsKA3VybBgBIAEoCRIMCgRwYXRoGAIgASgJEg4KBmNvbW1pdBgDIAEoCRIQCghzdWJqZWN0cxgEIAMoCSKFAQoPUHVibGlzaFJlc3BvbnNlEg4KBmJyYW5jaBgBIAEoCRIwCgpyZXBvc2l0b3J5GAIgASgLMhwuZ2l0ZC52MS5QdWJsaXNoZWRSZXBvc2l0b3J5EjAKCnN1Ym1vZHVsZXMYAyADKAsyHC5naXRkLnYxLlB1Ymxpc2hlZFJlcG9zaXRvcnkiRQoMUHJvYmVSZXF1ZXN0EgsKA3VybBgBIAEoCRIoCgtjcmVkZW50aWFscxgCIAMoCzITLmdpdGQudjEuQ3JlZGVudGlhbCLSAgoNUHJvYmVSZXNwb25zZRItCgZhY2Nlc3MYASABKA4yHS5naXRkLnYxLlByb2JlUmVzcG9uc2UuQWNjZXNzEhAKCGJyYW5jaGVzGAIgAygJEhYKDmRlZmF1bHRfYnJhbmNoGAMgASgJEiQKB2ZhaWx1cmUYBCABKAsyEy5naXRkLnYxLkdpdEZhaWx1cmUSNAoHY29tbWl0cxgFIAMoCzIjLmdpdGQudjEuUHJvYmVSZXNwb25zZS5Db21taXRzRW50cnkaLgoMQ29tbWl0c0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiXAoGQWNjZXNzEhYKEkFDQ0VTU19VTlNQRUNJRklFRBAAEhEKDUFDQ0VTU19QVUJMSUMQARIUChBBQ0NFU1NfUkVBQ0hBQkxFEAISEQoNQUNDRVNTX0RFTklFRBADIisKDVJldGlyZVJlcXVlc3QSGgoSdW51c2VkX2Zvcl9zZWNvbmRzGAEgASgDIjYKDlJldGlyZVJlc3BvbnNlEg8KB3JldGlyZWQYASABKAUSEwoLZnJlZWRfYnl0ZXMYAiABKAMiDQoLSW5mb1JlcXVlc3QiwgEKDEluZm9SZXNwb25zZRIPCgd2ZXJzaW9uGAEgASgJEhMKC2dpdF92ZXJzaW9uGAIgASgJEg0KBXBvb2xzGAMgASgFEhMKC3Bvb2xzX2J5dGVzGAQgASgDEiMKCHN0cmF0ZWd5GAUgASgOMhEuZ2l0ZC52MS5TdHJhdGVneRIXCg9zdHJhdGVneV9yZWFzb24YBiABKAkSEQoJdGVtcGxhdGVzGAcgASgFEhcKD3RlbXBsYXRlc19ieXRlcxgIIAEoAyJVCgxBdWRpdFJlcXVlc3QSKQoFc2luY2UYASABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEgsKA3VybBgCIAEoCRINCgVsaW1pdBgDIAEoBSI1Cg1BdWRpdFJlc3BvbnNlEiQKB2VudHJpZXMYASADKAsyEy5naXRkLnYxLkF1ZGl0RW50cnki8AEKCkF1ZGl0RW50cnkSKAoEdGltZRgBIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASEQoJd29ya3NwYWNlGAIgASgJEgsKA3VybBgDIAEoCRIOCgZicmFuY2gYBCABKAkSMAoKcmVwb3NpdG9yeRgFIAEoCzIcLmdpdGQudjEuUHVibGlzaGVkUmVwb3NpdG9yeRIwCgpzdWJtb2R1bGVzGAYgAygLMhwuZ2l0ZC52MS5QdWJsaXNoZWRSZXBvc2l0b3J5EiQKB3JlZnVzYWwYByABKAsyEy5naXRkLnYxLkdpdEZhaWx1cmUqYwoIU3RyYXRlZ3kSGAoUU1RSQVRFR1lfVU5TUEVDSUZJRUQQABIRCg1TVFJBVEVHWV9DT1BZEAESFAoQU1RSQVRFR1lfT1ZFUkxBWRACEhQKEFNUUkFURUdZX1JFRkxJTksQAzKbBAoQV29ya3NwYWNlU2VydmljZRI+CgdQcmVwYXJlEhcuZ2l0ZC52MS5QcmVwYXJlUmVxdWVzdBoYLmdpdGQudjEuUHJlcGFyZVJlc3BvbnNlMAESOwoGVXBkYXRlEhYuZ2l0ZC52MS5VcGRhdGVSZXF1ZXN0GhcuZ2l0ZC52MS5VcGRhdGVSZXNwb25zZTABEkEKCENoZWNrb3V0EhguZ2l0ZC52MS5DaGVja291dFJlcXVlc3QaGS5naXRkLnYxLkNoZWNrb3V0UmVzcG9uc2UwARJTCg5TeW5jU3VibW9kdWxlcxIeLmdpdGQudjEuU3luY1N1Ym1vZHVsZXNSZXF1ZXN0Gh8uZ2l0ZC52MS5TeW5jU3VibW9kdWxlc1Jlc3BvbnNlMAESPwoIRGVzY3JpYmUSGC5naXRkLnYxLkRlc2NyaWJlUmVxdWVzdBoZLmdpdGQudjEuRGVzY3JpYmVSZXNwb25zZRI5CgZSZW1vdmUSFi5naXRkLnYxLlJlbW92ZVJlcXVlc3QaFy5naXRkLnYxLlJlbW92ZVJlc3BvbnNlEjgKBUFkb3B0EhUuZ2l0ZC52MS5BZG9wdFJlcXVlc3QaFi5naXRkLnYxLkFkb3B0UmVzcG9uc2UwARI8CgdQdWJsaXNoEhcuZ2l0ZC52MS5QdWJsaXNoUmVxdWVzdBoYLmdpdGQudjEuUHVibGlzaFJlc3BvbnNlMksKEVJlcG9zaXRvcnlTZXJ2aWNlEjYKBVByb2JlEhUuZ2l0ZC52MS5Qcm9iZVJlcXVlc3QaFi5naXRkLnYxLlByb2JlUmVzcG9uc2UytwEKDVNlcnZlclNlcnZpY2USMwoESW5mbxIULmdpdGQudjEuSW5mb1JlcXVlc3QaFS5naXRkLnYxLkluZm9SZXNwb25zZRI5CgZSZXRpcmUSFi5naXRkLnYxLlJldGlyZVJlcXVlc3QaFy5naXRkLnYxLlJldGlyZVJlc3BvbnNlEjYKBUF1ZGl0EhUuZ2l0ZC52MS5BdWRpdFJlcXVlc3QaFi5naXRkLnYxLkF1ZGl0UmVzcG9uc2VCMlowZ2l0aHViLmNvbS9kb29zZXJ2aWNlL2dpdGQvZ2VuL2dvL2dpdGQvdjE7Z2l0ZHYxYgZwcm90bzM", [file_google_protobuf_timestamp]);
+  fileDesc("ChJnaXRkL3YxL2dpdGQucHJvdG8SB2dpdGQudjEibQoKQ3JlZGVudGlhbBISCgp1cmxfcHJlZml4GAEgASgJEhUKC2h0dHBzX3Rva2VuGAIgASgJSAASFgoMc3NoX2tleV9wYXRoGAMgASgJSAASEgoKaHR0cHNfdXNlchgEIAEoCUIICgZzZWNyZXQiOAoIUmV2aXNpb24SEAoGYnJhbmNoGAEgASgJSAASEAoGY29tbWl0GAIgASgJSABCCAoGdGFyZ2V0Ij4KCFByb2dyZXNzEg0KBXBoYXNlGAEgASgJEg8KB3BlcmNlbnQYAiABKAUSEgoKcmVwb3NpdG9yeRgDIAEoCSJQCg5TdWJtb2R1bGVTdGF0ZRIMCgRwYXRoGAEgASgJEgsKA3VybBgCIAEoCRIOCgZjb21taXQYAyABKAkSEwoLY2hlY2tlZF9vdXQYBCABKAgiUwoQUGVuZGluZ1N1Ym1vZHVsZRILCgN1cmwYASABKAkSDAoEcGF0aBgCIAEoCRIkCgdmYWlsdXJlGAMgASgLMhMuZ2l0ZC52MS5HaXRGYWlsdXJlIswDCgpHaXRGYWlsdXJlEioKBnJlYXNvbhgBIAEoDjIaLmdpdGQudjEuR2l0RmFpbHVyZS5SZWFzb24SEAoIZ2l0X3NhaWQYAiABKAkSEgoKcmVwb3NpdG9yeRgDIAEoCSLrAgoGUmVhc29uEhYKElJFQVNPTl9VTlNQRUNJRklFRBAAEhgKFFJFQVNPTl9BVVRIX1JFUVVJUkVEEAESFwoTUkVBU09OX0FVVEhfUkVGVVNFRBACEhQKEFJFQVNPTl9OT1RfRk9VTkQQAxIWChJSRUFTT05fQkFEX0FERFJFU1MQBBIXChNSRUFTT05fUEFUSF9SRUZVU0VEEAUSDwoLUkVBU09OX0JVU1kQBhISCg5SRUFTT05fVElNRU9VVBAHEhIKDlJFQVNPTl9DT1JSVVBUEAgSFQoRUkVBU09OX0dJVF9GQUlMRUQQCRIWChJSRUFTT05fTk9USElOR19ORVcQChIZChVSRUFTT05fQlJBTkNIX1JFRlVTRUQQCxIZChVSRUFTT05fQ09ORklHX1JFRlVTRUQQDBIZChVSRUFTT05fUE9MSUNZX1JFRlVTRUQQDRIWChJSRUFTT05fVU5TVVBQT1JURUQQDiLOAQoOUHJlcGFyZVJlcXVlc3QSCwoDdXJsGAEgASgJEgwKBHBhdGgYAiABKAkSIwoIcmV2aXNpb24YAyABKAsyES5naXRkLnYxLlJldmlzaW9uEhcKD3dpdGhfc3VibW9kdWxlcxgEIAEoCBIoCgtjcmVkZW50aWFscxgFIAMoCzITLmdpdGQudjEuQ3JlZGVudGlhbBIUCgxmdWxsX2hpc3RvcnkYBiABKAgSIwoIc3RyYXRlZ3kYByABKA4yES5naXRkLnYxLlN0cmF0ZWd5IjQKBkxheWVycxINCgVsb3dlchgBIAEoCRINCgV1cHBlchgCIAEoCRIMCgR3b3JrGAMgASgJIm0KD1ByZXBhcmVSZXNwb25zZRIlCghwcm9ncmVzcxgBIAEoCzIRLmdpdGQudjEuUHJvZ3Jlc3NIABIqCgZyZXN1bHQYAiABKAsyGC5naXRkLnYxLldvcmtzcGFjZVJlc3VsdEgAQgcKBWV2ZW50IsQBCg9Xb3Jrc3BhY2VSZXN1bHQSDgoGY29tbWl0GAEgASgJEg4KBmJyYW5jaBgCIAEoCRI1ChJwZW5kaW5nX3N1Ym1vZHVsZXMYAyADKAsyGS5naXRkLnYxLlBlbmRpbmdTdWJtb2R1bGUSIwoIc3RyYXRlZ3kYBCABKA4yES5naXRkLnYxLlN0cmF0ZWd5Eh8KBmxheWVycxgFIAEoCzIPLmdpdGQudjEuTGF5ZXJzEhQKDGxmc19wYXR0ZXJucxgGIAMoCSJwCg1VcGRhdGVSZXF1ZXN0EgwKBHBhdGgYASABKAkSDgoGYnJhbmNoGAIgASgJEhcKD3dpdGhfc3VibW9kdWxlcxgDIAEoCBIoCgtjcmVkZW50aWFscxgEIAMoCzITLmdpdGQudjEuQ3JlZGVudGlhbCJsCg5VcGRhdGVSZXNwb25zZRIlCghwcm9ncmVzcxgBIAEoCzIRLmdpdGQudjEuUHJvZ3Jlc3NIABIqCgZyZXN1bHQYAiABKAsyGC5naXRkLnYxLldvcmtzcGFjZVJlc3VsdEgAQgcKBWV2ZW50InIKD0NoZWNrb3V0UmVxdWVzdBIMCgRwYXRoGAEgASgJEg4KBmNvbW1pdBgCIAEoCRIXCg93aXRoX3N1Ym1vZHVsZXMYAyABKAgSKAoLY3JlZGVudGlhbHMYBCADKAsyEy5naXRkLnYxLkNyZWRlbnRpYWwibgoQQ2hlY2tvdXRSZXNwb25zZRIlCghwcm9ncmVzcxgBIAEoCzIRLmdpdGQudjEuUHJvZ3Jlc3NIABIqCgZyZXN1bHQYAiABKAsyGC5naXRkLnYxLldvcmtzcGFjZVJlc3VsdEgAQgcKBWV2ZW50ImEKFVN5bmNTdWJtb2R1bGVzUmVxdWVzdBIMCgRwYXRoGAEgASgJEhAKCG9ubHlfdXJsGAIgASgJEigKC2NyZWRlbnRpYWxzGAMgAygLMhMuZ2l0ZC52MS5DcmVkZW50aWFsInkKFlN5bmNTdWJtb2R1bGVzUmVzcG9uc2USJQoIcHJvZ3Jlc3MYASABKAsyES5naXRkLnYxLlByb2dyZXNzSAASLwoGcmVzdWx0GAIgASgLMh0uZ2l0ZC52MS5TeW5jU3VibW9kdWxlc1Jlc3VsdEgAQgcKBWV2ZW50InoKFFN5bmNTdWJtb2R1bGVzUmVzdWx0EisKCnN1Ym1vZHVsZXMYASADKAsyFy5naXRkLnYxLlN1Ym1vZHVsZVN0YXRlEjUKEnBlbmRpbmdfc3VibW9kdWxlcxgCIAMoCzIZLmdpdGQudjEuUGVuZGluZ1N1Ym1vZHVsZSIfCg9EZXNjcmliZVJlcXVlc3QSDAoEcGF0aBgBIAEoCSLaAQoQRGVzY3JpYmVSZXNwb25zZRILCgN1cmwYASABKAkSDgoGY29tbWl0GAIgASgJEg4KBmJyYW5jaBgDIAEoCRIQCghtb2RpZmllZBgEIAEoCBIrCgpzdWJtb2R1bGVzGAUgAygLMhcuZ2l0ZC52MS5TdWJtb2R1bGVTdGF0ZRIjCghzdHJhdGVneRgGIAEoDjIRLmdpdGQudjEuU3RyYXRlZ3kSHwoGbGF5ZXJzGAcgASgLMg8uZ2l0ZC52MS5MYXllcnMSFAoMbGZzX3BhdHRlcm5zGAggAygJIh0KDVJlbW92ZVJlcXVlc3QSDAoEcGF0aBgBIAEoCSIQCg5SZW1vdmVSZXNwb25zZSIcCgxBZG9wdFJlcXVlc3QSDAoEcGF0aBgBIAEoCSJnCg1BZG9wdFJlc3BvbnNlEiUKCHByb2dyZXNzGAEgASgLMhEuZ2l0ZC52MS5Qcm9ncmVzc0gAEiYKBnJlc3VsdBgCIAEoCzIULmdpdGQudjEuQWRvcHRSZXN1bHRIAEIHCgVldmVudCIlCgtBZG9wdFJlc3VsdBIWCg5ieXRlc19yZWxlYXNlZBgBIAEoAyKhAQoOUHVibGlzaFJlcXVlc3QSDAoEcGF0aBgBIAEoCRIOCgZicmFuY2gYAiABKAkSKAoLY3JlZGVudGlhbHMYAyADKAsyEy5naXRkLnYxLkNyZWRlbnRpYWwSFAoMcmVxdWVzdGVkX2J5GAQgASgJEjEKDHB1bGxfcmVxdWVzdBgFIAEoCzIbLmdpdGQudjEuUHVsbFJlcXVlc3RPcHRpb25zImsKElB1bGxSZXF1ZXN0T3B0aW9ucxIMCgRvcGVuGAEgASgIEg0KBXRpdGxlGAIgASgJEgwKBGJvZHkYAyABKAkSDAoEYmFzZRgEIAEoCRISCgVkcmFmdBgFIAEoCEgAiAEBQggKBl9kcmFmdCIwChFPcGVuZWRQdWxsUmVxdWVzdBILCgN1cmwYASABKAkSDgoGbnVtYmVyGAIgASgDIlIKE1B1Ymxpc2hlZFJlcG9zaXRvcnkSCwoDdXJsGAEgASgJEgwKBHBhdGgYAiABKAkSDgoGY29tbWl0GAMgASgJEhAKCHN1YmplY3RzGAQgAygJIuoBCg9QdWJsaXNoUmVzcG9uc2USDgoGYnJhbmNoGAEgASgJEjAKCnJlcG9zaXRvcnkYAiABKAsyHC5naXRkLnYxLlB1Ymxpc2hlZFJlcG9zaXRvcnkSMAoKc3VibW9kdWxlcxgDIAMoCzIcLmdpdGQudjEuUHVibGlzaGVkUmVwb3NpdG9yeRIwCgxwdWxsX3JlcXVlc3QYBCABKAsyGi5naXRkLnYxLk9wZW5lZFB1bGxSZXF1ZXN0EjEKFHB1bGxfcmVxdWVzdF9mYWlsdXJlGAUgASgLMhMuZ2l0ZC52MS5HaXRGYWlsdXJlIkUKDFByb2JlUmVxdWVzdBILCgN1cmwYASABKAkSKAoLY3JlZGVudGlhbHMYAiADKAsyEy5naXRkLnYxLkNyZWRlbnRpYWwi0gIKDVByb2JlUmVzcG9uc2USLQoGYWNjZXNzGAEgASgOMh0uZ2l0ZC52MS5Qcm9iZVJlc3BvbnNlLkFjY2VzcxIQCghicmFuY2hlcxgCIAMoCRIWCg5kZWZhdWx0X2JyYW5jaBgDIAEoCRIkCgdmYWlsdXJlGAQgASgLMhMuZ2l0ZC52MS5HaXRGYWlsdXJlEjQKB2NvbW1pdHMYBSADKAsyIy5naXRkLnYxLlByb2JlUmVzcG9uc2UuQ29tbWl0c0VudHJ5Gi4KDENvbW1pdHNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIlwKBkFjY2VzcxIWChJBQ0NFU1NfVU5TUEVDSUZJRUQQABIRCg1BQ0NFU1NfUFVCTElDEAESFAoQQUNDRVNTX1JFQUNIQUJMRRACEhEKDUFDQ0VTU19ERU5JRUQQAyIrCg1SZXRpcmVSZXF1ZXN0EhoKEnVudXNlZF9mb3Jfc2Vjb25kcxgBIAEoAyI2Cg5SZXRpcmVSZXNwb25zZRIPCgdyZXRpcmVkGAEgASgFEhMKC2ZyZWVkX2J5dGVzGAIgASgDIg0KC0luZm9SZXF1ZXN0IsIBCgxJbmZvUmVzcG9uc2USDwoHdmVyc2lvbhgBIAEoCRITCgtnaXRfdmVyc2lvbhgCIAEoCRINCgVwb29scxgDIAEoBRITCgtwb29sc19ieXRlcxgEIAEoAxIjCghzdHJhdGVneRgFIAEoDjIRLmdpdGQudjEuU3RyYXRlZ3kSFwoPc3RyYXRlZ3lfcmVhc29uGAYgASgJEhEKCXRlbXBsYXRlcxgHIAEoBRIXCg90ZW1wbGF0ZXNfYnl0ZXMYCCABKAMiVQoMQXVkaXRSZXF1ZXN0EikKBXNpbmNlGAEgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBILCgN1cmwYAiABKAkSDQoFbGltaXQYAyABKAUiNQoNQXVkaXRSZXNwb25zZRIkCgdlbnRyaWVzGAEgAygLMhMuZ2l0ZC52MS5BdWRpdEVudHJ5IpkDCgpBdWRpdEVudHJ5EigKBHRpbWUYASABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhEKCXdvcmtzcGFjZRgCIAEoCRILCgN1cmwYAyABKAkSDgoGYnJhbmNoGAQgASgJEjAKCnJlcG9zaXRvcnkYBSABKAsyHC5naXRkLnYxLlB1Ymxpc2hlZFJlcG9zaXRvcnkSMAoKc3VibW9kdWxlcxgGIAMoCzIcLmdpdGQudjEuUHVibGlzaGVkUmVwb3NpdG9yeRIkCgdyZWZ1c2FsGAcgASgLMhMuZ2l0ZC52MS5HaXRGYWlsdXJlEhQKDHJlcXVlc3RlZF9ieRgIIAEoCRIwCgxwdWxsX3JlcXVlc3QYCSABKAsyGi5naXRkLnYxLk9wZW5lZFB1bGxSZXF1ZXN0EjEKFHB1bGxfcmVxdWVzdF9mYWlsdXJlGAogASgLMhMuZ2l0ZC52MS5HaXRGYWlsdXJlEiwKBmNoYW5nZRgLIAEoCzIcLmdpdGQudjEuQ29uZmlndXJhdGlvbkNoYW5nZSKEAgoTQ29uZmlndXJhdGlvbkNoYW5nZRIzCgZhY3Rpb24YASABKA4yIy5naXRkLnYxLkNvbmZpZ3VyYXRpb25DaGFuZ2UuQWN0aW9uEg8KB3N1YmplY3QYAiABKAkSEgoKdXJsX3ByZWZpeBgDIAEoCSKSAQoGQWN0aW9uEhYKEkFDVElPTl9VTlNQRUNJRklFRBAAEhsKF0FDVElPTl9DT05ORUNUSU9OX0FEREVEEAESHQoZQUNUSU9OX0NPTk5FQ1RJT05fUkVNT1ZFRBACEhcKE0FDVElPTl9TRVRUSU5HU19TRVQQAxIbChdBQ1RJT05fU0VUVElOR1NfUkVNT1ZFRBAEIuICCgpDb25uZWN0aW9uEgoKAmlkGAEgASgJEiYKBGtpbmQYAiABKA4yGC5naXRkLnYxLkNvbm5lY3Rpb24uS2luZBISCgp1cmxfcHJlZml4GAMgASgJEg8KB2FjdHNfYXMYBCABKAkSDgoGYXBwX2lkGAUgASgDEhIKCm1hbmFnZV91cmwYBiABKAkSKwoHZXhwaXJlcxgHIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASEQoJZnJvbV9maWxlGAggASgIEisKB2NyZWF0ZWQYCSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wImoKBEtpbmQSFAoQS0lORF9VTlNQRUNJRklFRBAAEg4KCktJTkRfVE9LRU4QARIQCgxLSU5EX1NTSF9LRVkQAhITCg9LSU5EX0dJVEhVQl9BUFAQAxIVChFLSU5EX0dJVEhVQl9MT0dJThAEIl8KFUJlZ2luR2l0SHViQXBwUmVxdWVzdBIMCgRob3N0GAEgASgJEhQKDG9yZ2FuaXphdGlvbhgCIAEoCRIMCgRuYW1lGAMgASgJEhQKDHJlZGlyZWN0X3VybBgEIAEoCSJOChZCZWdpbkdpdEh1YkFwcFJlc3BvbnNlEhMKC2Zvcm1fYWN0aW9uGAEgASgJEhAKCG1hbmlmZXN0GAIgASgJEg0KBXN0YXRlGAMgASgJIjcKGENvbXBsZXRlR2l0SHViQXBwUmVxdWVzdBIMCgRjb2RlGAEgASgJEg0KBXN0YXRlGAIgASgJIlkKGUNvbXBsZXRlR2l0SHViQXBwUmVzcG9uc2USJwoKY29ubmVjdGlvbhgBIAEoCzITLmdpdGQudjEuQ29ubmVjdGlvbhITCgtpbnN0YWxsX3VybBgCIAEoCSInChdTdGFydEdpdEh1YkxvZ2luUmVxdWVzdBIMCgRob3N0GAEgASgJInUKGFN0YXJ0R2l0SHViTG9naW5SZXNwb25zZRIRCgl1c2VyX2NvZGUYASABKAkSGAoQdmVyaWZpY2F0aW9uX3VybBgCIAEoCRIQCghsb2dpbl9pZBgDIAEoCRIaChJleHBpcmVzX2luX3NlY29uZHMYBCABKAUiLAoYRmluaXNoR2l0SHViTG9naW5SZXF1ZXN0EhAKCGxvZ2luX2lkGAEgASgJIlkKGUZpbmlzaEdpdEh1YkxvZ2luUmVzcG9uc2USJwoKY29ubmVjdGlvbhgBIAEoCzITLmdpdGQudjEuQ29ubmVjdGlvbhITCgtpbnN0YWxsX3VybBgCIAEoCSJcChNBZGRHaXRIdWJBcHBSZXF1ZXN0EgwKBGhvc3QYASABKAkSDgoGYXBwX2lkGAIgASgDEhMKC3ByaXZhdGVfa2V5GAMgASgJEhIKCnVybF9wcmVmaXgYBCABKAkiPwoUQWRkR2l0SHViQXBwUmVzcG9uc2USJwoKY29ubmVjdGlvbhgBIAEoCzITLmdpdGQudjEuQ29ubmVjdGlvbiJCCg9BZGRUb2tlblJlcXVlc3QSEgoKdXJsX3ByZWZpeBgBIAEoCRINCgV0b2tlbhgCIAEoCRIMCgR1c2VyGAMgASgJIjsKEEFkZFRva2VuUmVzcG9uc2USJwoKY29ubmVjdGlvbhgBIAEoCzITLmdpdGQudjEuQ29ubmVjdGlvbiIYChZMaXN0Q29ubmVjdGlvbnNSZXF1ZXN0IkMKF0xpc3RDb25uZWN0aW9uc1Jlc3BvbnNlEigKC2Nvbm5lY3Rpb25zGAEgAygLMhMuZ2l0ZC52MS5Db25uZWN0aW9uIiUKF1JlbW92ZUNvbm5lY3Rpb25SZXF1ZXN0EgoKAmlkGAEgASgJIhoKGFJlbW92ZUNvbm5lY3Rpb25SZXNwb25zZSKIAgoPUHVibGlzaFNldHRpbmdzEhIKCnVybF9wcmVmaXgYASABKAkSHwoGcHJlc2V0GAIgASgOMg8uZ2l0ZC52MS5QcmVzZXQSFwoPcHJvdGVjdGVkX3BhdGhzGAMgAygJEhIKCmtlcHRfcGF0aHMYBCADKAkSHgoRbWF4X2NoYW5nZWRfZmlsZXMYBSABKAVIAIgBARIVCg1icmFuY2hfcHJlZml4GAYgASgJEjMKDXB1bGxfcmVxdWVzdHMYByABKAsyHC5naXRkLnYxLlB1bGxSZXF1ZXN0U2V0dGluZ3MSEQoJZnJvbV9maWxlGAggASgIQhQKEl9tYXhfY2hhbmdlZF9maWxlcyLQAQoTUHVsbFJlcXVlc3RTZXR0aW5ncxIvCgRvcGVuGAEgASgOMiEuZ2l0ZC52MS5QdWxsUmVxdWVzdFNldHRpbmdzLk9wZW4SDQoFZHJhZnQYAiABKAgSDgoGbGFiZWxzGAMgAygJEiUKHXJlcXVlc3RfcmV2aWV3X2Zyb21fcmVxdWVzdGVyGAQgASgIIkIKBE9wZW4SFAoQT1BFTl9VTlNQRUNJRklFRBAAEhMKD09QRU5fV0hFTl9BU0tFRBABEg8KC09QRU5fQUxXQVlTEAIiFAoSR2V0U2V0dGluZ3NSZXF1ZXN0IkEKE0dldFNldHRpbmdzUmVzcG9uc2USKgoIc2V0dGluZ3MYASADKAsyGC5naXRkLnYxLlB1Ymxpc2hTZXR0aW5ncyJAChJTZXRTZXR0aW5nc1JlcXVlc3QSKgoIc2V0dGluZ3MYASABKAsyGC5naXRkLnYxLlB1Ymxpc2hTZXR0aW5ncyJBChNTZXRTZXR0aW5nc1Jlc3BvbnNlEioKCHNldHRpbmdzGAEgASgLMhguZ2l0ZC52MS5QdWJsaXNoU2V0dGluZ3MiKwoVUmVtb3ZlU2V0dGluZ3NSZXF1ZXN0EhIKCnVybF9wcmVmaXgYASABKAkiGAoWUmVtb3ZlU2V0dGluZ3NSZXNwb25zZSpjCghTdHJhdGVneRIYChRTVFJBVEVHWV9VTlNQRUNJRklFRBAAEhEKDVNUUkFURUdZX0NPUFkQARIUChBTVFJBVEVHWV9PVkVSTEFZEAISFAoQU1RSQVRFR1lfUkVGTElOSxADKjgKBlByZXNldBIWChJQUkVTRVRfVU5TUEVDSUZJRUQQABIWChJQUkVTRVRfUkVDT01NRU5ERUQQATKbBAoQV29ya3NwYWNlU2VydmljZRI+CgdQcmVwYXJlEhcuZ2l0ZC52MS5QcmVwYXJlUmVxdWVzdBoYLmdpdGQudjEuUHJlcGFyZVJlc3BvbnNlMAESOwoGVXBkYXRlEhYuZ2l0ZC52MS5VcGRhdGVSZXF1ZXN0GhcuZ2l0ZC52MS5VcGRhdGVSZXNwb25zZTABEkEKCENoZWNrb3V0EhguZ2l0ZC52MS5DaGVja291dFJlcXVlc3QaGS5naXRkLnYxLkNoZWNrb3V0UmVzcG9uc2UwARJTCg5TeW5jU3VibW9kdWxlcxIeLmdpdGQudjEuU3luY1N1Ym1vZHVsZXNSZXF1ZXN0Gh8uZ2l0ZC52MS5TeW5jU3VibW9kdWxlc1Jlc3BvbnNlMAESPwoIRGVzY3JpYmUSGC5naXRkLnYxLkRlc2NyaWJlUmVxdWVzdBoZLmdpdGQudjEuRGVzY3JpYmVSZXNwb25zZRI5CgZSZW1vdmUSFi5naXRkLnYxLlJlbW92ZVJlcXVlc3QaFy5naXRkLnYxLlJlbW92ZVJlc3BvbnNlEjgKBUFkb3B0EhUuZ2l0ZC52MS5BZG9wdFJlcXVlc3QaFi5naXRkLnYxLkFkb3B0UmVzcG9uc2UwARI8CgdQdWJsaXNoEhcuZ2l0ZC52MS5QdWJsaXNoUmVxdWVzdBoYLmdpdGQudjEuUHVibGlzaFJlc3BvbnNlMksKEVJlcG9zaXRvcnlTZXJ2aWNlEjYKBVByb2JlEhUuZ2l0ZC52MS5Qcm9iZVJlcXVlc3QaFi5naXRkLnYxLlByb2JlUmVzcG9uc2UytwEKDVNlcnZlclNlcnZpY2USMwoESW5mbxIULmdpdGQudjEuSW5mb1JlcXVlc3QaFS5naXRkLnYxLkluZm9SZXNwb25zZRI5CgZSZXRpcmUSFi5naXRkLnYxLlJldGlyZVJlcXVlc3QaFy5naXRkLnYxLlJldGlyZVJlc3BvbnNlEjYKBUF1ZGl0EhUuZ2l0ZC52MS5BdWRpdFJlcXVlc3QaFi5naXRkLnYxLkF1ZGl0UmVzcG9uc2UytAUKEUNvbm5lY3Rpb25TZXJ2aWNlElEKDkJlZ2luR2l0SHViQXBwEh4uZ2l0ZC52MS5CZWdpbkdpdEh1YkFwcFJlcXVlc3QaHy5naXRkLnYxLkJlZ2luR2l0SHViQXBwUmVzcG9uc2USWgoRQ29tcGxldGVHaXRIdWJBcHASIS5naXRkLnYxLkNvbXBsZXRlR2l0SHViQXBwUmVxdWVzdBoiLmdpdGQudjEuQ29tcGxldGVHaXRIdWJBcHBSZXNwb25zZRJXChBTdGFydEdpdEh1YkxvZ2luEiAuZ2l0ZC52MS5TdGFydEdpdEh1YkxvZ2luUmVxdWVzdBohLmdpdGQudjEuU3RhcnRHaXRIdWJMb2dpblJlc3BvbnNlEloKEUZpbmlzaEdpdEh1YkxvZ2luEiEuZ2l0ZC52MS5GaW5pc2hHaXRIdWJMb2dpblJlcXVlc3QaIi5naXRkLnYxLkZpbmlzaEdpdEh1YkxvZ2luUmVzcG9uc2USSwoMQWRkR2l0SHViQXBwEhwuZ2l0ZC52MS5BZGRHaXRIdWJBcHBSZXF1ZXN0Gh0uZ2l0ZC52MS5BZGRHaXRIdWJBcHBSZXNwb25zZRI/CghBZGRUb2tlbhIYLmdpdGQudjEuQWRkVG9rZW5SZXF1ZXN0GhkuZ2l0ZC52MS5BZGRUb2tlblJlc3BvbnNlElQKD0xpc3RDb25uZWN0aW9ucxIfLmdpdGQudjEuTGlzdENvbm5lY3Rpb25zUmVxdWVzdBogLmdpdGQudjEuTGlzdENvbm5lY3Rpb25zUmVzcG9uc2USVwoQUmVtb3ZlQ29ubmVjdGlvbhIgLmdpdGQudjEuUmVtb3ZlQ29ubmVjdGlvblJlcXVlc3QaIS5naXRkLnYxLlJlbW92ZUNvbm5lY3Rpb25SZXNwb25zZTL6AQoRUHVibGlzaGluZ1NlcnZpY2USSAoLR2V0U2V0dGluZ3MSGy5naXRkLnYxLkdldFNldHRpbmdzUmVxdWVzdBocLmdpdGQudjEuR2V0U2V0dGluZ3NSZXNwb25zZRJICgtTZXRTZXR0aW5ncxIbLmdpdGQudjEuU2V0U2V0dGluZ3NSZXF1ZXN0GhwuZ2l0ZC52MS5TZXRTZXR0aW5nc1Jlc3BvbnNlElEKDlJlbW92ZVNldHRpbmdzEh4uZ2l0ZC52MS5SZW1vdmVTZXR0aW5nc1JlcXVlc3QaHy5naXRkLnYxLlJlbW92ZVNldHRpbmdzUmVzcG9uc2VCMlowZ2l0aHViLmNvbS9kb29zZXJ2aWNlL2dpdGQvZ2VuL2dvL2dpdGQvdjE7Z2l0ZHYxYgZwcm90bzM", [file_google_protobuf_timestamp]);
 
 /**
  * What opens repositories whose address starts with `url_prefix`, on any host:
@@ -299,6 +299,22 @@ export enum GitFailure_Reason {
    * @generated from enum value: REASON_CONFIG_REFUSED = 12;
    */
   CONFIG_REFUSED = 12,
+
+  /**
+   * What a publish brings breaks a publishing rule: a protected path changed, a kept
+   * path deleted, or too many files changed. Nothing was pushed.
+   *
+   * @generated from enum value: REASON_POLICY_REFUSED = 13;
+   */
+  POLICY_REFUSED = 13,
+
+  /**
+   * What was asked cannot be done with this host, such as a pull request where gitd does
+   * not know the host's API.
+   *
+   * @generated from enum value: REASON_UNSUPPORTED = 14;
+   */
+  UNSUPPORTED = 14,
 }
 
 /**
@@ -874,6 +890,22 @@ export type PublishRequest = Message<"gitd.v1.PublishRequest"> & {
    * @generated from field: repeated gitd.v1.Credential credentials = 3;
    */
   credentials: Credential[];
+
+  /**
+   * Who asked for the work, as their account on the git host, e.g. `josue`: written in the
+   * pull request and the audit log, and asked to review when the settings say so. gitd
+   * records it as told.
+   *
+   * @generated from field: string requested_by = 4;
+   */
+  requestedBy: string;
+
+  /**
+   * This publish's pull request, beyond what the settings say.
+   *
+   * @generated from field: gitd.v1.PullRequestOptions pull_request = 5;
+   */
+  pullRequest?: PullRequestOptions | undefined;
 };
 
 /**
@@ -882,6 +914,77 @@ export type PublishRequest = Message<"gitd.v1.PublishRequest"> & {
  */
 export const PublishRequestSchema: GenMessage<PublishRequest> = /*@__PURE__*/
   messageDesc(file_gitd_v1_gitd, 24);
+
+/**
+ * A publish's own say on its pull request. Unset fields take the settings'.
+ *
+ * @generated from message gitd.v1.PullRequestOptions
+ */
+export type PullRequestOptions = Message<"gitd.v1.PullRequestOptions"> & {
+  /**
+   * Open one even when the settings open them only when asked.
+   *
+   * @generated from field: bool open = 1;
+   */
+  open: boolean;
+
+  /**
+   * Empty: the subject of the newest commit.
+   *
+   * @generated from field: string title = 2;
+   */
+  title: string;
+
+  /**
+   * The platform's text; gitd's account of what it checked follows it.
+   *
+   * @generated from field: string body = 3;
+   */
+  body: string;
+
+  /**
+   * The branch it asks to merge into. Empty: the repository's default branch.
+   *
+   * @generated from field: string base = 4;
+   */
+  base: string;
+
+  /**
+   * @generated from field: optional bool draft = 5;
+   */
+  draft?: boolean | undefined;
+};
+
+/**
+ * Describes the message gitd.v1.PullRequestOptions.
+ * Use `create(PullRequestOptionsSchema)` to create a new message.
+ */
+export const PullRequestOptionsSchema: GenMessage<PullRequestOptions> = /*@__PURE__*/
+  messageDesc(file_gitd_v1_gitd, 25);
+
+/**
+ * A pull request gitd opened.
+ *
+ * @generated from message gitd.v1.OpenedPullRequest
+ */
+export type OpenedPullRequest = Message<"gitd.v1.OpenedPullRequest"> & {
+  /**
+   * @generated from field: string url = 1;
+   */
+  url: string;
+
+  /**
+   * @generated from field: int64 number = 2;
+   */
+  number: bigint;
+};
+
+/**
+ * Describes the message gitd.v1.OpenedPullRequest.
+ * Use `create(OpenedPullRequestSchema)` to create a new message.
+ */
+export const OpenedPullRequestSchema: GenMessage<OpenedPullRequest> = /*@__PURE__*/
+  messageDesc(file_gitd_v1_gitd, 26);
 
 /**
  * @generated from message gitd.v1.PublishedRepository
@@ -917,7 +1020,7 @@ export type PublishedRepository = Message<"gitd.v1.PublishedRepository"> & {
  * Use `create(PublishedRepositorySchema)` to create a new message.
  */
 export const PublishedRepositorySchema: GenMessage<PublishedRepository> = /*@__PURE__*/
-  messageDesc(file_gitd_v1_gitd, 25);
+  messageDesc(file_gitd_v1_gitd, 27);
 
 /**
  * @generated from message gitd.v1.PublishResponse
@@ -937,6 +1040,21 @@ export type PublishResponse = Message<"gitd.v1.PublishResponse"> & {
    * @generated from field: repeated gitd.v1.PublishedRepository submodules = 3;
    */
   submodules: PublishedRepository[];
+
+  /**
+   * The pull request opened, when one was.
+   *
+   * @generated from field: gitd.v1.OpenedPullRequest pull_request = 4;
+   */
+  pullRequest?: OpenedPullRequest | undefined;
+
+  /**
+   * Why the pull request could not be opened, when it was to be. The branch is published
+   * all the same.
+   *
+   * @generated from field: gitd.v1.GitFailure pull_request_failure = 5;
+   */
+  pullRequestFailure?: GitFailure | undefined;
 };
 
 /**
@@ -944,7 +1062,7 @@ export type PublishResponse = Message<"gitd.v1.PublishResponse"> & {
  * Use `create(PublishResponseSchema)` to create a new message.
  */
 export const PublishResponseSchema: GenMessage<PublishResponse> = /*@__PURE__*/
-  messageDesc(file_gitd_v1_gitd, 26);
+  messageDesc(file_gitd_v1_gitd, 28);
 
 /**
  * @generated from message gitd.v1.ProbeRequest
@@ -966,7 +1084,7 @@ export type ProbeRequest = Message<"gitd.v1.ProbeRequest"> & {
  * Use `create(ProbeRequestSchema)` to create a new message.
  */
 export const ProbeRequestSchema: GenMessage<ProbeRequest> = /*@__PURE__*/
-  messageDesc(file_gitd_v1_gitd, 27);
+  messageDesc(file_gitd_v1_gitd, 29);
 
 /**
  * @generated from message gitd.v1.ProbeResponse
@@ -1007,7 +1125,7 @@ export type ProbeResponse = Message<"gitd.v1.ProbeResponse"> & {
  * Use `create(ProbeResponseSchema)` to create a new message.
  */
 export const ProbeResponseSchema: GenMessage<ProbeResponse> = /*@__PURE__*/
-  messageDesc(file_gitd_v1_gitd, 28);
+  messageDesc(file_gitd_v1_gitd, 30);
 
 /**
  * @generated from enum gitd.v1.ProbeResponse.Access
@@ -1044,7 +1162,7 @@ export enum ProbeResponse_Access {
  * Describes the enum gitd.v1.ProbeResponse.Access.
  */
 export const ProbeResponse_AccessSchema: GenEnum<ProbeResponse_Access> = /*@__PURE__*/
-  enumDesc(file_gitd_v1_gitd, 28, 0);
+  enumDesc(file_gitd_v1_gitd, 30, 0);
 
 /**
  * @generated from message gitd.v1.RetireRequest
@@ -1063,7 +1181,7 @@ export type RetireRequest = Message<"gitd.v1.RetireRequest"> & {
  * Use `create(RetireRequestSchema)` to create a new message.
  */
 export const RetireRequestSchema: GenMessage<RetireRequest> = /*@__PURE__*/
-  messageDesc(file_gitd_v1_gitd, 29);
+  messageDesc(file_gitd_v1_gitd, 31);
 
 /**
  * @generated from message gitd.v1.RetireResponse
@@ -1085,7 +1203,7 @@ export type RetireResponse = Message<"gitd.v1.RetireResponse"> & {
  * Use `create(RetireResponseSchema)` to create a new message.
  */
 export const RetireResponseSchema: GenMessage<RetireResponse> = /*@__PURE__*/
-  messageDesc(file_gitd_v1_gitd, 30);
+  messageDesc(file_gitd_v1_gitd, 32);
 
 /**
  * @generated from message gitd.v1.InfoRequest
@@ -1098,7 +1216,7 @@ export type InfoRequest = Message<"gitd.v1.InfoRequest"> & {
  * Use `create(InfoRequestSchema)` to create a new message.
  */
 export const InfoRequestSchema: GenMessage<InfoRequest> = /*@__PURE__*/
-  messageDesc(file_gitd_v1_gitd, 31);
+  messageDesc(file_gitd_v1_gitd, 33);
 
 /**
  * @generated from message gitd.v1.InfoResponse
@@ -1158,7 +1276,7 @@ export type InfoResponse = Message<"gitd.v1.InfoResponse"> & {
  * Use `create(InfoResponseSchema)` to create a new message.
  */
 export const InfoResponseSchema: GenMessage<InfoResponse> = /*@__PURE__*/
-  messageDesc(file_gitd_v1_gitd, 32);
+  messageDesc(file_gitd_v1_gitd, 34);
 
 /**
  * @generated from message gitd.v1.AuditRequest
@@ -1172,7 +1290,7 @@ export type AuditRequest = Message<"gitd.v1.AuditRequest"> & {
   since?: Timestamp | undefined;
 
   /**
-   * Only the publishes of this repository, as its URL is written in the entries.
+   * Only the entries of this repository, as its URL is written in them.
    *
    * @generated from field: string url = 2;
    */
@@ -1191,7 +1309,7 @@ export type AuditRequest = Message<"gitd.v1.AuditRequest"> & {
  * Use `create(AuditRequestSchema)` to create a new message.
  */
 export const AuditRequestSchema: GenMessage<AuditRequest> = /*@__PURE__*/
-  messageDesc(file_gitd_v1_gitd, 33);
+  messageDesc(file_gitd_v1_gitd, 35);
 
 /**
  * @generated from message gitd.v1.AuditResponse
@@ -1208,11 +1326,11 @@ export type AuditResponse = Message<"gitd.v1.AuditResponse"> & {
  * Use `create(AuditResponseSchema)` to create a new message.
  */
 export const AuditResponseSchema: GenMessage<AuditResponse> = /*@__PURE__*/
-  messageDesc(file_gitd_v1_gitd, 34);
+  messageDesc(file_gitd_v1_gitd, 36);
 
 /**
- * One publish, done or refused, as the audit log keeps it: one per line of the log file,
- * in this message's JSON form.
+ * One publish, done or refused, or one change to connections or publishing settings, as
+ * the audit log keeps it: one per line of the log file, in this message's JSON form.
  *
  * @generated from message gitd.v1.AuditEntry
  */
@@ -1259,6 +1377,32 @@ export type AuditEntry = Message<"gitd.v1.AuditEntry"> & {
    * @generated from field: gitd.v1.GitFailure refusal = 7;
    */
   refusal?: GitFailure | undefined;
+
+  /**
+   * Who asked for the work, as the publish said.
+   *
+   * @generated from field: string requested_by = 8;
+   */
+  requestedBy: string;
+
+  /**
+   * The pull request opened, or why it could not be.
+   *
+   * @generated from field: gitd.v1.OpenedPullRequest pull_request = 9;
+   */
+  pullRequest?: OpenedPullRequest | undefined;
+
+  /**
+   * @generated from field: gitd.v1.GitFailure pull_request_failure = 10;
+   */
+  pullRequestFailure?: GitFailure | undefined;
+
+  /**
+   * A change to connections or publishing settings; the other fields are then unset.
+   *
+   * @generated from field: gitd.v1.ConfigurationChange change = 11;
+   */
+  change?: ConfigurationChange | undefined;
 };
 
 /**
@@ -1266,7 +1410,801 @@ export type AuditEntry = Message<"gitd.v1.AuditEntry"> & {
  * Use `create(AuditEntrySchema)` to create a new message.
  */
 export const AuditEntrySchema: GenMessage<AuditEntry> = /*@__PURE__*/
-  messageDesc(file_gitd_v1_gitd, 35);
+  messageDesc(file_gitd_v1_gitd, 37);
+
+/**
+ * A connection added or removed, or the settings of a prefix set or removed.
+ *
+ * @generated from message gitd.v1.ConfigurationChange
+ */
+export type ConfigurationChange = Message<"gitd.v1.ConfigurationChange"> & {
+  /**
+   * @generated from field: gitd.v1.ConfigurationChange.Action action = 1;
+   */
+  action: ConfigurationChange_Action;
+
+  /**
+   * The connection's ID, or the settings' prefix.
+   *
+   * @generated from field: string subject = 2;
+   */
+  subject: string;
+
+  /**
+   * What it opens or applies to, e.g. `https://github.com/acme`.
+   *
+   * @generated from field: string url_prefix = 3;
+   */
+  urlPrefix: string;
+};
+
+/**
+ * Describes the message gitd.v1.ConfigurationChange.
+ * Use `create(ConfigurationChangeSchema)` to create a new message.
+ */
+export const ConfigurationChangeSchema: GenMessage<ConfigurationChange> = /*@__PURE__*/
+  messageDesc(file_gitd_v1_gitd, 38);
+
+/**
+ * @generated from enum gitd.v1.ConfigurationChange.Action
+ */
+export enum ConfigurationChange_Action {
+  /**
+   * @generated from enum value: ACTION_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: ACTION_CONNECTION_ADDED = 1;
+   */
+  CONNECTION_ADDED = 1,
+
+  /**
+   * @generated from enum value: ACTION_CONNECTION_REMOVED = 2;
+   */
+  CONNECTION_REMOVED = 2,
+
+  /**
+   * @generated from enum value: ACTION_SETTINGS_SET = 3;
+   */
+  SETTINGS_SET = 3,
+
+  /**
+   * @generated from enum value: ACTION_SETTINGS_REMOVED = 4;
+   */
+  SETTINGS_REMOVED = 4,
+}
+
+/**
+ * Describes the enum gitd.v1.ConfigurationChange.Action.
+ */
+export const ConfigurationChange_ActionSchema: GenEnum<ConfigurationChange_Action> = /*@__PURE__*/
+  enumDesc(file_gitd_v1_gitd, 38, 0);
+
+/**
+ * One credential gitd keeps.
+ *
+ * @generated from message gitd.v1.Connection
+ */
+export type Connection = Message<"gitd.v1.Connection"> & {
+  /**
+   * gitd's name for it, to remove it by.
+   *
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: gitd.v1.Connection.Kind kind = 2;
+   */
+  kind: Connection_Kind;
+
+  /**
+   * The repositories it opens: those whose address starts with this.
+   *
+   * @generated from field: string url_prefix = 3;
+   */
+  urlPrefix: string;
+
+  /**
+   * Whom it acts as: the App's bot (`acme-agents[bot]`) or the person (`josue`). Empty for
+   * a token or a key.
+   *
+   * @generated from field: string acts_as = 4;
+   */
+  actsAs: string;
+
+  /**
+   * For an App: its ID, and where its installations are managed.
+   *
+   * @generated from field: int64 app_id = 5;
+   */
+  appId: bigint;
+
+  /**
+   * @generated from field: string manage_url = 6;
+   */
+  manageUrl: string;
+
+  /**
+   * When it stops working unless renewed: a sign-in's renewal ends then.
+   *
+   * @generated from field: google.protobuf.Timestamp expires = 7;
+   */
+  expires?: Timestamp | undefined;
+
+  /**
+   * From the configuration file: shown, never changed through the API.
+   *
+   * @generated from field: bool from_file = 8;
+   */
+  fromFile: boolean;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp created = 9;
+   */
+  created?: Timestamp | undefined;
+};
+
+/**
+ * Describes the message gitd.v1.Connection.
+ * Use `create(ConnectionSchema)` to create a new message.
+ */
+export const ConnectionSchema: GenMessage<Connection> = /*@__PURE__*/
+  messageDesc(file_gitd_v1_gitd, 39);
+
+/**
+ * @generated from enum gitd.v1.Connection.Kind
+ */
+export enum Connection_Kind {
+  /**
+   * @generated from enum value: KIND_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: KIND_TOKEN = 1;
+   */
+  TOKEN = 1,
+
+  /**
+   * @generated from enum value: KIND_SSH_KEY = 2;
+   */
+  SSH_KEY = 2,
+
+  /**
+   * A GitHub App: its installation tokens open one repository each, for an hour.
+   *
+   * @generated from enum value: KIND_GITHUB_APP = 3;
+   */
+  GITHUB_APP = 3,
+
+  /**
+   * A person signed in through gitd's public App: their tokens, renewed by gitd.
+   *
+   * @generated from enum value: KIND_GITHUB_LOGIN = 4;
+   */
+  GITHUB_LOGIN = 4,
+}
+
+/**
+ * Describes the enum gitd.v1.Connection.Kind.
+ */
+export const Connection_KindSchema: GenEnum<Connection_Kind> = /*@__PURE__*/
+  enumDesc(file_gitd_v1_gitd, 39, 0);
+
+/**
+ * @generated from message gitd.v1.BeginGitHubAppRequest
+ */
+export type BeginGitHubAppRequest = Message<"gitd.v1.BeginGitHubAppRequest"> & {
+  /**
+   * The GitHub host: empty for github.com, or a GitHub Enterprise Server's.
+   *
+   * @generated from field: string host = 1;
+   */
+  host: string;
+
+  /**
+   * The organisation that owns the App. Empty: the account of the person creating it.
+   *
+   * @generated from field: string organization = 2;
+   */
+  organization: string;
+
+  /**
+   * The App's name on GitHub, e.g. `acme-agents`; its bot is `acme-agents[bot]`.
+   *
+   * @generated from field: string name = 3;
+   */
+  name: string;
+
+  /**
+   * Where GitHub sends the person once the App is created: the platform's page, which
+   * hands the code and state to CompleteGitHubApp.
+   *
+   * @generated from field: string redirect_url = 4;
+   */
+  redirectUrl: string;
+};
+
+/**
+ * Describes the message gitd.v1.BeginGitHubAppRequest.
+ * Use `create(BeginGitHubAppRequestSchema)` to create a new message.
+ */
+export const BeginGitHubAppRequestSchema: GenMessage<BeginGitHubAppRequest> = /*@__PURE__*/
+  messageDesc(file_gitd_v1_gitd, 40);
+
+/**
+ * @generated from message gitd.v1.BeginGitHubAppResponse
+ */
+export type BeginGitHubAppResponse = Message<"gitd.v1.BeginGitHubAppResponse"> & {
+  /**
+   * Where the person's browser posts the manifest, as a form field named `manifest`.
+   *
+   * @generated from field: string form_action = 1;
+   */
+  formAction: string;
+
+  /**
+   * The manifest, in JSON: the App's name, its permissions (contents and pull requests,
+   * read and write; metadata, read), no webhook.
+   *
+   * @generated from field: string manifest = 2;
+   */
+  manifest: string;
+
+  /**
+   * Ties GitHub's answer to this request; expires in an hour.
+   *
+   * @generated from field: string state = 3;
+   */
+  state: string;
+};
+
+/**
+ * Describes the message gitd.v1.BeginGitHubAppResponse.
+ * Use `create(BeginGitHubAppResponseSchema)` to create a new message.
+ */
+export const BeginGitHubAppResponseSchema: GenMessage<BeginGitHubAppResponse> = /*@__PURE__*/
+  messageDesc(file_gitd_v1_gitd, 41);
+
+/**
+ * @generated from message gitd.v1.CompleteGitHubAppRequest
+ */
+export type CompleteGitHubAppRequest = Message<"gitd.v1.CompleteGitHubAppRequest"> & {
+  /**
+   * @generated from field: string code = 1;
+   */
+  code: string;
+
+  /**
+   * @generated from field: string state = 2;
+   */
+  state: string;
+};
+
+/**
+ * Describes the message gitd.v1.CompleteGitHubAppRequest.
+ * Use `create(CompleteGitHubAppRequestSchema)` to create a new message.
+ */
+export const CompleteGitHubAppRequestSchema: GenMessage<CompleteGitHubAppRequest> = /*@__PURE__*/
+  messageDesc(file_gitd_v1_gitd, 42);
+
+/**
+ * @generated from message gitd.v1.CompleteGitHubAppResponse
+ */
+export type CompleteGitHubAppResponse = Message<"gitd.v1.CompleteGitHubAppResponse"> & {
+  /**
+   * @generated from field: gitd.v1.Connection connection = 1;
+   */
+  connection?: Connection | undefined;
+
+  /**
+   * Where the person installs the App on the repositories it may reach.
+   *
+   * @generated from field: string install_url = 2;
+   */
+  installUrl: string;
+};
+
+/**
+ * Describes the message gitd.v1.CompleteGitHubAppResponse.
+ * Use `create(CompleteGitHubAppResponseSchema)` to create a new message.
+ */
+export const CompleteGitHubAppResponseSchema: GenMessage<CompleteGitHubAppResponse> = /*@__PURE__*/
+  messageDesc(file_gitd_v1_gitd, 43);
+
+/**
+ * @generated from message gitd.v1.StartGitHubLoginRequest
+ */
+export type StartGitHubLoginRequest = Message<"gitd.v1.StartGitHubLoginRequest"> & {
+  /**
+   * The GitHub host: empty for github.com.
+   *
+   * @generated from field: string host = 1;
+   */
+  host: string;
+};
+
+/**
+ * Describes the message gitd.v1.StartGitHubLoginRequest.
+ * Use `create(StartGitHubLoginRequestSchema)` to create a new message.
+ */
+export const StartGitHubLoginRequestSchema: GenMessage<StartGitHubLoginRequest> = /*@__PURE__*/
+  messageDesc(file_gitd_v1_gitd, 44);
+
+/**
+ * @generated from message gitd.v1.StartGitHubLoginResponse
+ */
+export type StartGitHubLoginResponse = Message<"gitd.v1.StartGitHubLoginResponse"> & {
+  /**
+   * What the person enters at `verification_url`.
+   *
+   * @generated from field: string user_code = 1;
+   */
+  userCode: string;
+
+  /**
+   * @generated from field: string verification_url = 2;
+   */
+  verificationUrl: string;
+
+  /**
+   * Hands this sign-in to FinishGitHubLogin.
+   *
+   * @generated from field: string login_id = 3;
+   */
+  loginId: string;
+
+  /**
+   * How long the code is good for.
+   *
+   * @generated from field: int32 expires_in_seconds = 4;
+   */
+  expiresInSeconds: number;
+};
+
+/**
+ * Describes the message gitd.v1.StartGitHubLoginResponse.
+ * Use `create(StartGitHubLoginResponseSchema)` to create a new message.
+ */
+export const StartGitHubLoginResponseSchema: GenMessage<StartGitHubLoginResponse> = /*@__PURE__*/
+  messageDesc(file_gitd_v1_gitd, 45);
+
+/**
+ * @generated from message gitd.v1.FinishGitHubLoginRequest
+ */
+export type FinishGitHubLoginRequest = Message<"gitd.v1.FinishGitHubLoginRequest"> & {
+  /**
+   * @generated from field: string login_id = 1;
+   */
+  loginId: string;
+};
+
+/**
+ * Describes the message gitd.v1.FinishGitHubLoginRequest.
+ * Use `create(FinishGitHubLoginRequestSchema)` to create a new message.
+ */
+export const FinishGitHubLoginRequestSchema: GenMessage<FinishGitHubLoginRequest> = /*@__PURE__*/
+  messageDesc(file_gitd_v1_gitd, 46);
+
+/**
+ * @generated from message gitd.v1.FinishGitHubLoginResponse
+ */
+export type FinishGitHubLoginResponse = Message<"gitd.v1.FinishGitHubLoginResponse"> & {
+  /**
+   * @generated from field: gitd.v1.Connection connection = 1;
+   */
+  connection?: Connection | undefined;
+
+  /**
+   * Where the person installs gitd's App on the repositories it may reach, if not yet.
+   *
+   * @generated from field: string install_url = 2;
+   */
+  installUrl: string;
+};
+
+/**
+ * Describes the message gitd.v1.FinishGitHubLoginResponse.
+ * Use `create(FinishGitHubLoginResponseSchema)` to create a new message.
+ */
+export const FinishGitHubLoginResponseSchema: GenMessage<FinishGitHubLoginResponse> = /*@__PURE__*/
+  messageDesc(file_gitd_v1_gitd, 47);
+
+/**
+ * @generated from message gitd.v1.AddGitHubAppRequest
+ */
+export type AddGitHubAppRequest = Message<"gitd.v1.AddGitHubAppRequest"> & {
+  /**
+   * The GitHub host: empty for github.com.
+   *
+   * @generated from field: string host = 1;
+   */
+  host: string;
+
+  /**
+   * @generated from field: int64 app_id = 2;
+   */
+  appId: bigint;
+
+  /**
+   * The App's private key, in PEM.
+   *
+   * @generated from field: string private_key = 3;
+   */
+  privateKey: string;
+
+  /**
+   * The repositories it opens. Empty: every repository on the host its installations reach.
+   *
+   * @generated from field: string url_prefix = 4;
+   */
+  urlPrefix: string;
+};
+
+/**
+ * Describes the message gitd.v1.AddGitHubAppRequest.
+ * Use `create(AddGitHubAppRequestSchema)` to create a new message.
+ */
+export const AddGitHubAppRequestSchema: GenMessage<AddGitHubAppRequest> = /*@__PURE__*/
+  messageDesc(file_gitd_v1_gitd, 48);
+
+/**
+ * @generated from message gitd.v1.AddGitHubAppResponse
+ */
+export type AddGitHubAppResponse = Message<"gitd.v1.AddGitHubAppResponse"> & {
+  /**
+   * @generated from field: gitd.v1.Connection connection = 1;
+   */
+  connection?: Connection | undefined;
+};
+
+/**
+ * Describes the message gitd.v1.AddGitHubAppResponse.
+ * Use `create(AddGitHubAppResponseSchema)` to create a new message.
+ */
+export const AddGitHubAppResponseSchema: GenMessage<AddGitHubAppResponse> = /*@__PURE__*/
+  messageDesc(file_gitd_v1_gitd, 49);
+
+/**
+ * @generated from message gitd.v1.AddTokenRequest
+ */
+export type AddTokenRequest = Message<"gitd.v1.AddTokenRequest"> & {
+  /**
+   * Must name the host, e.g. `https://gitlab.example.com/acme`.
+   *
+   * @generated from field: string url_prefix = 1;
+   */
+  urlPrefix: string;
+
+  /**
+   * @generated from field: string token = 2;
+   */
+  token: string;
+
+  /**
+   * As `Credential.https_user`.
+   *
+   * @generated from field: string user = 3;
+   */
+  user: string;
+};
+
+/**
+ * Describes the message gitd.v1.AddTokenRequest.
+ * Use `create(AddTokenRequestSchema)` to create a new message.
+ */
+export const AddTokenRequestSchema: GenMessage<AddTokenRequest> = /*@__PURE__*/
+  messageDesc(file_gitd_v1_gitd, 50);
+
+/**
+ * @generated from message gitd.v1.AddTokenResponse
+ */
+export type AddTokenResponse = Message<"gitd.v1.AddTokenResponse"> & {
+  /**
+   * @generated from field: gitd.v1.Connection connection = 1;
+   */
+  connection?: Connection | undefined;
+};
+
+/**
+ * Describes the message gitd.v1.AddTokenResponse.
+ * Use `create(AddTokenResponseSchema)` to create a new message.
+ */
+export const AddTokenResponseSchema: GenMessage<AddTokenResponse> = /*@__PURE__*/
+  messageDesc(file_gitd_v1_gitd, 51);
+
+/**
+ * @generated from message gitd.v1.ListConnectionsRequest
+ */
+export type ListConnectionsRequest = Message<"gitd.v1.ListConnectionsRequest"> & {
+};
+
+/**
+ * Describes the message gitd.v1.ListConnectionsRequest.
+ * Use `create(ListConnectionsRequestSchema)` to create a new message.
+ */
+export const ListConnectionsRequestSchema: GenMessage<ListConnectionsRequest> = /*@__PURE__*/
+  messageDesc(file_gitd_v1_gitd, 52);
+
+/**
+ * @generated from message gitd.v1.ListConnectionsResponse
+ */
+export type ListConnectionsResponse = Message<"gitd.v1.ListConnectionsResponse"> & {
+  /**
+   * @generated from field: repeated gitd.v1.Connection connections = 1;
+   */
+  connections: Connection[];
+};
+
+/**
+ * Describes the message gitd.v1.ListConnectionsResponse.
+ * Use `create(ListConnectionsResponseSchema)` to create a new message.
+ */
+export const ListConnectionsResponseSchema: GenMessage<ListConnectionsResponse> = /*@__PURE__*/
+  messageDesc(file_gitd_v1_gitd, 53);
+
+/**
+ * @generated from message gitd.v1.RemoveConnectionRequest
+ */
+export type RemoveConnectionRequest = Message<"gitd.v1.RemoveConnectionRequest"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+};
+
+/**
+ * Describes the message gitd.v1.RemoveConnectionRequest.
+ * Use `create(RemoveConnectionRequestSchema)` to create a new message.
+ */
+export const RemoveConnectionRequestSchema: GenMessage<RemoveConnectionRequest> = /*@__PURE__*/
+  messageDesc(file_gitd_v1_gitd, 54);
+
+/**
+ * @generated from message gitd.v1.RemoveConnectionResponse
+ */
+export type RemoveConnectionResponse = Message<"gitd.v1.RemoveConnectionResponse"> & {
+};
+
+/**
+ * Describes the message gitd.v1.RemoveConnectionResponse.
+ * Use `create(RemoveConnectionResponseSchema)` to create a new message.
+ */
+export const RemoveConnectionResponseSchema: GenMessage<RemoveConnectionResponse> = /*@__PURE__*/
+  messageDesc(file_gitd_v1_gitd, 55);
+
+/**
+ * The rules publishing follows for the repositories under a prefix.
+ *
+ * Every setting whose prefix opens a repository applies to it: their paths add up and the
+ * smallest file limit wins, so a narrower setting never loosens a broader one. A branch
+ * prefix and pull request choices are the most specific setting's, and a narrower branch
+ * prefix must start with every broader one.
+ *
+ * @generated from message gitd.v1.PublishSettings
+ */
+export type PublishSettings = Message<"gitd.v1.PublishSettings"> & {
+  /**
+   * The repositories these apply to; empty for every repository.
+   *
+   * @generated from field: string url_prefix = 1;
+   */
+  urlPrefix: string;
+
+  /**
+   * A ready set of rules, which the fields below add to.
+   *
+   * @generated from field: gitd.v1.Preset preset = 2;
+   */
+  preset: Preset;
+
+  /**
+   * Paths a publish may not change, as git's glob pathspecs, e.g. `.github/workflows/**`.
+   *
+   * @generated from field: repeated string protected_paths = 3;
+   */
+  protectedPaths: string[];
+
+  /**
+   * Paths a publish may change but not delete or rename away, e.g. `tests/**`.
+   *
+   * @generated from field: repeated string kept_paths = 4;
+   */
+  keptPaths: string[];
+
+  /**
+   * At most this many files changed; unset for the preset's, or no limit.
+   *
+   * @generated from field: optional int32 max_changed_files = 5;
+   */
+  maxChangedFiles?: number | undefined;
+
+  /**
+   * What every published branch must start with, e.g. `agents/`.
+   *
+   * @generated from field: string branch_prefix = 6;
+   */
+  branchPrefix: string;
+
+  /**
+   * @generated from field: gitd.v1.PullRequestSettings pull_requests = 7;
+   */
+  pullRequests?: PullRequestSettings | undefined;
+
+  /**
+   * From the configuration file: shown, never changed through the API.
+   *
+   * @generated from field: bool from_file = 8;
+   */
+  fromFile: boolean;
+};
+
+/**
+ * Describes the message gitd.v1.PublishSettings.
+ * Use `create(PublishSettingsSchema)` to create a new message.
+ */
+export const PublishSettingsSchema: GenMessage<PublishSettings> = /*@__PURE__*/
+  messageDesc(file_gitd_v1_gitd, 56);
+
+/**
+ * How publishes open pull requests.
+ *
+ * @generated from message gitd.v1.PullRequestSettings
+ */
+export type PullRequestSettings = Message<"gitd.v1.PullRequestSettings"> & {
+  /**
+   * @generated from field: gitd.v1.PullRequestSettings.Open open = 1;
+   */
+  open: PullRequestSettings_Open;
+
+  /**
+   * @generated from field: bool draft = 2;
+   */
+  draft: boolean;
+
+  /**
+   * @generated from field: repeated string labels = 3;
+   */
+  labels: string[];
+
+  /**
+   * Ask the person the publish names in `requested_by` to review it.
+   *
+   * @generated from field: bool request_review_from_requester = 4;
+   */
+  requestReviewFromRequester: boolean;
+};
+
+/**
+ * Describes the message gitd.v1.PullRequestSettings.
+ * Use `create(PullRequestSettingsSchema)` to create a new message.
+ */
+export const PullRequestSettingsSchema: GenMessage<PullRequestSettings> = /*@__PURE__*/
+  messageDesc(file_gitd_v1_gitd, 57);
+
+/**
+ * @generated from enum gitd.v1.PullRequestSettings.Open
+ */
+export enum PullRequestSettings_Open {
+  /**
+   * @generated from enum value: OPEN_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * Only when the publish asks (`PullRequestOptions.open`).
+   *
+   * @generated from enum value: OPEN_WHEN_ASKED = 1;
+   */
+  WHEN_ASKED = 1,
+
+  /**
+   * @generated from enum value: OPEN_ALWAYS = 2;
+   */
+  ALWAYS = 2,
+}
+
+/**
+ * Describes the enum gitd.v1.PullRequestSettings.Open.
+ */
+export const PullRequestSettings_OpenSchema: GenEnum<PullRequestSettings_Open> = /*@__PURE__*/
+  enumDesc(file_gitd_v1_gitd, 57, 0);
+
+/**
+ * @generated from message gitd.v1.GetSettingsRequest
+ */
+export type GetSettingsRequest = Message<"gitd.v1.GetSettingsRequest"> & {
+};
+
+/**
+ * Describes the message gitd.v1.GetSettingsRequest.
+ * Use `create(GetSettingsRequestSchema)` to create a new message.
+ */
+export const GetSettingsRequestSchema: GenMessage<GetSettingsRequest> = /*@__PURE__*/
+  messageDesc(file_gitd_v1_gitd, 58);
+
+/**
+ * @generated from message gitd.v1.GetSettingsResponse
+ */
+export type GetSettingsResponse = Message<"gitd.v1.GetSettingsResponse"> & {
+  /**
+   * @generated from field: repeated gitd.v1.PublishSettings settings = 1;
+   */
+  settings: PublishSettings[];
+};
+
+/**
+ * Describes the message gitd.v1.GetSettingsResponse.
+ * Use `create(GetSettingsResponseSchema)` to create a new message.
+ */
+export const GetSettingsResponseSchema: GenMessage<GetSettingsResponse> = /*@__PURE__*/
+  messageDesc(file_gitd_v1_gitd, 59);
+
+/**
+ * @generated from message gitd.v1.SetSettingsRequest
+ */
+export type SetSettingsRequest = Message<"gitd.v1.SetSettingsRequest"> & {
+  /**
+   * @generated from field: gitd.v1.PublishSettings settings = 1;
+   */
+  settings?: PublishSettings | undefined;
+};
+
+/**
+ * Describes the message gitd.v1.SetSettingsRequest.
+ * Use `create(SetSettingsRequestSchema)` to create a new message.
+ */
+export const SetSettingsRequestSchema: GenMessage<SetSettingsRequest> = /*@__PURE__*/
+  messageDesc(file_gitd_v1_gitd, 60);
+
+/**
+ * @generated from message gitd.v1.SetSettingsResponse
+ */
+export type SetSettingsResponse = Message<"gitd.v1.SetSettingsResponse"> & {
+  /**
+   * @generated from field: gitd.v1.PublishSettings settings = 1;
+   */
+  settings?: PublishSettings | undefined;
+};
+
+/**
+ * Describes the message gitd.v1.SetSettingsResponse.
+ * Use `create(SetSettingsResponseSchema)` to create a new message.
+ */
+export const SetSettingsResponseSchema: GenMessage<SetSettingsResponse> = /*@__PURE__*/
+  messageDesc(file_gitd_v1_gitd, 61);
+
+/**
+ * @generated from message gitd.v1.RemoveSettingsRequest
+ */
+export type RemoveSettingsRequest = Message<"gitd.v1.RemoveSettingsRequest"> & {
+  /**
+   * @generated from field: string url_prefix = 1;
+   */
+  urlPrefix: string;
+};
+
+/**
+ * Describes the message gitd.v1.RemoveSettingsRequest.
+ * Use `create(RemoveSettingsRequestSchema)` to create a new message.
+ */
+export const RemoveSettingsRequestSchema: GenMessage<RemoveSettingsRequest> = /*@__PURE__*/
+  messageDesc(file_gitd_v1_gitd, 62);
+
+/**
+ * @generated from message gitd.v1.RemoveSettingsResponse
+ */
+export type RemoveSettingsResponse = Message<"gitd.v1.RemoveSettingsResponse"> & {
+};
+
+/**
+ * Describes the message gitd.v1.RemoveSettingsResponse.
+ * Use `create(RemoveSettingsResponseSchema)` to create a new message.
+ */
+export const RemoveSettingsResponseSchema: GenMessage<RemoveSettingsResponse> = /*@__PURE__*/
+  messageDesc(file_gitd_v1_gitd, 63);
 
 /**
  * How a workspace was made.
@@ -1307,6 +2245,31 @@ export enum Strategy {
  */
 export const StrategySchema: GenEnum<Strategy> = /*@__PURE__*/
   enumDesc(file_gitd_v1_gitd, 0);
+
+/**
+ * @generated from enum gitd.v1.Preset
+ */
+export enum Preset {
+  /**
+   * @generated from enum value: PRESET_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * Protects `.github/workflows/**`, `.gitlab-ci.yml`, `CODEOWNERS` and `.gitmodules`;
+   * keeps tests (`**\/*_test.*`, `**\/*.test.*`, `**\/test/**`, `**\/tests/**`,
+   * `**\/__tests__/**`); at most 200 files changed.
+   *
+   * @generated from enum value: PRESET_RECOMMENDED = 1;
+   */
+  RECOMMENDED = 1,
+}
+
+/**
+ * Describes the enum gitd.v1.Preset.
+ */
+export const PresetSchema: GenEnum<Preset> = /*@__PURE__*/
+  enumDesc(file_gitd_v1_gitd, 1);
 
 /**
  * @generated from service gitd.v1.WorkspaceService
@@ -1441,7 +2404,8 @@ export const ServerService: GenService<{
     output: typeof RetireResponseSchema;
   },
   /**
-   * The audit log: every publish, done or refused, newest first.
+   * The audit log: every publish, done or refused, and every change to connections and
+   * publishing settings, newest first.
    *
    * @generated from rpc gitd.v1.ServerService.Audit
    */
@@ -1452,4 +2416,143 @@ export const ServerService: GenService<{
   },
 }> = /*@__PURE__*/
   serviceDesc(file_gitd_v1_gitd, 2);
+
+/**
+ * The credentials gitd keeps, managed by a platform from its own pages instead of a file:
+ * GitHub connected through the organisation's own App, by signing in, or through an App
+ * the platform already has; and tokens for any host. gitd keeps them under its state
+ * directory, applies them at once, and never answers with a secret. None of this is
+ * offered to agents through MCP.
+ *
+ * @generated from service gitd.v1.ConnectionService
+ */
+export const ConnectionService: GenService<{
+  /**
+   * Start creating the organisation's own GitHub App from a manifest: the answer says
+   * where the person's browser posts the manifest. GitHub then sends the person to
+   * `redirect_url` with a code and the state, for CompleteGitHubApp.
+   *
+   * @generated from rpc gitd.v1.ConnectionService.BeginGitHubApp
+   */
+  beginGitHubApp: {
+    methodKind: "unary";
+    input: typeof BeginGitHubAppRequestSchema;
+    output: typeof BeginGitHubAppResponseSchema;
+  },
+  /**
+   * Finish creating the App: gitd exchanges the code for the App's ID and private key and
+   * keeps them. The person then installs the App on the repositories it may reach.
+   *
+   * @generated from rpc gitd.v1.ConnectionService.CompleteGitHubApp
+   */
+  completeGitHubApp: {
+    methodKind: "unary";
+    input: typeof CompleteGitHubAppRequestSchema;
+    output: typeof CompleteGitHubAppResponseSchema;
+  },
+  /**
+   * Start signing in to GitHub with gitd's public App (GitHub's device flow): the answer
+   * has the code the person enters at GitHub.
+   *
+   * @generated from rpc gitd.v1.ConnectionService.StartGitHubLogin
+   */
+  startGitHubLogin: {
+    methodKind: "unary";
+    input: typeof StartGitHubLoginRequestSchema;
+    output: typeof StartGitHubLoginResponseSchema;
+  },
+  /**
+   * Wait until the person has entered the code, and keep the sign-in. Pull requests then
+   * appear as that person.
+   *
+   * @generated from rpc gitd.v1.ConnectionService.FinishGitHubLogin
+   */
+  finishGitHubLogin: {
+    methodKind: "unary";
+    input: typeof FinishGitHubLoginRequestSchema;
+    output: typeof FinishGitHubLoginResponseSchema;
+  },
+  /**
+   * Keep a GitHub App the platform already has, by its ID and private key.
+   *
+   * @generated from rpc gitd.v1.ConnectionService.AddGitHubApp
+   */
+  addGitHubApp: {
+    methodKind: "unary";
+    input: typeof AddGitHubAppRequestSchema;
+    output: typeof AddGitHubAppResponseSchema;
+  },
+  /**
+   * Keep a token for the repositories under a prefix, on any host.
+   *
+   * @generated from rpc gitd.v1.ConnectionService.AddToken
+   */
+  addToken: {
+    methodKind: "unary";
+    input: typeof AddTokenRequestSchema;
+    output: typeof AddTokenResponseSchema;
+  },
+  /**
+   * The connections gitd keeps, those of the configuration file included, never a secret.
+   *
+   * @generated from rpc gitd.v1.ConnectionService.ListConnections
+   */
+  listConnections: {
+    methodKind: "unary";
+    input: typeof ListConnectionsRequestSchema;
+    output: typeof ListConnectionsResponseSchema;
+  },
+  /**
+   * Forget a connection made through the API. One from the configuration file is refused.
+   *
+   * @generated from rpc gitd.v1.ConnectionService.RemoveConnection
+   */
+  removeConnection: {
+    methodKind: "unary";
+    input: typeof RemoveConnectionRequestSchema;
+    output: typeof RemoveConnectionResponseSchema;
+  },
+}> = /*@__PURE__*/
+  serviceDesc(file_gitd_v1_gitd, 3);
+
+/**
+ * The rules publishing follows, per repository prefix, managed by a platform from its own
+ * pages instead of a file: which paths a publish may not change or delete, how many files
+ * it may change, the branch prefix, and how pull requests are opened.
+ *
+ * @generated from service gitd.v1.PublishingService
+ */
+export const PublishingService: GenService<{
+  /**
+   * Every setting, those of the configuration file included.
+   *
+   * @generated from rpc gitd.v1.PublishingService.GetSettings
+   */
+  getSettings: {
+    methodKind: "unary";
+    input: typeof GetSettingsRequestSchema;
+    output: typeof GetSettingsResponseSchema;
+  },
+  /**
+   * Keep the settings of a prefix, replacing those it had.
+   *
+   * @generated from rpc gitd.v1.PublishingService.SetSettings
+   */
+  setSettings: {
+    methodKind: "unary";
+    input: typeof SetSettingsRequestSchema;
+    output: typeof SetSettingsResponseSchema;
+  },
+  /**
+   * Forget the settings of a prefix. Those of the configuration file are refused.
+   *
+   * @generated from rpc gitd.v1.PublishingService.RemoveSettings
+   */
+  removeSettings: {
+    methodKind: "unary";
+    input: typeof RemoveSettingsRequestSchema;
+    output: typeof RemoveSettingsResponseSchema;
+  },
+}> = /*@__PURE__*/
+  serviceDesc(file_gitd_v1_gitd, 4);
 

@@ -275,6 +275,14 @@
                 {
                   "name": "REASON_CONFIG_REFUSED",
                   "number": 12
+                },
+                {
+                  "name": "REASON_POLICY_REFUSED",
+                  "number": 13
+                },
+                {
+                  "name": "REASON_UNSUPPORTED",
+                  "number": 14
                 }
               ]
             }
@@ -808,6 +816,87 @@
               "type": "TYPE_MESSAGE",
               "typeName": ".gitd.v1.Credential",
               "jsonName": "credentials"
+            },
+            {
+              "name": "requested_by",
+              "number": 4,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "requestedBy"
+            },
+            {
+              "name": "pull_request",
+              "number": 5,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".gitd.v1.PullRequestOptions",
+              "jsonName": "pullRequest"
+            }
+          ]
+        },
+        {
+          "name": "PullRequestOptions",
+          "field": [
+            {
+              "name": "open",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_BOOL",
+              "jsonName": "open"
+            },
+            {
+              "name": "title",
+              "number": 2,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "title"
+            },
+            {
+              "name": "body",
+              "number": 3,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "body"
+            },
+            {
+              "name": "base",
+              "number": 4,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "base"
+            },
+            {
+              "name": "draft",
+              "number": 5,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_BOOL",
+              "oneofIndex": 0,
+              "jsonName": "draft",
+              "proto3Optional": true
+            }
+          ],
+          "oneofDecl": [
+            {
+              "name": "_draft"
+            }
+          ]
+        },
+        {
+          "name": "OpenedPullRequest",
+          "field": [
+            {
+              "name": "url",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "url"
+            },
+            {
+              "name": "number",
+              "number": 2,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_INT64",
+              "jsonName": "number"
             }
           ]
         },
@@ -869,6 +958,22 @@
               "type": "TYPE_MESSAGE",
               "typeName": ".gitd.v1.PublishedRepository",
               "jsonName": "submodules"
+            },
+            {
+              "name": "pull_request",
+              "number": 4,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".gitd.v1.OpenedPullRequest",
+              "jsonName": "pullRequest"
+            },
+            {
+              "name": "pull_request_failure",
+              "number": 5,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".gitd.v1.GitFailure",
+              "jsonName": "pullRequestFailure"
             }
           ]
         },
@@ -1173,8 +1278,662 @@
               "type": "TYPE_MESSAGE",
               "typeName": ".gitd.v1.GitFailure",
               "jsonName": "refusal"
+            },
+            {
+              "name": "requested_by",
+              "number": 8,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "requestedBy"
+            },
+            {
+              "name": "pull_request",
+              "number": 9,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".gitd.v1.OpenedPullRequest",
+              "jsonName": "pullRequest"
+            },
+            {
+              "name": "pull_request_failure",
+              "number": 10,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".gitd.v1.GitFailure",
+              "jsonName": "pullRequestFailure"
+            },
+            {
+              "name": "change",
+              "number": 11,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".gitd.v1.ConfigurationChange",
+              "jsonName": "change"
             }
           ]
+        },
+        {
+          "name": "ConfigurationChange",
+          "field": [
+            {
+              "name": "action",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_ENUM",
+              "typeName": ".gitd.v1.ConfigurationChange.Action",
+              "jsonName": "action"
+            },
+            {
+              "name": "subject",
+              "number": 2,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "subject"
+            },
+            {
+              "name": "url_prefix",
+              "number": 3,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "urlPrefix"
+            }
+          ],
+          "enumType": [
+            {
+              "name": "Action",
+              "value": [
+                {
+                  "name": "ACTION_UNSPECIFIED",
+                  "number": 0
+                },
+                {
+                  "name": "ACTION_CONNECTION_ADDED",
+                  "number": 1
+                },
+                {
+                  "name": "ACTION_CONNECTION_REMOVED",
+                  "number": 2
+                },
+                {
+                  "name": "ACTION_SETTINGS_SET",
+                  "number": 3
+                },
+                {
+                  "name": "ACTION_SETTINGS_REMOVED",
+                  "number": 4
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Connection",
+          "field": [
+            {
+              "name": "id",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "id"
+            },
+            {
+              "name": "kind",
+              "number": 2,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_ENUM",
+              "typeName": ".gitd.v1.Connection.Kind",
+              "jsonName": "kind"
+            },
+            {
+              "name": "url_prefix",
+              "number": 3,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "urlPrefix"
+            },
+            {
+              "name": "acts_as",
+              "number": 4,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "actsAs"
+            },
+            {
+              "name": "app_id",
+              "number": 5,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_INT64",
+              "jsonName": "appId"
+            },
+            {
+              "name": "manage_url",
+              "number": 6,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "manageUrl"
+            },
+            {
+              "name": "expires",
+              "number": 7,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".google.protobuf.Timestamp",
+              "jsonName": "expires"
+            },
+            {
+              "name": "from_file",
+              "number": 8,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_BOOL",
+              "jsonName": "fromFile"
+            },
+            {
+              "name": "created",
+              "number": 9,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".google.protobuf.Timestamp",
+              "jsonName": "created"
+            }
+          ],
+          "enumType": [
+            {
+              "name": "Kind",
+              "value": [
+                {
+                  "name": "KIND_UNSPECIFIED",
+                  "number": 0
+                },
+                {
+                  "name": "KIND_TOKEN",
+                  "number": 1
+                },
+                {
+                  "name": "KIND_SSH_KEY",
+                  "number": 2
+                },
+                {
+                  "name": "KIND_GITHUB_APP",
+                  "number": 3
+                },
+                {
+                  "name": "KIND_GITHUB_LOGIN",
+                  "number": 4
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "BeginGitHubAppRequest",
+          "field": [
+            {
+              "name": "host",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "host"
+            },
+            {
+              "name": "organization",
+              "number": 2,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "organization"
+            },
+            {
+              "name": "name",
+              "number": 3,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "name"
+            },
+            {
+              "name": "redirect_url",
+              "number": 4,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "redirectUrl"
+            }
+          ]
+        },
+        {
+          "name": "BeginGitHubAppResponse",
+          "field": [
+            {
+              "name": "form_action",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "formAction"
+            },
+            {
+              "name": "manifest",
+              "number": 2,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "manifest"
+            },
+            {
+              "name": "state",
+              "number": 3,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "state"
+            }
+          ]
+        },
+        {
+          "name": "CompleteGitHubAppRequest",
+          "field": [
+            {
+              "name": "code",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "code"
+            },
+            {
+              "name": "state",
+              "number": 2,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "state"
+            }
+          ]
+        },
+        {
+          "name": "CompleteGitHubAppResponse",
+          "field": [
+            {
+              "name": "connection",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".gitd.v1.Connection",
+              "jsonName": "connection"
+            },
+            {
+              "name": "install_url",
+              "number": 2,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "installUrl"
+            }
+          ]
+        },
+        {
+          "name": "StartGitHubLoginRequest",
+          "field": [
+            {
+              "name": "host",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "host"
+            }
+          ]
+        },
+        {
+          "name": "StartGitHubLoginResponse",
+          "field": [
+            {
+              "name": "user_code",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "userCode"
+            },
+            {
+              "name": "verification_url",
+              "number": 2,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "verificationUrl"
+            },
+            {
+              "name": "login_id",
+              "number": 3,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "loginId"
+            },
+            {
+              "name": "expires_in_seconds",
+              "number": 4,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_INT32",
+              "jsonName": "expiresInSeconds"
+            }
+          ]
+        },
+        {
+          "name": "FinishGitHubLoginRequest",
+          "field": [
+            {
+              "name": "login_id",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "loginId"
+            }
+          ]
+        },
+        {
+          "name": "FinishGitHubLoginResponse",
+          "field": [
+            {
+              "name": "connection",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".gitd.v1.Connection",
+              "jsonName": "connection"
+            },
+            {
+              "name": "install_url",
+              "number": 2,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "installUrl"
+            }
+          ]
+        },
+        {
+          "name": "AddGitHubAppRequest",
+          "field": [
+            {
+              "name": "host",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "host"
+            },
+            {
+              "name": "app_id",
+              "number": 2,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_INT64",
+              "jsonName": "appId"
+            },
+            {
+              "name": "private_key",
+              "number": 3,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "privateKey"
+            },
+            {
+              "name": "url_prefix",
+              "number": 4,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "urlPrefix"
+            }
+          ]
+        },
+        {
+          "name": "AddGitHubAppResponse",
+          "field": [
+            {
+              "name": "connection",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".gitd.v1.Connection",
+              "jsonName": "connection"
+            }
+          ]
+        },
+        {
+          "name": "AddTokenRequest",
+          "field": [
+            {
+              "name": "url_prefix",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "urlPrefix"
+            },
+            {
+              "name": "token",
+              "number": 2,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "token"
+            },
+            {
+              "name": "user",
+              "number": 3,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "user"
+            }
+          ]
+        },
+        {
+          "name": "AddTokenResponse",
+          "field": [
+            {
+              "name": "connection",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".gitd.v1.Connection",
+              "jsonName": "connection"
+            }
+          ]
+        },
+        {
+          "name": "ListConnectionsRequest"
+        },
+        {
+          "name": "ListConnectionsResponse",
+          "field": [
+            {
+              "name": "connections",
+              "number": 1,
+              "label": "LABEL_REPEATED",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".gitd.v1.Connection",
+              "jsonName": "connections"
+            }
+          ]
+        },
+        {
+          "name": "RemoveConnectionRequest",
+          "field": [
+            {
+              "name": "id",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "id"
+            }
+          ]
+        },
+        {
+          "name": "RemoveConnectionResponse"
+        },
+        {
+          "name": "PublishSettings",
+          "field": [
+            {
+              "name": "url_prefix",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "urlPrefix"
+            },
+            {
+              "name": "preset",
+              "number": 2,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_ENUM",
+              "typeName": ".gitd.v1.Preset",
+              "jsonName": "preset"
+            },
+            {
+              "name": "protected_paths",
+              "number": 3,
+              "label": "LABEL_REPEATED",
+              "type": "TYPE_STRING",
+              "jsonName": "protectedPaths"
+            },
+            {
+              "name": "kept_paths",
+              "number": 4,
+              "label": "LABEL_REPEATED",
+              "type": "TYPE_STRING",
+              "jsonName": "keptPaths"
+            },
+            {
+              "name": "max_changed_files",
+              "number": 5,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_INT32",
+              "oneofIndex": 0,
+              "jsonName": "maxChangedFiles",
+              "proto3Optional": true
+            },
+            {
+              "name": "branch_prefix",
+              "number": 6,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "branchPrefix"
+            },
+            {
+              "name": "pull_requests",
+              "number": 7,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".gitd.v1.PullRequestSettings",
+              "jsonName": "pullRequests"
+            },
+            {
+              "name": "from_file",
+              "number": 8,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_BOOL",
+              "jsonName": "fromFile"
+            }
+          ],
+          "oneofDecl": [
+            {
+              "name": "_max_changed_files"
+            }
+          ]
+        },
+        {
+          "name": "PullRequestSettings",
+          "field": [
+            {
+              "name": "open",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_ENUM",
+              "typeName": ".gitd.v1.PullRequestSettings.Open",
+              "jsonName": "open"
+            },
+            {
+              "name": "draft",
+              "number": 2,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_BOOL",
+              "jsonName": "draft"
+            },
+            {
+              "name": "labels",
+              "number": 3,
+              "label": "LABEL_REPEATED",
+              "type": "TYPE_STRING",
+              "jsonName": "labels"
+            },
+            {
+              "name": "request_review_from_requester",
+              "number": 4,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_BOOL",
+              "jsonName": "requestReviewFromRequester"
+            }
+          ],
+          "enumType": [
+            {
+              "name": "Open",
+              "value": [
+                {
+                  "name": "OPEN_UNSPECIFIED",
+                  "number": 0
+                },
+                {
+                  "name": "OPEN_WHEN_ASKED",
+                  "number": 1
+                },
+                {
+                  "name": "OPEN_ALWAYS",
+                  "number": 2
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "GetSettingsRequest"
+        },
+        {
+          "name": "GetSettingsResponse",
+          "field": [
+            {
+              "name": "settings",
+              "number": 1,
+              "label": "LABEL_REPEATED",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".gitd.v1.PublishSettings",
+              "jsonName": "settings"
+            }
+          ]
+        },
+        {
+          "name": "SetSettingsRequest",
+          "field": [
+            {
+              "name": "settings",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".gitd.v1.PublishSettings",
+              "jsonName": "settings"
+            }
+          ]
+        },
+        {
+          "name": "SetSettingsResponse",
+          "field": [
+            {
+              "name": "settings",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".gitd.v1.PublishSettings",
+              "jsonName": "settings"
+            }
+          ]
+        },
+        {
+          "name": "RemoveSettingsRequest",
+          "field": [
+            {
+              "name": "url_prefix",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "urlPrefix"
+            }
+          ]
+        },
+        {
+          "name": "RemoveSettingsResponse"
         }
       ],
       "enumType": [
@@ -1196,6 +1955,19 @@
             {
               "name": "STRATEGY_REFLINK",
               "number": 3
+            }
+          ]
+        },
+        {
+          "name": "Preset",
+          "value": [
+            {
+              "name": "PRESET_UNSPECIFIED",
+              "number": 0
+            },
+            {
+              "name": "PRESET_RECOMMENDED",
+              "number": 1
             }
           ]
         }
@@ -1278,6 +2050,71 @@
               "name": "Audit",
               "inputType": ".gitd.v1.AuditRequest",
               "outputType": ".gitd.v1.AuditResponse"
+            }
+          ]
+        },
+        {
+          "name": "ConnectionService",
+          "method": [
+            {
+              "name": "BeginGitHubApp",
+              "inputType": ".gitd.v1.BeginGitHubAppRequest",
+              "outputType": ".gitd.v1.BeginGitHubAppResponse"
+            },
+            {
+              "name": "CompleteGitHubApp",
+              "inputType": ".gitd.v1.CompleteGitHubAppRequest",
+              "outputType": ".gitd.v1.CompleteGitHubAppResponse"
+            },
+            {
+              "name": "StartGitHubLogin",
+              "inputType": ".gitd.v1.StartGitHubLoginRequest",
+              "outputType": ".gitd.v1.StartGitHubLoginResponse"
+            },
+            {
+              "name": "FinishGitHubLogin",
+              "inputType": ".gitd.v1.FinishGitHubLoginRequest",
+              "outputType": ".gitd.v1.FinishGitHubLoginResponse"
+            },
+            {
+              "name": "AddGitHubApp",
+              "inputType": ".gitd.v1.AddGitHubAppRequest",
+              "outputType": ".gitd.v1.AddGitHubAppResponse"
+            },
+            {
+              "name": "AddToken",
+              "inputType": ".gitd.v1.AddTokenRequest",
+              "outputType": ".gitd.v1.AddTokenResponse"
+            },
+            {
+              "name": "ListConnections",
+              "inputType": ".gitd.v1.ListConnectionsRequest",
+              "outputType": ".gitd.v1.ListConnectionsResponse"
+            },
+            {
+              "name": "RemoveConnection",
+              "inputType": ".gitd.v1.RemoveConnectionRequest",
+              "outputType": ".gitd.v1.RemoveConnectionResponse"
+            }
+          ]
+        },
+        {
+          "name": "PublishingService",
+          "method": [
+            {
+              "name": "GetSettings",
+              "inputType": ".gitd.v1.GetSettingsRequest",
+              "outputType": ".gitd.v1.GetSettingsResponse"
+            },
+            {
+              "name": "SetSettings",
+              "inputType": ".gitd.v1.SetSettingsRequest",
+              "outputType": ".gitd.v1.SetSettingsResponse"
+            },
+            {
+              "name": "RemoveSettings",
+              "inputType": ".gitd.v1.RemoveSettingsRequest",
+              "outputType": ".gitd.v1.RemoveSettingsResponse"
             }
           ]
         }

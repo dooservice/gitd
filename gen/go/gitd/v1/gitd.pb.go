@@ -79,6 +79,55 @@ func (Strategy) EnumDescriptor() ([]byte, []int) {
 	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{0}
 }
 
+type Preset int32
+
+const (
+	Preset_PRESET_UNSPECIFIED Preset = 0
+	// Protects `.github/workflows/**`, `.gitlab-ci.yml`, `CODEOWNERS` and `.gitmodules`;
+	// keeps tests (`**/*_test.*`, `**/*.test.*`, `**/test/**`, `**/tests/**`,
+	// `**/__tests__/**`); at most 200 files changed.
+	Preset_PRESET_RECOMMENDED Preset = 1
+)
+
+// Enum value maps for Preset.
+var (
+	Preset_name = map[int32]string{
+		0: "PRESET_UNSPECIFIED",
+		1: "PRESET_RECOMMENDED",
+	}
+	Preset_value = map[string]int32{
+		"PRESET_UNSPECIFIED": 0,
+		"PRESET_RECOMMENDED": 1,
+	}
+)
+
+func (x Preset) Enum() *Preset {
+	p := new(Preset)
+	*p = x
+	return p
+}
+
+func (x Preset) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (Preset) Descriptor() protoreflect.EnumDescriptor {
+	return file_gitd_v1_gitd_proto_enumTypes[1].Descriptor()
+}
+
+func (Preset) Type() protoreflect.EnumType {
+	return &file_gitd_v1_gitd_proto_enumTypes[1]
+}
+
+func (x Preset) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use Preset.Descriptor instead.
+func (Preset) EnumDescriptor() ([]byte, []int) {
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{1}
+}
+
 type GitFailure_Reason int32
 
 const (
@@ -99,6 +148,12 @@ const (
 	// as a filter or a hook path: whoever writes in the workspace could otherwise have gitd
 	// run a command of theirs.
 	GitFailure_REASON_CONFIG_REFUSED GitFailure_Reason = 12
+	// What a publish brings breaks a publishing rule: a protected path changed, a kept
+	// path deleted, or too many files changed. Nothing was pushed.
+	GitFailure_REASON_POLICY_REFUSED GitFailure_Reason = 13
+	// What was asked cannot be done with this host, such as a pull request where gitd does
+	// not know the host's API.
+	GitFailure_REASON_UNSUPPORTED GitFailure_Reason = 14
 )
 
 // Enum value maps for GitFailure_Reason.
@@ -117,6 +172,8 @@ var (
 		10: "REASON_NOTHING_NEW",
 		11: "REASON_BRANCH_REFUSED",
 		12: "REASON_CONFIG_REFUSED",
+		13: "REASON_POLICY_REFUSED",
+		14: "REASON_UNSUPPORTED",
 	}
 	GitFailure_Reason_value = map[string]int32{
 		"REASON_UNSPECIFIED":    0,
@@ -132,6 +189,8 @@ var (
 		"REASON_NOTHING_NEW":    10,
 		"REASON_BRANCH_REFUSED": 11,
 		"REASON_CONFIG_REFUSED": 12,
+		"REASON_POLICY_REFUSED": 13,
+		"REASON_UNSUPPORTED":    14,
 	}
 )
 
@@ -146,11 +205,11 @@ func (x GitFailure_Reason) String() string {
 }
 
 func (GitFailure_Reason) Descriptor() protoreflect.EnumDescriptor {
-	return file_gitd_v1_gitd_proto_enumTypes[1].Descriptor()
+	return file_gitd_v1_gitd_proto_enumTypes[2].Descriptor()
 }
 
 func (GitFailure_Reason) Type() protoreflect.EnumType {
-	return &file_gitd_v1_gitd_proto_enumTypes[1]
+	return &file_gitd_v1_gitd_proto_enumTypes[2]
 }
 
 func (x GitFailure_Reason) Number() protoreflect.EnumNumber {
@@ -201,11 +260,11 @@ func (x ProbeResponse_Access) String() string {
 }
 
 func (ProbeResponse_Access) Descriptor() protoreflect.EnumDescriptor {
-	return file_gitd_v1_gitd_proto_enumTypes[2].Descriptor()
+	return file_gitd_v1_gitd_proto_enumTypes[3].Descriptor()
 }
 
 func (ProbeResponse_Access) Type() protoreflect.EnumType {
-	return &file_gitd_v1_gitd_proto_enumTypes[2]
+	return &file_gitd_v1_gitd_proto_enumTypes[3]
 }
 
 func (x ProbeResponse_Access) Number() protoreflect.EnumNumber {
@@ -214,7 +273,169 @@ func (x ProbeResponse_Access) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use ProbeResponse_Access.Descriptor instead.
 func (ProbeResponse_Access) EnumDescriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{28, 0}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{30, 0}
+}
+
+type ConfigurationChange_Action int32
+
+const (
+	ConfigurationChange_ACTION_UNSPECIFIED        ConfigurationChange_Action = 0
+	ConfigurationChange_ACTION_CONNECTION_ADDED   ConfigurationChange_Action = 1
+	ConfigurationChange_ACTION_CONNECTION_REMOVED ConfigurationChange_Action = 2
+	ConfigurationChange_ACTION_SETTINGS_SET       ConfigurationChange_Action = 3
+	ConfigurationChange_ACTION_SETTINGS_REMOVED   ConfigurationChange_Action = 4
+)
+
+// Enum value maps for ConfigurationChange_Action.
+var (
+	ConfigurationChange_Action_name = map[int32]string{
+		0: "ACTION_UNSPECIFIED",
+		1: "ACTION_CONNECTION_ADDED",
+		2: "ACTION_CONNECTION_REMOVED",
+		3: "ACTION_SETTINGS_SET",
+		4: "ACTION_SETTINGS_REMOVED",
+	}
+	ConfigurationChange_Action_value = map[string]int32{
+		"ACTION_UNSPECIFIED":        0,
+		"ACTION_CONNECTION_ADDED":   1,
+		"ACTION_CONNECTION_REMOVED": 2,
+		"ACTION_SETTINGS_SET":       3,
+		"ACTION_SETTINGS_REMOVED":   4,
+	}
+)
+
+func (x ConfigurationChange_Action) Enum() *ConfigurationChange_Action {
+	p := new(ConfigurationChange_Action)
+	*p = x
+	return p
+}
+
+func (x ConfigurationChange_Action) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ConfigurationChange_Action) Descriptor() protoreflect.EnumDescriptor {
+	return file_gitd_v1_gitd_proto_enumTypes[4].Descriptor()
+}
+
+func (ConfigurationChange_Action) Type() protoreflect.EnumType {
+	return &file_gitd_v1_gitd_proto_enumTypes[4]
+}
+
+func (x ConfigurationChange_Action) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ConfigurationChange_Action.Descriptor instead.
+func (ConfigurationChange_Action) EnumDescriptor() ([]byte, []int) {
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{38, 0}
+}
+
+type Connection_Kind int32
+
+const (
+	Connection_KIND_UNSPECIFIED Connection_Kind = 0
+	Connection_KIND_TOKEN       Connection_Kind = 1
+	Connection_KIND_SSH_KEY     Connection_Kind = 2
+	// A GitHub App: its installation tokens open one repository each, for an hour.
+	Connection_KIND_GITHUB_APP Connection_Kind = 3
+	// A person signed in through gitd's public App: their tokens, renewed by gitd.
+	Connection_KIND_GITHUB_LOGIN Connection_Kind = 4
+)
+
+// Enum value maps for Connection_Kind.
+var (
+	Connection_Kind_name = map[int32]string{
+		0: "KIND_UNSPECIFIED",
+		1: "KIND_TOKEN",
+		2: "KIND_SSH_KEY",
+		3: "KIND_GITHUB_APP",
+		4: "KIND_GITHUB_LOGIN",
+	}
+	Connection_Kind_value = map[string]int32{
+		"KIND_UNSPECIFIED":  0,
+		"KIND_TOKEN":        1,
+		"KIND_SSH_KEY":      2,
+		"KIND_GITHUB_APP":   3,
+		"KIND_GITHUB_LOGIN": 4,
+	}
+)
+
+func (x Connection_Kind) Enum() *Connection_Kind {
+	p := new(Connection_Kind)
+	*p = x
+	return p
+}
+
+func (x Connection_Kind) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (Connection_Kind) Descriptor() protoreflect.EnumDescriptor {
+	return file_gitd_v1_gitd_proto_enumTypes[5].Descriptor()
+}
+
+func (Connection_Kind) Type() protoreflect.EnumType {
+	return &file_gitd_v1_gitd_proto_enumTypes[5]
+}
+
+func (x Connection_Kind) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use Connection_Kind.Descriptor instead.
+func (Connection_Kind) EnumDescriptor() ([]byte, []int) {
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{39, 0}
+}
+
+type PullRequestSettings_Open int32
+
+const (
+	PullRequestSettings_OPEN_UNSPECIFIED PullRequestSettings_Open = 0
+	// Only when the publish asks (`PullRequestOptions.open`).
+	PullRequestSettings_OPEN_WHEN_ASKED PullRequestSettings_Open = 1
+	PullRequestSettings_OPEN_ALWAYS     PullRequestSettings_Open = 2
+)
+
+// Enum value maps for PullRequestSettings_Open.
+var (
+	PullRequestSettings_Open_name = map[int32]string{
+		0: "OPEN_UNSPECIFIED",
+		1: "OPEN_WHEN_ASKED",
+		2: "OPEN_ALWAYS",
+	}
+	PullRequestSettings_Open_value = map[string]int32{
+		"OPEN_UNSPECIFIED": 0,
+		"OPEN_WHEN_ASKED":  1,
+		"OPEN_ALWAYS":      2,
+	}
+)
+
+func (x PullRequestSettings_Open) Enum() *PullRequestSettings_Open {
+	p := new(PullRequestSettings_Open)
+	*p = x
+	return p
+}
+
+func (x PullRequestSettings_Open) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (PullRequestSettings_Open) Descriptor() protoreflect.EnumDescriptor {
+	return file_gitd_v1_gitd_proto_enumTypes[6].Descriptor()
+}
+
+func (PullRequestSettings_Open) Type() protoreflect.EnumType {
+	return &file_gitd_v1_gitd_proto_enumTypes[6]
+}
+
+func (x PullRequestSettings_Open) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use PullRequestSettings_Open.Descriptor instead.
+func (PullRequestSettings_Open) EnumDescriptor() ([]byte, []int) {
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{57, 0}
 }
 
 // What opens repositories whose address starts with `url_prefix`, on any host:
@@ -1899,8 +2120,14 @@ type PublishRequest struct {
 	Path  string                 `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
 	// A branch that does not exist yet: nothing is ever pushed over one that does. It must
 	// start with `[publish] branch_prefix`, when the configuration sets one.
-	Branch        string        `protobuf:"bytes,2,opt,name=branch,proto3" json:"branch,omitempty"`
-	Credentials   []*Credential `protobuf:"bytes,3,rep,name=credentials,proto3" json:"credentials,omitempty"`
+	Branch      string        `protobuf:"bytes,2,opt,name=branch,proto3" json:"branch,omitempty"`
+	Credentials []*Credential `protobuf:"bytes,3,rep,name=credentials,proto3" json:"credentials,omitempty"`
+	// Who asked for the work, as their account on the git host, e.g. `josue`: written in the
+	// pull request and the audit log, and asked to review when the settings say so. gitd
+	// records it as told.
+	RequestedBy string `protobuf:"bytes,4,opt,name=requested_by,json=requestedBy,proto3" json:"requested_by,omitempty"`
+	// This publish's pull request, beyond what the settings say.
+	PullRequest   *PullRequestOptions `protobuf:"bytes,5,opt,name=pull_request,json=pullRequest,proto3" json:"pull_request,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1956,6 +2183,154 @@ func (x *PublishRequest) GetCredentials() []*Credential {
 	return nil
 }
 
+func (x *PublishRequest) GetRequestedBy() string {
+	if x != nil {
+		return x.RequestedBy
+	}
+	return ""
+}
+
+func (x *PublishRequest) GetPullRequest() *PullRequestOptions {
+	if x != nil {
+		return x.PullRequest
+	}
+	return nil
+}
+
+// A publish's own say on its pull request. Unset fields take the settings'.
+type PullRequestOptions struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Open one even when the settings open them only when asked.
+	Open bool `protobuf:"varint,1,opt,name=open,proto3" json:"open,omitempty"`
+	// Empty: the subject of the newest commit.
+	Title string `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
+	// The platform's text; gitd's account of what it checked follows it.
+	Body string `protobuf:"bytes,3,opt,name=body,proto3" json:"body,omitempty"`
+	// The branch it asks to merge into. Empty: the repository's default branch.
+	Base          string `protobuf:"bytes,4,opt,name=base,proto3" json:"base,omitempty"`
+	Draft         *bool  `protobuf:"varint,5,opt,name=draft,proto3,oneof" json:"draft,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PullRequestOptions) Reset() {
+	*x = PullRequestOptions{}
+	mi := &file_gitd_v1_gitd_proto_msgTypes[25]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PullRequestOptions) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PullRequestOptions) ProtoMessage() {}
+
+func (x *PullRequestOptions) ProtoReflect() protoreflect.Message {
+	mi := &file_gitd_v1_gitd_proto_msgTypes[25]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PullRequestOptions.ProtoReflect.Descriptor instead.
+func (*PullRequestOptions) Descriptor() ([]byte, []int) {
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{25}
+}
+
+func (x *PullRequestOptions) GetOpen() bool {
+	if x != nil {
+		return x.Open
+	}
+	return false
+}
+
+func (x *PullRequestOptions) GetTitle() string {
+	if x != nil {
+		return x.Title
+	}
+	return ""
+}
+
+func (x *PullRequestOptions) GetBody() string {
+	if x != nil {
+		return x.Body
+	}
+	return ""
+}
+
+func (x *PullRequestOptions) GetBase() string {
+	if x != nil {
+		return x.Base
+	}
+	return ""
+}
+
+func (x *PullRequestOptions) GetDraft() bool {
+	if x != nil && x.Draft != nil {
+		return *x.Draft
+	}
+	return false
+}
+
+// A pull request gitd opened.
+type OpenedPullRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Url           string                 `protobuf:"bytes,1,opt,name=url,proto3" json:"url,omitempty"`
+	Number        int64                  `protobuf:"varint,2,opt,name=number,proto3" json:"number,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *OpenedPullRequest) Reset() {
+	*x = OpenedPullRequest{}
+	mi := &file_gitd_v1_gitd_proto_msgTypes[26]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OpenedPullRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OpenedPullRequest) ProtoMessage() {}
+
+func (x *OpenedPullRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_gitd_v1_gitd_proto_msgTypes[26]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OpenedPullRequest.ProtoReflect.Descriptor instead.
+func (*OpenedPullRequest) Descriptor() ([]byte, []int) {
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{26}
+}
+
+func (x *OpenedPullRequest) GetUrl() string {
+	if x != nil {
+		return x.Url
+	}
+	return ""
+}
+
+func (x *OpenedPullRequest) GetNumber() int64 {
+	if x != nil {
+		return x.Number
+	}
+	return 0
+}
+
 type PublishedRepository struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	Url   string                 `protobuf:"bytes,1,opt,name=url,proto3" json:"url,omitempty"`
@@ -1970,7 +2345,7 @@ type PublishedRepository struct {
 
 func (x *PublishedRepository) Reset() {
 	*x = PublishedRepository{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[25]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1982,7 +2357,7 @@ func (x *PublishedRepository) String() string {
 func (*PublishedRepository) ProtoMessage() {}
 
 func (x *PublishedRepository) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[25]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1995,7 +2370,7 @@ func (x *PublishedRepository) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PublishedRepository.ProtoReflect.Descriptor instead.
 func (*PublishedRepository) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{25}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *PublishedRepository) GetUrl() string {
@@ -2027,17 +2402,22 @@ func (x *PublishedRepository) GetSubjects() []string {
 }
 
 type PublishResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Branch        string                 `protobuf:"bytes,1,opt,name=branch,proto3" json:"branch,omitempty"`
-	Repository    *PublishedRepository   `protobuf:"bytes,2,opt,name=repository,proto3" json:"repository,omitempty"`
-	Submodules    []*PublishedRepository `protobuf:"bytes,3,rep,name=submodules,proto3" json:"submodules,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	Branch     string                 `protobuf:"bytes,1,opt,name=branch,proto3" json:"branch,omitempty"`
+	Repository *PublishedRepository   `protobuf:"bytes,2,opt,name=repository,proto3" json:"repository,omitempty"`
+	Submodules []*PublishedRepository `protobuf:"bytes,3,rep,name=submodules,proto3" json:"submodules,omitempty"`
+	// The pull request opened, when one was.
+	PullRequest *OpenedPullRequest `protobuf:"bytes,4,opt,name=pull_request,json=pullRequest,proto3" json:"pull_request,omitempty"`
+	// Why the pull request could not be opened, when it was to be. The branch is published
+	// all the same.
+	PullRequestFailure *GitFailure `protobuf:"bytes,5,opt,name=pull_request_failure,json=pullRequestFailure,proto3" json:"pull_request_failure,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *PublishResponse) Reset() {
 	*x = PublishResponse{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[26]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2049,7 +2429,7 @@ func (x *PublishResponse) String() string {
 func (*PublishResponse) ProtoMessage() {}
 
 func (x *PublishResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[26]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2062,7 +2442,7 @@ func (x *PublishResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PublishResponse.ProtoReflect.Descriptor instead.
 func (*PublishResponse) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{26}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *PublishResponse) GetBranch() string {
@@ -2086,6 +2466,20 @@ func (x *PublishResponse) GetSubmodules() []*PublishedRepository {
 	return nil
 }
 
+func (x *PublishResponse) GetPullRequest() *OpenedPullRequest {
+	if x != nil {
+		return x.PullRequest
+	}
+	return nil
+}
+
+func (x *PublishResponse) GetPullRequestFailure() *GitFailure {
+	if x != nil {
+		return x.PullRequestFailure
+	}
+	return nil
+}
+
 type ProbeRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Url           string                 `protobuf:"bytes,1,opt,name=url,proto3" json:"url,omitempty"`
@@ -2096,7 +2490,7 @@ type ProbeRequest struct {
 
 func (x *ProbeRequest) Reset() {
 	*x = ProbeRequest{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[27]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2108,7 +2502,7 @@ func (x *ProbeRequest) String() string {
 func (*ProbeRequest) ProtoMessage() {}
 
 func (x *ProbeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[27]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2121,7 +2515,7 @@ func (x *ProbeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ProbeRequest.ProtoReflect.Descriptor instead.
 func (*ProbeRequest) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{27}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *ProbeRequest) GetUrl() string {
@@ -2153,7 +2547,7 @@ type ProbeResponse struct {
 
 func (x *ProbeResponse) Reset() {
 	*x = ProbeResponse{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[28]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2165,7 +2559,7 @@ func (x *ProbeResponse) String() string {
 func (*ProbeResponse) ProtoMessage() {}
 
 func (x *ProbeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[28]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2178,7 +2572,7 @@ func (x *ProbeResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ProbeResponse.ProtoReflect.Descriptor instead.
 func (*ProbeResponse) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{28}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *ProbeResponse) GetAccess() ProbeResponse_Access {
@@ -2226,7 +2620,7 @@ type RetireRequest struct {
 
 func (x *RetireRequest) Reset() {
 	*x = RetireRequest{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[29]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2238,7 +2632,7 @@ func (x *RetireRequest) String() string {
 func (*RetireRequest) ProtoMessage() {}
 
 func (x *RetireRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[29]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2251,7 +2645,7 @@ func (x *RetireRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RetireRequest.ProtoReflect.Descriptor instead.
 func (*RetireRequest) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{29}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *RetireRequest) GetUnusedForSeconds() int64 {
@@ -2271,7 +2665,7 @@ type RetireResponse struct {
 
 func (x *RetireResponse) Reset() {
 	*x = RetireResponse{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[30]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2283,7 +2677,7 @@ func (x *RetireResponse) String() string {
 func (*RetireResponse) ProtoMessage() {}
 
 func (x *RetireResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[30]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2296,7 +2690,7 @@ func (x *RetireResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RetireResponse.ProtoReflect.Descriptor instead.
 func (*RetireResponse) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{30}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *RetireResponse) GetRetired() int32 {
@@ -2321,7 +2715,7 @@ type InfoRequest struct {
 
 func (x *InfoRequest) Reset() {
 	*x = InfoRequest{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[31]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2333,7 +2727,7 @@ func (x *InfoRequest) String() string {
 func (*InfoRequest) ProtoMessage() {}
 
 func (x *InfoRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[31]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2346,7 +2740,7 @@ func (x *InfoRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InfoRequest.ProtoReflect.Descriptor instead.
 func (*InfoRequest) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{31}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{33}
 }
 
 type InfoResponse struct {
@@ -2369,7 +2763,7 @@ type InfoResponse struct {
 
 func (x *InfoResponse) Reset() {
 	*x = InfoResponse{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[32]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2381,7 +2775,7 @@ func (x *InfoResponse) String() string {
 func (*InfoResponse) ProtoMessage() {}
 
 func (x *InfoResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[32]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2394,7 +2788,7 @@ func (x *InfoResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InfoResponse.ProtoReflect.Descriptor instead.
 func (*InfoResponse) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{32}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *InfoResponse) GetVersion() string {
@@ -2457,7 +2851,7 @@ type AuditRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Only the entries from this time on; all of them when unset.
 	Since *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=since,proto3" json:"since,omitempty"`
-	// Only the publishes of this repository, as its URL is written in the entries.
+	// Only the entries of this repository, as its URL is written in them.
 	Url string `protobuf:"bytes,2,opt,name=url,proto3" json:"url,omitempty"`
 	// At most this many, newest first: 100 when unset, never more than 1000.
 	Limit         int32 `protobuf:"varint,3,opt,name=limit,proto3" json:"limit,omitempty"`
@@ -2467,7 +2861,7 @@ type AuditRequest struct {
 
 func (x *AuditRequest) Reset() {
 	*x = AuditRequest{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[33]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2479,7 +2873,7 @@ func (x *AuditRequest) String() string {
 func (*AuditRequest) ProtoMessage() {}
 
 func (x *AuditRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[33]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2492,7 +2886,7 @@ func (x *AuditRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AuditRequest.ProtoReflect.Descriptor instead.
 func (*AuditRequest) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{33}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *AuditRequest) GetSince() *timestamppb.Timestamp {
@@ -2525,7 +2919,7 @@ type AuditResponse struct {
 
 func (x *AuditResponse) Reset() {
 	*x = AuditResponse{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[34]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2537,7 +2931,7 @@ func (x *AuditResponse) String() string {
 func (*AuditResponse) ProtoMessage() {}
 
 func (x *AuditResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[34]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2550,7 +2944,7 @@ func (x *AuditResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AuditResponse.ProtoReflect.Descriptor instead.
 func (*AuditResponse) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{34}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *AuditResponse) GetEntries() []*AuditEntry {
@@ -2560,8 +2954,8 @@ func (x *AuditResponse) GetEntries() []*AuditEntry {
 	return nil
 }
 
-// One publish, done or refused, as the audit log keeps it: one per line of the log file,
-// in this message's JSON form.
+// One publish, done or refused, or one change to connections or publishing settings, as
+// the audit log keeps it: one per line of the log file, in this message's JSON form.
 type AuditEntry struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	Time  *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=time,proto3" json:"time,omitempty"`
@@ -2574,14 +2968,21 @@ type AuditEntry struct {
 	Repository *PublishedRepository   `protobuf:"bytes,5,opt,name=repository,proto3" json:"repository,omitempty"`
 	Submodules []*PublishedRepository `protobuf:"bytes,6,rep,name=submodules,proto3" json:"submodules,omitempty"`
 	// Why it was refused. Unset when it was published.
-	Refusal       *GitFailure `protobuf:"bytes,7,opt,name=refusal,proto3" json:"refusal,omitempty"`
+	Refusal *GitFailure `protobuf:"bytes,7,opt,name=refusal,proto3" json:"refusal,omitempty"`
+	// Who asked for the work, as the publish said.
+	RequestedBy string `protobuf:"bytes,8,opt,name=requested_by,json=requestedBy,proto3" json:"requested_by,omitempty"`
+	// The pull request opened, or why it could not be.
+	PullRequest        *OpenedPullRequest `protobuf:"bytes,9,opt,name=pull_request,json=pullRequest,proto3" json:"pull_request,omitempty"`
+	PullRequestFailure *GitFailure        `protobuf:"bytes,10,opt,name=pull_request_failure,json=pullRequestFailure,proto3" json:"pull_request_failure,omitempty"`
+	// A change to connections or publishing settings; the other fields are then unset.
+	Change        *ConfigurationChange `protobuf:"bytes,11,opt,name=change,proto3" json:"change,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *AuditEntry) Reset() {
 	*x = AuditEntry{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[35]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2593,7 +2994,7 @@ func (x *AuditEntry) String() string {
 func (*AuditEntry) ProtoMessage() {}
 
 func (x *AuditEntry) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[35]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2606,7 +3007,7 @@ func (x *AuditEntry) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AuditEntry.ProtoReflect.Descriptor instead.
 func (*AuditEntry) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{35}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *AuditEntry) GetTime() *timestamppb.Timestamp {
@@ -2658,6 +3059,1480 @@ func (x *AuditEntry) GetRefusal() *GitFailure {
 	return nil
 }
 
+func (x *AuditEntry) GetRequestedBy() string {
+	if x != nil {
+		return x.RequestedBy
+	}
+	return ""
+}
+
+func (x *AuditEntry) GetPullRequest() *OpenedPullRequest {
+	if x != nil {
+		return x.PullRequest
+	}
+	return nil
+}
+
+func (x *AuditEntry) GetPullRequestFailure() *GitFailure {
+	if x != nil {
+		return x.PullRequestFailure
+	}
+	return nil
+}
+
+func (x *AuditEntry) GetChange() *ConfigurationChange {
+	if x != nil {
+		return x.Change
+	}
+	return nil
+}
+
+// A connection added or removed, or the settings of a prefix set or removed.
+type ConfigurationChange struct {
+	state  protoimpl.MessageState     `protogen:"open.v1"`
+	Action ConfigurationChange_Action `protobuf:"varint,1,opt,name=action,proto3,enum=gitd.v1.ConfigurationChange_Action" json:"action,omitempty"`
+	// The connection's ID, or the settings' prefix.
+	Subject string `protobuf:"bytes,2,opt,name=subject,proto3" json:"subject,omitempty"`
+	// What it opens or applies to, e.g. `https://github.com/acme`.
+	UrlPrefix     string `protobuf:"bytes,3,opt,name=url_prefix,json=urlPrefix,proto3" json:"url_prefix,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ConfigurationChange) Reset() {
+	*x = ConfigurationChange{}
+	mi := &file_gitd_v1_gitd_proto_msgTypes[38]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ConfigurationChange) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ConfigurationChange) ProtoMessage() {}
+
+func (x *ConfigurationChange) ProtoReflect() protoreflect.Message {
+	mi := &file_gitd_v1_gitd_proto_msgTypes[38]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ConfigurationChange.ProtoReflect.Descriptor instead.
+func (*ConfigurationChange) Descriptor() ([]byte, []int) {
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{38}
+}
+
+func (x *ConfigurationChange) GetAction() ConfigurationChange_Action {
+	if x != nil {
+		return x.Action
+	}
+	return ConfigurationChange_ACTION_UNSPECIFIED
+}
+
+func (x *ConfigurationChange) GetSubject() string {
+	if x != nil {
+		return x.Subject
+	}
+	return ""
+}
+
+func (x *ConfigurationChange) GetUrlPrefix() string {
+	if x != nil {
+		return x.UrlPrefix
+	}
+	return ""
+}
+
+// One credential gitd keeps.
+type Connection struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// gitd's name for it, to remove it by.
+	Id   string          `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Kind Connection_Kind `protobuf:"varint,2,opt,name=kind,proto3,enum=gitd.v1.Connection_Kind" json:"kind,omitempty"`
+	// The repositories it opens: those whose address starts with this.
+	UrlPrefix string `protobuf:"bytes,3,opt,name=url_prefix,json=urlPrefix,proto3" json:"url_prefix,omitempty"`
+	// Whom it acts as: the App's bot (`acme-agents[bot]`) or the person (`josue`). Empty for
+	// a token or a key.
+	ActsAs string `protobuf:"bytes,4,opt,name=acts_as,json=actsAs,proto3" json:"acts_as,omitempty"`
+	// For an App: its ID, and where its installations are managed.
+	AppId     int64  `protobuf:"varint,5,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
+	ManageUrl string `protobuf:"bytes,6,opt,name=manage_url,json=manageUrl,proto3" json:"manage_url,omitempty"`
+	// When it stops working unless renewed: a sign-in's renewal ends then.
+	Expires *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=expires,proto3" json:"expires,omitempty"`
+	// From the configuration file: shown, never changed through the API.
+	FromFile      bool                   `protobuf:"varint,8,opt,name=from_file,json=fromFile,proto3" json:"from_file,omitempty"`
+	Created       *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=created,proto3" json:"created,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Connection) Reset() {
+	*x = Connection{}
+	mi := &file_gitd_v1_gitd_proto_msgTypes[39]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Connection) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Connection) ProtoMessage() {}
+
+func (x *Connection) ProtoReflect() protoreflect.Message {
+	mi := &file_gitd_v1_gitd_proto_msgTypes[39]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Connection.ProtoReflect.Descriptor instead.
+func (*Connection) Descriptor() ([]byte, []int) {
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{39}
+}
+
+func (x *Connection) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *Connection) GetKind() Connection_Kind {
+	if x != nil {
+		return x.Kind
+	}
+	return Connection_KIND_UNSPECIFIED
+}
+
+func (x *Connection) GetUrlPrefix() string {
+	if x != nil {
+		return x.UrlPrefix
+	}
+	return ""
+}
+
+func (x *Connection) GetActsAs() string {
+	if x != nil {
+		return x.ActsAs
+	}
+	return ""
+}
+
+func (x *Connection) GetAppId() int64 {
+	if x != nil {
+		return x.AppId
+	}
+	return 0
+}
+
+func (x *Connection) GetManageUrl() string {
+	if x != nil {
+		return x.ManageUrl
+	}
+	return ""
+}
+
+func (x *Connection) GetExpires() *timestamppb.Timestamp {
+	if x != nil {
+		return x.Expires
+	}
+	return nil
+}
+
+func (x *Connection) GetFromFile() bool {
+	if x != nil {
+		return x.FromFile
+	}
+	return false
+}
+
+func (x *Connection) GetCreated() *timestamppb.Timestamp {
+	if x != nil {
+		return x.Created
+	}
+	return nil
+}
+
+type BeginGitHubAppRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The GitHub host: empty for github.com, or a GitHub Enterprise Server's.
+	Host string `protobuf:"bytes,1,opt,name=host,proto3" json:"host,omitempty"`
+	// The organisation that owns the App. Empty: the account of the person creating it.
+	Organization string `protobuf:"bytes,2,opt,name=organization,proto3" json:"organization,omitempty"`
+	// The App's name on GitHub, e.g. `acme-agents`; its bot is `acme-agents[bot]`.
+	Name string `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	// Where GitHub sends the person once the App is created: the platform's page, which
+	// hands the code and state to CompleteGitHubApp.
+	RedirectUrl   string `protobuf:"bytes,4,opt,name=redirect_url,json=redirectUrl,proto3" json:"redirect_url,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BeginGitHubAppRequest) Reset() {
+	*x = BeginGitHubAppRequest{}
+	mi := &file_gitd_v1_gitd_proto_msgTypes[40]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BeginGitHubAppRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BeginGitHubAppRequest) ProtoMessage() {}
+
+func (x *BeginGitHubAppRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_gitd_v1_gitd_proto_msgTypes[40]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BeginGitHubAppRequest.ProtoReflect.Descriptor instead.
+func (*BeginGitHubAppRequest) Descriptor() ([]byte, []int) {
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{40}
+}
+
+func (x *BeginGitHubAppRequest) GetHost() string {
+	if x != nil {
+		return x.Host
+	}
+	return ""
+}
+
+func (x *BeginGitHubAppRequest) GetOrganization() string {
+	if x != nil {
+		return x.Organization
+	}
+	return ""
+}
+
+func (x *BeginGitHubAppRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *BeginGitHubAppRequest) GetRedirectUrl() string {
+	if x != nil {
+		return x.RedirectUrl
+	}
+	return ""
+}
+
+type BeginGitHubAppResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Where the person's browser posts the manifest, as a form field named `manifest`.
+	FormAction string `protobuf:"bytes,1,opt,name=form_action,json=formAction,proto3" json:"form_action,omitempty"`
+	// The manifest, in JSON: the App's name, its permissions (contents and pull requests,
+	// read and write; metadata, read), no webhook.
+	Manifest string `protobuf:"bytes,2,opt,name=manifest,proto3" json:"manifest,omitempty"`
+	// Ties GitHub's answer to this request; expires in an hour.
+	State         string `protobuf:"bytes,3,opt,name=state,proto3" json:"state,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BeginGitHubAppResponse) Reset() {
+	*x = BeginGitHubAppResponse{}
+	mi := &file_gitd_v1_gitd_proto_msgTypes[41]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BeginGitHubAppResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BeginGitHubAppResponse) ProtoMessage() {}
+
+func (x *BeginGitHubAppResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_gitd_v1_gitd_proto_msgTypes[41]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BeginGitHubAppResponse.ProtoReflect.Descriptor instead.
+func (*BeginGitHubAppResponse) Descriptor() ([]byte, []int) {
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{41}
+}
+
+func (x *BeginGitHubAppResponse) GetFormAction() string {
+	if x != nil {
+		return x.FormAction
+	}
+	return ""
+}
+
+func (x *BeginGitHubAppResponse) GetManifest() string {
+	if x != nil {
+		return x.Manifest
+	}
+	return ""
+}
+
+func (x *BeginGitHubAppResponse) GetState() string {
+	if x != nil {
+		return x.State
+	}
+	return ""
+}
+
+type CompleteGitHubAppRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Code          string                 `protobuf:"bytes,1,opt,name=code,proto3" json:"code,omitempty"`
+	State         string                 `protobuf:"bytes,2,opt,name=state,proto3" json:"state,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CompleteGitHubAppRequest) Reset() {
+	*x = CompleteGitHubAppRequest{}
+	mi := &file_gitd_v1_gitd_proto_msgTypes[42]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CompleteGitHubAppRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CompleteGitHubAppRequest) ProtoMessage() {}
+
+func (x *CompleteGitHubAppRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_gitd_v1_gitd_proto_msgTypes[42]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CompleteGitHubAppRequest.ProtoReflect.Descriptor instead.
+func (*CompleteGitHubAppRequest) Descriptor() ([]byte, []int) {
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{42}
+}
+
+func (x *CompleteGitHubAppRequest) GetCode() string {
+	if x != nil {
+		return x.Code
+	}
+	return ""
+}
+
+func (x *CompleteGitHubAppRequest) GetState() string {
+	if x != nil {
+		return x.State
+	}
+	return ""
+}
+
+type CompleteGitHubAppResponse struct {
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	Connection *Connection            `protobuf:"bytes,1,opt,name=connection,proto3" json:"connection,omitempty"`
+	// Where the person installs the App on the repositories it may reach.
+	InstallUrl    string `protobuf:"bytes,2,opt,name=install_url,json=installUrl,proto3" json:"install_url,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CompleteGitHubAppResponse) Reset() {
+	*x = CompleteGitHubAppResponse{}
+	mi := &file_gitd_v1_gitd_proto_msgTypes[43]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CompleteGitHubAppResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CompleteGitHubAppResponse) ProtoMessage() {}
+
+func (x *CompleteGitHubAppResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_gitd_v1_gitd_proto_msgTypes[43]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CompleteGitHubAppResponse.ProtoReflect.Descriptor instead.
+func (*CompleteGitHubAppResponse) Descriptor() ([]byte, []int) {
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{43}
+}
+
+func (x *CompleteGitHubAppResponse) GetConnection() *Connection {
+	if x != nil {
+		return x.Connection
+	}
+	return nil
+}
+
+func (x *CompleteGitHubAppResponse) GetInstallUrl() string {
+	if x != nil {
+		return x.InstallUrl
+	}
+	return ""
+}
+
+type StartGitHubLoginRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The GitHub host: empty for github.com.
+	Host          string `protobuf:"bytes,1,opt,name=host,proto3" json:"host,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StartGitHubLoginRequest) Reset() {
+	*x = StartGitHubLoginRequest{}
+	mi := &file_gitd_v1_gitd_proto_msgTypes[44]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StartGitHubLoginRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StartGitHubLoginRequest) ProtoMessage() {}
+
+func (x *StartGitHubLoginRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_gitd_v1_gitd_proto_msgTypes[44]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StartGitHubLoginRequest.ProtoReflect.Descriptor instead.
+func (*StartGitHubLoginRequest) Descriptor() ([]byte, []int) {
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{44}
+}
+
+func (x *StartGitHubLoginRequest) GetHost() string {
+	if x != nil {
+		return x.Host
+	}
+	return ""
+}
+
+type StartGitHubLoginResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// What the person enters at `verification_url`.
+	UserCode        string `protobuf:"bytes,1,opt,name=user_code,json=userCode,proto3" json:"user_code,omitempty"`
+	VerificationUrl string `protobuf:"bytes,2,opt,name=verification_url,json=verificationUrl,proto3" json:"verification_url,omitempty"`
+	// Hands this sign-in to FinishGitHubLogin.
+	LoginId string `protobuf:"bytes,3,opt,name=login_id,json=loginId,proto3" json:"login_id,omitempty"`
+	// How long the code is good for.
+	ExpiresInSeconds int32 `protobuf:"varint,4,opt,name=expires_in_seconds,json=expiresInSeconds,proto3" json:"expires_in_seconds,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *StartGitHubLoginResponse) Reset() {
+	*x = StartGitHubLoginResponse{}
+	mi := &file_gitd_v1_gitd_proto_msgTypes[45]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StartGitHubLoginResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StartGitHubLoginResponse) ProtoMessage() {}
+
+func (x *StartGitHubLoginResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_gitd_v1_gitd_proto_msgTypes[45]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StartGitHubLoginResponse.ProtoReflect.Descriptor instead.
+func (*StartGitHubLoginResponse) Descriptor() ([]byte, []int) {
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{45}
+}
+
+func (x *StartGitHubLoginResponse) GetUserCode() string {
+	if x != nil {
+		return x.UserCode
+	}
+	return ""
+}
+
+func (x *StartGitHubLoginResponse) GetVerificationUrl() string {
+	if x != nil {
+		return x.VerificationUrl
+	}
+	return ""
+}
+
+func (x *StartGitHubLoginResponse) GetLoginId() string {
+	if x != nil {
+		return x.LoginId
+	}
+	return ""
+}
+
+func (x *StartGitHubLoginResponse) GetExpiresInSeconds() int32 {
+	if x != nil {
+		return x.ExpiresInSeconds
+	}
+	return 0
+}
+
+type FinishGitHubLoginRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	LoginId       string                 `protobuf:"bytes,1,opt,name=login_id,json=loginId,proto3" json:"login_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *FinishGitHubLoginRequest) Reset() {
+	*x = FinishGitHubLoginRequest{}
+	mi := &file_gitd_v1_gitd_proto_msgTypes[46]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FinishGitHubLoginRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FinishGitHubLoginRequest) ProtoMessage() {}
+
+func (x *FinishGitHubLoginRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_gitd_v1_gitd_proto_msgTypes[46]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FinishGitHubLoginRequest.ProtoReflect.Descriptor instead.
+func (*FinishGitHubLoginRequest) Descriptor() ([]byte, []int) {
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{46}
+}
+
+func (x *FinishGitHubLoginRequest) GetLoginId() string {
+	if x != nil {
+		return x.LoginId
+	}
+	return ""
+}
+
+type FinishGitHubLoginResponse struct {
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	Connection *Connection            `protobuf:"bytes,1,opt,name=connection,proto3" json:"connection,omitempty"`
+	// Where the person installs gitd's App on the repositories it may reach, if not yet.
+	InstallUrl    string `protobuf:"bytes,2,opt,name=install_url,json=installUrl,proto3" json:"install_url,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *FinishGitHubLoginResponse) Reset() {
+	*x = FinishGitHubLoginResponse{}
+	mi := &file_gitd_v1_gitd_proto_msgTypes[47]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FinishGitHubLoginResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FinishGitHubLoginResponse) ProtoMessage() {}
+
+func (x *FinishGitHubLoginResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_gitd_v1_gitd_proto_msgTypes[47]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FinishGitHubLoginResponse.ProtoReflect.Descriptor instead.
+func (*FinishGitHubLoginResponse) Descriptor() ([]byte, []int) {
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{47}
+}
+
+func (x *FinishGitHubLoginResponse) GetConnection() *Connection {
+	if x != nil {
+		return x.Connection
+	}
+	return nil
+}
+
+func (x *FinishGitHubLoginResponse) GetInstallUrl() string {
+	if x != nil {
+		return x.InstallUrl
+	}
+	return ""
+}
+
+type AddGitHubAppRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The GitHub host: empty for github.com.
+	Host  string `protobuf:"bytes,1,opt,name=host,proto3" json:"host,omitempty"`
+	AppId int64  `protobuf:"varint,2,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
+	// The App's private key, in PEM.
+	PrivateKey string `protobuf:"bytes,3,opt,name=private_key,json=privateKey,proto3" json:"private_key,omitempty"`
+	// The repositories it opens. Empty: every repository on the host its installations reach.
+	UrlPrefix     string `protobuf:"bytes,4,opt,name=url_prefix,json=urlPrefix,proto3" json:"url_prefix,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AddGitHubAppRequest) Reset() {
+	*x = AddGitHubAppRequest{}
+	mi := &file_gitd_v1_gitd_proto_msgTypes[48]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddGitHubAppRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddGitHubAppRequest) ProtoMessage() {}
+
+func (x *AddGitHubAppRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_gitd_v1_gitd_proto_msgTypes[48]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddGitHubAppRequest.ProtoReflect.Descriptor instead.
+func (*AddGitHubAppRequest) Descriptor() ([]byte, []int) {
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{48}
+}
+
+func (x *AddGitHubAppRequest) GetHost() string {
+	if x != nil {
+		return x.Host
+	}
+	return ""
+}
+
+func (x *AddGitHubAppRequest) GetAppId() int64 {
+	if x != nil {
+		return x.AppId
+	}
+	return 0
+}
+
+func (x *AddGitHubAppRequest) GetPrivateKey() string {
+	if x != nil {
+		return x.PrivateKey
+	}
+	return ""
+}
+
+func (x *AddGitHubAppRequest) GetUrlPrefix() string {
+	if x != nil {
+		return x.UrlPrefix
+	}
+	return ""
+}
+
+type AddGitHubAppResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Connection    *Connection            `protobuf:"bytes,1,opt,name=connection,proto3" json:"connection,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AddGitHubAppResponse) Reset() {
+	*x = AddGitHubAppResponse{}
+	mi := &file_gitd_v1_gitd_proto_msgTypes[49]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddGitHubAppResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddGitHubAppResponse) ProtoMessage() {}
+
+func (x *AddGitHubAppResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_gitd_v1_gitd_proto_msgTypes[49]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddGitHubAppResponse.ProtoReflect.Descriptor instead.
+func (*AddGitHubAppResponse) Descriptor() ([]byte, []int) {
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{49}
+}
+
+func (x *AddGitHubAppResponse) GetConnection() *Connection {
+	if x != nil {
+		return x.Connection
+	}
+	return nil
+}
+
+type AddTokenRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Must name the host, e.g. `https://gitlab.example.com/acme`.
+	UrlPrefix string `protobuf:"bytes,1,opt,name=url_prefix,json=urlPrefix,proto3" json:"url_prefix,omitempty"`
+	Token     string `protobuf:"bytes,2,opt,name=token,proto3" json:"token,omitempty"`
+	// As `Credential.https_user`.
+	User          string `protobuf:"bytes,3,opt,name=user,proto3" json:"user,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AddTokenRequest) Reset() {
+	*x = AddTokenRequest{}
+	mi := &file_gitd_v1_gitd_proto_msgTypes[50]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddTokenRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddTokenRequest) ProtoMessage() {}
+
+func (x *AddTokenRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_gitd_v1_gitd_proto_msgTypes[50]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddTokenRequest.ProtoReflect.Descriptor instead.
+func (*AddTokenRequest) Descriptor() ([]byte, []int) {
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{50}
+}
+
+func (x *AddTokenRequest) GetUrlPrefix() string {
+	if x != nil {
+		return x.UrlPrefix
+	}
+	return ""
+}
+
+func (x *AddTokenRequest) GetToken() string {
+	if x != nil {
+		return x.Token
+	}
+	return ""
+}
+
+func (x *AddTokenRequest) GetUser() string {
+	if x != nil {
+		return x.User
+	}
+	return ""
+}
+
+type AddTokenResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Connection    *Connection            `protobuf:"bytes,1,opt,name=connection,proto3" json:"connection,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AddTokenResponse) Reset() {
+	*x = AddTokenResponse{}
+	mi := &file_gitd_v1_gitd_proto_msgTypes[51]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddTokenResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddTokenResponse) ProtoMessage() {}
+
+func (x *AddTokenResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_gitd_v1_gitd_proto_msgTypes[51]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddTokenResponse.ProtoReflect.Descriptor instead.
+func (*AddTokenResponse) Descriptor() ([]byte, []int) {
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{51}
+}
+
+func (x *AddTokenResponse) GetConnection() *Connection {
+	if x != nil {
+		return x.Connection
+	}
+	return nil
+}
+
+type ListConnectionsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListConnectionsRequest) Reset() {
+	*x = ListConnectionsRequest{}
+	mi := &file_gitd_v1_gitd_proto_msgTypes[52]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListConnectionsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListConnectionsRequest) ProtoMessage() {}
+
+func (x *ListConnectionsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_gitd_v1_gitd_proto_msgTypes[52]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListConnectionsRequest.ProtoReflect.Descriptor instead.
+func (*ListConnectionsRequest) Descriptor() ([]byte, []int) {
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{52}
+}
+
+type ListConnectionsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Connections   []*Connection          `protobuf:"bytes,1,rep,name=connections,proto3" json:"connections,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListConnectionsResponse) Reset() {
+	*x = ListConnectionsResponse{}
+	mi := &file_gitd_v1_gitd_proto_msgTypes[53]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListConnectionsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListConnectionsResponse) ProtoMessage() {}
+
+func (x *ListConnectionsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_gitd_v1_gitd_proto_msgTypes[53]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListConnectionsResponse.ProtoReflect.Descriptor instead.
+func (*ListConnectionsResponse) Descriptor() ([]byte, []int) {
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{53}
+}
+
+func (x *ListConnectionsResponse) GetConnections() []*Connection {
+	if x != nil {
+		return x.Connections
+	}
+	return nil
+}
+
+type RemoveConnectionRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RemoveConnectionRequest) Reset() {
+	*x = RemoveConnectionRequest{}
+	mi := &file_gitd_v1_gitd_proto_msgTypes[54]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RemoveConnectionRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RemoveConnectionRequest) ProtoMessage() {}
+
+func (x *RemoveConnectionRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_gitd_v1_gitd_proto_msgTypes[54]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RemoveConnectionRequest.ProtoReflect.Descriptor instead.
+func (*RemoveConnectionRequest) Descriptor() ([]byte, []int) {
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{54}
+}
+
+func (x *RemoveConnectionRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+type RemoveConnectionResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RemoveConnectionResponse) Reset() {
+	*x = RemoveConnectionResponse{}
+	mi := &file_gitd_v1_gitd_proto_msgTypes[55]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RemoveConnectionResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RemoveConnectionResponse) ProtoMessage() {}
+
+func (x *RemoveConnectionResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_gitd_v1_gitd_proto_msgTypes[55]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RemoveConnectionResponse.ProtoReflect.Descriptor instead.
+func (*RemoveConnectionResponse) Descriptor() ([]byte, []int) {
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{55}
+}
+
+// The rules publishing follows for the repositories under a prefix.
+//
+// Every setting whose prefix opens a repository applies to it: their paths add up and the
+// smallest file limit wins, so a narrower setting never loosens a broader one. A branch
+// prefix and pull request choices are the most specific setting's, and a narrower branch
+// prefix must start with every broader one.
+type PublishSettings struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The repositories these apply to; empty for every repository.
+	UrlPrefix string `protobuf:"bytes,1,opt,name=url_prefix,json=urlPrefix,proto3" json:"url_prefix,omitempty"`
+	// A ready set of rules, which the fields below add to.
+	Preset Preset `protobuf:"varint,2,opt,name=preset,proto3,enum=gitd.v1.Preset" json:"preset,omitempty"`
+	// Paths a publish may not change, as git's glob pathspecs, e.g. `.github/workflows/**`.
+	ProtectedPaths []string `protobuf:"bytes,3,rep,name=protected_paths,json=protectedPaths,proto3" json:"protected_paths,omitempty"`
+	// Paths a publish may change but not delete or rename away, e.g. `tests/**`.
+	KeptPaths []string `protobuf:"bytes,4,rep,name=kept_paths,json=keptPaths,proto3" json:"kept_paths,omitempty"`
+	// At most this many files changed; unset for the preset's, or no limit.
+	MaxChangedFiles *int32 `protobuf:"varint,5,opt,name=max_changed_files,json=maxChangedFiles,proto3,oneof" json:"max_changed_files,omitempty"`
+	// What every published branch must start with, e.g. `agents/`.
+	BranchPrefix string               `protobuf:"bytes,6,opt,name=branch_prefix,json=branchPrefix,proto3" json:"branch_prefix,omitempty"`
+	PullRequests *PullRequestSettings `protobuf:"bytes,7,opt,name=pull_requests,json=pullRequests,proto3" json:"pull_requests,omitempty"`
+	// From the configuration file: shown, never changed through the API.
+	FromFile      bool `protobuf:"varint,8,opt,name=from_file,json=fromFile,proto3" json:"from_file,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PublishSettings) Reset() {
+	*x = PublishSettings{}
+	mi := &file_gitd_v1_gitd_proto_msgTypes[56]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PublishSettings) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PublishSettings) ProtoMessage() {}
+
+func (x *PublishSettings) ProtoReflect() protoreflect.Message {
+	mi := &file_gitd_v1_gitd_proto_msgTypes[56]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PublishSettings.ProtoReflect.Descriptor instead.
+func (*PublishSettings) Descriptor() ([]byte, []int) {
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{56}
+}
+
+func (x *PublishSettings) GetUrlPrefix() string {
+	if x != nil {
+		return x.UrlPrefix
+	}
+	return ""
+}
+
+func (x *PublishSettings) GetPreset() Preset {
+	if x != nil {
+		return x.Preset
+	}
+	return Preset_PRESET_UNSPECIFIED
+}
+
+func (x *PublishSettings) GetProtectedPaths() []string {
+	if x != nil {
+		return x.ProtectedPaths
+	}
+	return nil
+}
+
+func (x *PublishSettings) GetKeptPaths() []string {
+	if x != nil {
+		return x.KeptPaths
+	}
+	return nil
+}
+
+func (x *PublishSettings) GetMaxChangedFiles() int32 {
+	if x != nil && x.MaxChangedFiles != nil {
+		return *x.MaxChangedFiles
+	}
+	return 0
+}
+
+func (x *PublishSettings) GetBranchPrefix() string {
+	if x != nil {
+		return x.BranchPrefix
+	}
+	return ""
+}
+
+func (x *PublishSettings) GetPullRequests() *PullRequestSettings {
+	if x != nil {
+		return x.PullRequests
+	}
+	return nil
+}
+
+func (x *PublishSettings) GetFromFile() bool {
+	if x != nil {
+		return x.FromFile
+	}
+	return false
+}
+
+// How publishes open pull requests.
+type PullRequestSettings struct {
+	state  protoimpl.MessageState   `protogen:"open.v1"`
+	Open   PullRequestSettings_Open `protobuf:"varint,1,opt,name=open,proto3,enum=gitd.v1.PullRequestSettings_Open" json:"open,omitempty"`
+	Draft  bool                     `protobuf:"varint,2,opt,name=draft,proto3" json:"draft,omitempty"`
+	Labels []string                 `protobuf:"bytes,3,rep,name=labels,proto3" json:"labels,omitempty"`
+	// Ask the person the publish names in `requested_by` to review it.
+	RequestReviewFromRequester bool `protobuf:"varint,4,opt,name=request_review_from_requester,json=requestReviewFromRequester,proto3" json:"request_review_from_requester,omitempty"`
+	unknownFields              protoimpl.UnknownFields
+	sizeCache                  protoimpl.SizeCache
+}
+
+func (x *PullRequestSettings) Reset() {
+	*x = PullRequestSettings{}
+	mi := &file_gitd_v1_gitd_proto_msgTypes[57]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PullRequestSettings) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PullRequestSettings) ProtoMessage() {}
+
+func (x *PullRequestSettings) ProtoReflect() protoreflect.Message {
+	mi := &file_gitd_v1_gitd_proto_msgTypes[57]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PullRequestSettings.ProtoReflect.Descriptor instead.
+func (*PullRequestSettings) Descriptor() ([]byte, []int) {
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{57}
+}
+
+func (x *PullRequestSettings) GetOpen() PullRequestSettings_Open {
+	if x != nil {
+		return x.Open
+	}
+	return PullRequestSettings_OPEN_UNSPECIFIED
+}
+
+func (x *PullRequestSettings) GetDraft() bool {
+	if x != nil {
+		return x.Draft
+	}
+	return false
+}
+
+func (x *PullRequestSettings) GetLabels() []string {
+	if x != nil {
+		return x.Labels
+	}
+	return nil
+}
+
+func (x *PullRequestSettings) GetRequestReviewFromRequester() bool {
+	if x != nil {
+		return x.RequestReviewFromRequester
+	}
+	return false
+}
+
+type GetSettingsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetSettingsRequest) Reset() {
+	*x = GetSettingsRequest{}
+	mi := &file_gitd_v1_gitd_proto_msgTypes[58]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetSettingsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetSettingsRequest) ProtoMessage() {}
+
+func (x *GetSettingsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_gitd_v1_gitd_proto_msgTypes[58]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetSettingsRequest.ProtoReflect.Descriptor instead.
+func (*GetSettingsRequest) Descriptor() ([]byte, []int) {
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{58}
+}
+
+type GetSettingsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Settings      []*PublishSettings     `protobuf:"bytes,1,rep,name=settings,proto3" json:"settings,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetSettingsResponse) Reset() {
+	*x = GetSettingsResponse{}
+	mi := &file_gitd_v1_gitd_proto_msgTypes[59]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetSettingsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetSettingsResponse) ProtoMessage() {}
+
+func (x *GetSettingsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_gitd_v1_gitd_proto_msgTypes[59]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetSettingsResponse.ProtoReflect.Descriptor instead.
+func (*GetSettingsResponse) Descriptor() ([]byte, []int) {
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{59}
+}
+
+func (x *GetSettingsResponse) GetSettings() []*PublishSettings {
+	if x != nil {
+		return x.Settings
+	}
+	return nil
+}
+
+type SetSettingsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Settings      *PublishSettings       `protobuf:"bytes,1,opt,name=settings,proto3" json:"settings,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetSettingsRequest) Reset() {
+	*x = SetSettingsRequest{}
+	mi := &file_gitd_v1_gitd_proto_msgTypes[60]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetSettingsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetSettingsRequest) ProtoMessage() {}
+
+func (x *SetSettingsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_gitd_v1_gitd_proto_msgTypes[60]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetSettingsRequest.ProtoReflect.Descriptor instead.
+func (*SetSettingsRequest) Descriptor() ([]byte, []int) {
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{60}
+}
+
+func (x *SetSettingsRequest) GetSettings() *PublishSettings {
+	if x != nil {
+		return x.Settings
+	}
+	return nil
+}
+
+type SetSettingsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Settings      *PublishSettings       `protobuf:"bytes,1,opt,name=settings,proto3" json:"settings,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetSettingsResponse) Reset() {
+	*x = SetSettingsResponse{}
+	mi := &file_gitd_v1_gitd_proto_msgTypes[61]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetSettingsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetSettingsResponse) ProtoMessage() {}
+
+func (x *SetSettingsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_gitd_v1_gitd_proto_msgTypes[61]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetSettingsResponse.ProtoReflect.Descriptor instead.
+func (*SetSettingsResponse) Descriptor() ([]byte, []int) {
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{61}
+}
+
+func (x *SetSettingsResponse) GetSettings() *PublishSettings {
+	if x != nil {
+		return x.Settings
+	}
+	return nil
+}
+
+type RemoveSettingsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UrlPrefix     string                 `protobuf:"bytes,1,opt,name=url_prefix,json=urlPrefix,proto3" json:"url_prefix,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RemoveSettingsRequest) Reset() {
+	*x = RemoveSettingsRequest{}
+	mi := &file_gitd_v1_gitd_proto_msgTypes[62]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RemoveSettingsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RemoveSettingsRequest) ProtoMessage() {}
+
+func (x *RemoveSettingsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_gitd_v1_gitd_proto_msgTypes[62]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RemoveSettingsRequest.ProtoReflect.Descriptor instead.
+func (*RemoveSettingsRequest) Descriptor() ([]byte, []int) {
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{62}
+}
+
+func (x *RemoveSettingsRequest) GetUrlPrefix() string {
+	if x != nil {
+		return x.UrlPrefix
+	}
+	return ""
+}
+
+type RemoveSettingsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RemoveSettingsResponse) Reset() {
+	*x = RemoveSettingsResponse{}
+	mi := &file_gitd_v1_gitd_proto_msgTypes[63]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RemoveSettingsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RemoveSettingsResponse) ProtoMessage() {}
+
+func (x *RemoveSettingsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_gitd_v1_gitd_proto_msgTypes[63]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RemoveSettingsResponse.ProtoReflect.Descriptor instead.
+func (*RemoveSettingsResponse) Descriptor() ([]byte, []int) {
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{63}
+}
+
 var File_gitd_v1_gitd_proto protoreflect.FileDescriptor
 
 const file_gitd_v1_gitd_proto_rawDesc = "" +
@@ -2693,14 +4568,14 @@ const file_gitd_v1_gitd_proto_rawDesc = "" +
 	"\x10PendingSubmodule\x12\x10\n" +
 	"\x03url\x18\x01 \x01(\tR\x03url\x12\x12\n" +
 	"\x04path\x18\x02 \x01(\tR\x04path\x12-\n" +
-	"\afailure\x18\x03 \x01(\v2\x13.gitd.v1.GitFailureR\afailure\"\xb6\x03\n" +
+	"\afailure\x18\x03 \x01(\v2\x13.gitd.v1.GitFailureR\afailure\"\xe9\x03\n" +
 	"\n" +
 	"GitFailure\x122\n" +
 	"\x06reason\x18\x01 \x01(\x0e2\x1a.gitd.v1.GitFailure.ReasonR\x06reason\x12\x19\n" +
 	"\bgit_said\x18\x02 \x01(\tR\agitSaid\x12\x1e\n" +
 	"\n" +
 	"repository\x18\x03 \x01(\tR\n" +
-	"repository\"\xb8\x02\n" +
+	"repository\"\xeb\x02\n" +
 	"\x06Reason\x12\x16\n" +
 	"\x12REASON_UNSPECIFIED\x10\x00\x12\x18\n" +
 	"\x14REASON_AUTH_REQUIRED\x10\x01\x12\x17\n" +
@@ -2715,7 +4590,9 @@ const file_gitd_v1_gitd_proto_rawDesc = "" +
 	"\x12REASON_NOTHING_NEW\x10\n" +
 	"\x12\x19\n" +
 	"\x15REASON_BRANCH_REFUSED\x10\v\x12\x19\n" +
-	"\x15REASON_CONFIG_REFUSED\x10\f\"\x97\x02\n" +
+	"\x15REASON_CONFIG_REFUSED\x10\f\x12\x19\n" +
+	"\x15REASON_POLICY_REFUSED\x10\r\x12\x16\n" +
+	"\x12REASON_UNSUPPORTED\x10\x0e\"\x97\x02\n" +
 	"\x0ePrepareRequest\x12\x10\n" +
 	"\x03url\x18\x01 \x01(\tR\x03url\x12\x12\n" +
 	"\x04path\x18\x02 \x01(\tR\x04path\x12-\n" +
@@ -2793,16 +4670,28 @@ const file_gitd_v1_gitd_proto_rawDesc = "" +
 	"\x06result\x18\x02 \x01(\v2\x14.gitd.v1.AdoptResultH\x00R\x06resultB\a\n" +
 	"\x05event\"4\n" +
 	"\vAdoptResult\x12%\n" +
-	"\x0ebytes_released\x18\x01 \x01(\x03R\rbytesReleased\"s\n" +
+	"\x0ebytes_released\x18\x01 \x01(\x03R\rbytesReleased\"\xd6\x01\n" +
 	"\x0ePublishRequest\x12\x12\n" +
 	"\x04path\x18\x01 \x01(\tR\x04path\x12\x16\n" +
 	"\x06branch\x18\x02 \x01(\tR\x06branch\x125\n" +
-	"\vcredentials\x18\x03 \x03(\v2\x13.gitd.v1.CredentialR\vcredentials\"o\n" +
+	"\vcredentials\x18\x03 \x03(\v2\x13.gitd.v1.CredentialR\vcredentials\x12!\n" +
+	"\frequested_by\x18\x04 \x01(\tR\vrequestedBy\x12>\n" +
+	"\fpull_request\x18\x05 \x01(\v2\x1b.gitd.v1.PullRequestOptionsR\vpullRequest\"\x8b\x01\n" +
+	"\x12PullRequestOptions\x12\x12\n" +
+	"\x04open\x18\x01 \x01(\bR\x04open\x12\x14\n" +
+	"\x05title\x18\x02 \x01(\tR\x05title\x12\x12\n" +
+	"\x04body\x18\x03 \x01(\tR\x04body\x12\x12\n" +
+	"\x04base\x18\x04 \x01(\tR\x04base\x12\x19\n" +
+	"\x05draft\x18\x05 \x01(\bH\x00R\x05draft\x88\x01\x01B\b\n" +
+	"\x06_draft\"=\n" +
+	"\x11OpenedPullRequest\x12\x10\n" +
+	"\x03url\x18\x01 \x01(\tR\x03url\x12\x16\n" +
+	"\x06number\x18\x02 \x01(\x03R\x06number\"o\n" +
 	"\x13PublishedRepository\x12\x10\n" +
 	"\x03url\x18\x01 \x01(\tR\x03url\x12\x12\n" +
 	"\x04path\x18\x02 \x01(\tR\x04path\x12\x16\n" +
 	"\x06commit\x18\x03 \x01(\tR\x06commit\x12\x1a\n" +
-	"\bsubjects\x18\x04 \x03(\tR\bsubjects\"\xa5\x01\n" +
+	"\bsubjects\x18\x04 \x03(\tR\bsubjects\"\xab\x02\n" +
 	"\x0fPublishResponse\x12\x16\n" +
 	"\x06branch\x18\x01 \x01(\tR\x06branch\x12<\n" +
 	"\n" +
@@ -2810,7 +4699,9 @@ const file_gitd_v1_gitd_proto_rawDesc = "" +
 	"repository\x12<\n" +
 	"\n" +
 	"submodules\x18\x03 \x03(\v2\x1c.gitd.v1.PublishedRepositoryR\n" +
-	"submodules\"W\n" +
+	"submodules\x12=\n" +
+	"\fpull_request\x18\x04 \x01(\v2\x1a.gitd.v1.OpenedPullRequestR\vpullRequest\x12E\n" +
+	"\x14pull_request_failure\x18\x05 \x01(\v2\x13.gitd.v1.GitFailureR\x12pullRequestFailure\"W\n" +
 	"\fProbeRequest\x12\x10\n" +
 	"\x03url\x18\x01 \x01(\tR\x03url\x125\n" +
 	"\vcredentials\x18\x02 \x03(\v2\x13.gitd.v1.CredentialR\vcredentials\"\x91\x03\n" +
@@ -2851,7 +4742,7 @@ const file_gitd_v1_gitd_proto_rawDesc = "" +
 	"\x03url\x18\x02 \x01(\tR\x03url\x12\x14\n" +
 	"\x05limit\x18\x03 \x01(\x05R\x05limit\">\n" +
 	"\rAuditResponse\x12-\n" +
-	"\aentries\x18\x01 \x03(\v2\x13.gitd.v1.AuditEntryR\aentries\"\xaf\x02\n" +
+	"\aentries\x18\x01 \x03(\v2\x13.gitd.v1.AuditEntryR\aentries\"\x8e\x04\n" +
 	"\n" +
 	"AuditEntry\x12.\n" +
 	"\x04time\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\x04time\x12\x1c\n" +
@@ -2864,12 +4755,143 @@ const file_gitd_v1_gitd_proto_rawDesc = "" +
 	"\n" +
 	"submodules\x18\x06 \x03(\v2\x1c.gitd.v1.PublishedRepositoryR\n" +
 	"submodules\x12-\n" +
-	"\arefusal\x18\a \x01(\v2\x13.gitd.v1.GitFailureR\arefusal*c\n" +
+	"\arefusal\x18\a \x01(\v2\x13.gitd.v1.GitFailureR\arefusal\x12!\n" +
+	"\frequested_by\x18\b \x01(\tR\vrequestedBy\x12=\n" +
+	"\fpull_request\x18\t \x01(\v2\x1a.gitd.v1.OpenedPullRequestR\vpullRequest\x12E\n" +
+	"\x14pull_request_failure\x18\n" +
+	" \x01(\v2\x13.gitd.v1.GitFailureR\x12pullRequestFailure\x124\n" +
+	"\x06change\x18\v \x01(\v2\x1c.gitd.v1.ConfigurationChangeR\x06change\"\xa0\x02\n" +
+	"\x13ConfigurationChange\x12;\n" +
+	"\x06action\x18\x01 \x01(\x0e2#.gitd.v1.ConfigurationChange.ActionR\x06action\x12\x18\n" +
+	"\asubject\x18\x02 \x01(\tR\asubject\x12\x1d\n" +
+	"\n" +
+	"url_prefix\x18\x03 \x01(\tR\turlPrefix\"\x92\x01\n" +
+	"\x06Action\x12\x16\n" +
+	"\x12ACTION_UNSPECIFIED\x10\x00\x12\x1b\n" +
+	"\x17ACTION_CONNECTION_ADDED\x10\x01\x12\x1d\n" +
+	"\x19ACTION_CONNECTION_REMOVED\x10\x02\x12\x17\n" +
+	"\x13ACTION_SETTINGS_SET\x10\x03\x12\x1b\n" +
+	"\x17ACTION_SETTINGS_REMOVED\x10\x04\"\xad\x03\n" +
+	"\n" +
+	"Connection\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12,\n" +
+	"\x04kind\x18\x02 \x01(\x0e2\x18.gitd.v1.Connection.KindR\x04kind\x12\x1d\n" +
+	"\n" +
+	"url_prefix\x18\x03 \x01(\tR\turlPrefix\x12\x17\n" +
+	"\aacts_as\x18\x04 \x01(\tR\x06actsAs\x12\x15\n" +
+	"\x06app_id\x18\x05 \x01(\x03R\x05appId\x12\x1d\n" +
+	"\n" +
+	"manage_url\x18\x06 \x01(\tR\tmanageUrl\x124\n" +
+	"\aexpires\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\aexpires\x12\x1b\n" +
+	"\tfrom_file\x18\b \x01(\bR\bfromFile\x124\n" +
+	"\acreated\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\acreated\"j\n" +
+	"\x04Kind\x12\x14\n" +
+	"\x10KIND_UNSPECIFIED\x10\x00\x12\x0e\n" +
+	"\n" +
+	"KIND_TOKEN\x10\x01\x12\x10\n" +
+	"\fKIND_SSH_KEY\x10\x02\x12\x13\n" +
+	"\x0fKIND_GITHUB_APP\x10\x03\x12\x15\n" +
+	"\x11KIND_GITHUB_LOGIN\x10\x04\"\x86\x01\n" +
+	"\x15BeginGitHubAppRequest\x12\x12\n" +
+	"\x04host\x18\x01 \x01(\tR\x04host\x12\"\n" +
+	"\forganization\x18\x02 \x01(\tR\forganization\x12\x12\n" +
+	"\x04name\x18\x03 \x01(\tR\x04name\x12!\n" +
+	"\fredirect_url\x18\x04 \x01(\tR\vredirectUrl\"k\n" +
+	"\x16BeginGitHubAppResponse\x12\x1f\n" +
+	"\vform_action\x18\x01 \x01(\tR\n" +
+	"formAction\x12\x1a\n" +
+	"\bmanifest\x18\x02 \x01(\tR\bmanifest\x12\x14\n" +
+	"\x05state\x18\x03 \x01(\tR\x05state\"D\n" +
+	"\x18CompleteGitHubAppRequest\x12\x12\n" +
+	"\x04code\x18\x01 \x01(\tR\x04code\x12\x14\n" +
+	"\x05state\x18\x02 \x01(\tR\x05state\"q\n" +
+	"\x19CompleteGitHubAppResponse\x123\n" +
+	"\n" +
+	"connection\x18\x01 \x01(\v2\x13.gitd.v1.ConnectionR\n" +
+	"connection\x12\x1f\n" +
+	"\vinstall_url\x18\x02 \x01(\tR\n" +
+	"installUrl\"-\n" +
+	"\x17StartGitHubLoginRequest\x12\x12\n" +
+	"\x04host\x18\x01 \x01(\tR\x04host\"\xab\x01\n" +
+	"\x18StartGitHubLoginResponse\x12\x1b\n" +
+	"\tuser_code\x18\x01 \x01(\tR\buserCode\x12)\n" +
+	"\x10verification_url\x18\x02 \x01(\tR\x0fverificationUrl\x12\x19\n" +
+	"\blogin_id\x18\x03 \x01(\tR\aloginId\x12,\n" +
+	"\x12expires_in_seconds\x18\x04 \x01(\x05R\x10expiresInSeconds\"5\n" +
+	"\x18FinishGitHubLoginRequest\x12\x19\n" +
+	"\blogin_id\x18\x01 \x01(\tR\aloginId\"q\n" +
+	"\x19FinishGitHubLoginResponse\x123\n" +
+	"\n" +
+	"connection\x18\x01 \x01(\v2\x13.gitd.v1.ConnectionR\n" +
+	"connection\x12\x1f\n" +
+	"\vinstall_url\x18\x02 \x01(\tR\n" +
+	"installUrl\"\x80\x01\n" +
+	"\x13AddGitHubAppRequest\x12\x12\n" +
+	"\x04host\x18\x01 \x01(\tR\x04host\x12\x15\n" +
+	"\x06app_id\x18\x02 \x01(\x03R\x05appId\x12\x1f\n" +
+	"\vprivate_key\x18\x03 \x01(\tR\n" +
+	"privateKey\x12\x1d\n" +
+	"\n" +
+	"url_prefix\x18\x04 \x01(\tR\turlPrefix\"K\n" +
+	"\x14AddGitHubAppResponse\x123\n" +
+	"\n" +
+	"connection\x18\x01 \x01(\v2\x13.gitd.v1.ConnectionR\n" +
+	"connection\"Z\n" +
+	"\x0fAddTokenRequest\x12\x1d\n" +
+	"\n" +
+	"url_prefix\x18\x01 \x01(\tR\turlPrefix\x12\x14\n" +
+	"\x05token\x18\x02 \x01(\tR\x05token\x12\x12\n" +
+	"\x04user\x18\x03 \x01(\tR\x04user\"G\n" +
+	"\x10AddTokenResponse\x123\n" +
+	"\n" +
+	"connection\x18\x01 \x01(\v2\x13.gitd.v1.ConnectionR\n" +
+	"connection\"\x18\n" +
+	"\x16ListConnectionsRequest\"P\n" +
+	"\x17ListConnectionsResponse\x125\n" +
+	"\vconnections\x18\x01 \x03(\v2\x13.gitd.v1.ConnectionR\vconnections\")\n" +
+	"\x17RemoveConnectionRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"\x1a\n" +
+	"\x18RemoveConnectionResponse\"\xed\x02\n" +
+	"\x0fPublishSettings\x12\x1d\n" +
+	"\n" +
+	"url_prefix\x18\x01 \x01(\tR\turlPrefix\x12'\n" +
+	"\x06preset\x18\x02 \x01(\x0e2\x0f.gitd.v1.PresetR\x06preset\x12'\n" +
+	"\x0fprotected_paths\x18\x03 \x03(\tR\x0eprotectedPaths\x12\x1d\n" +
+	"\n" +
+	"kept_paths\x18\x04 \x03(\tR\tkeptPaths\x12/\n" +
+	"\x11max_changed_files\x18\x05 \x01(\x05H\x00R\x0fmaxChangedFiles\x88\x01\x01\x12#\n" +
+	"\rbranch_prefix\x18\x06 \x01(\tR\fbranchPrefix\x12A\n" +
+	"\rpull_requests\x18\a \x01(\v2\x1c.gitd.v1.PullRequestSettingsR\fpullRequests\x12\x1b\n" +
+	"\tfrom_file\x18\b \x01(\bR\bfromFileB\x14\n" +
+	"\x12_max_changed_files\"\x81\x02\n" +
+	"\x13PullRequestSettings\x125\n" +
+	"\x04open\x18\x01 \x01(\x0e2!.gitd.v1.PullRequestSettings.OpenR\x04open\x12\x14\n" +
+	"\x05draft\x18\x02 \x01(\bR\x05draft\x12\x16\n" +
+	"\x06labels\x18\x03 \x03(\tR\x06labels\x12A\n" +
+	"\x1drequest_review_from_requester\x18\x04 \x01(\bR\x1arequestReviewFromRequester\"B\n" +
+	"\x04Open\x12\x14\n" +
+	"\x10OPEN_UNSPECIFIED\x10\x00\x12\x13\n" +
+	"\x0fOPEN_WHEN_ASKED\x10\x01\x12\x0f\n" +
+	"\vOPEN_ALWAYS\x10\x02\"\x14\n" +
+	"\x12GetSettingsRequest\"K\n" +
+	"\x13GetSettingsResponse\x124\n" +
+	"\bsettings\x18\x01 \x03(\v2\x18.gitd.v1.PublishSettingsR\bsettings\"J\n" +
+	"\x12SetSettingsRequest\x124\n" +
+	"\bsettings\x18\x01 \x01(\v2\x18.gitd.v1.PublishSettingsR\bsettings\"K\n" +
+	"\x13SetSettingsResponse\x124\n" +
+	"\bsettings\x18\x01 \x01(\v2\x18.gitd.v1.PublishSettingsR\bsettings\"6\n" +
+	"\x15RemoveSettingsRequest\x12\x1d\n" +
+	"\n" +
+	"url_prefix\x18\x01 \x01(\tR\turlPrefix\"\x18\n" +
+	"\x16RemoveSettingsResponse*c\n" +
 	"\bStrategy\x12\x18\n" +
 	"\x14STRATEGY_UNSPECIFIED\x10\x00\x12\x11\n" +
 	"\rSTRATEGY_COPY\x10\x01\x12\x14\n" +
 	"\x10STRATEGY_OVERLAY\x10\x02\x12\x14\n" +
-	"\x10STRATEGY_REFLINK\x10\x032\x9b\x04\n" +
+	"\x10STRATEGY_REFLINK\x10\x03*8\n" +
+	"\x06Preset\x12\x16\n" +
+	"\x12PRESET_UNSPECIFIED\x10\x00\x12\x16\n" +
+	"\x12PRESET_RECOMMENDED\x10\x012\x9b\x04\n" +
 	"\x10WorkspaceService\x12>\n" +
 	"\aPrepare\x12\x17.gitd.v1.PrepareRequest\x1a\x18.gitd.v1.PrepareResponse0\x01\x12;\n" +
 	"\x06Update\x12\x16.gitd.v1.UpdateRequest\x1a\x17.gitd.v1.UpdateResponse0\x01\x12A\n" +
@@ -2884,7 +4906,20 @@ const file_gitd_v1_gitd_proto_rawDesc = "" +
 	"\rServerService\x123\n" +
 	"\x04Info\x12\x14.gitd.v1.InfoRequest\x1a\x15.gitd.v1.InfoResponse\x129\n" +
 	"\x06Retire\x12\x16.gitd.v1.RetireRequest\x1a\x17.gitd.v1.RetireResponse\x126\n" +
-	"\x05Audit\x12\x15.gitd.v1.AuditRequest\x1a\x16.gitd.v1.AuditResponseB2Z0github.com/dooservice/gitd/gen/go/gitd/v1;gitdv1b\x06proto3"
+	"\x05Audit\x12\x15.gitd.v1.AuditRequest\x1a\x16.gitd.v1.AuditResponse2\xb4\x05\n" +
+	"\x11ConnectionService\x12Q\n" +
+	"\x0eBeginGitHubApp\x12\x1e.gitd.v1.BeginGitHubAppRequest\x1a\x1f.gitd.v1.BeginGitHubAppResponse\x12Z\n" +
+	"\x11CompleteGitHubApp\x12!.gitd.v1.CompleteGitHubAppRequest\x1a\".gitd.v1.CompleteGitHubAppResponse\x12W\n" +
+	"\x10StartGitHubLogin\x12 .gitd.v1.StartGitHubLoginRequest\x1a!.gitd.v1.StartGitHubLoginResponse\x12Z\n" +
+	"\x11FinishGitHubLogin\x12!.gitd.v1.FinishGitHubLoginRequest\x1a\".gitd.v1.FinishGitHubLoginResponse\x12K\n" +
+	"\fAddGitHubApp\x12\x1c.gitd.v1.AddGitHubAppRequest\x1a\x1d.gitd.v1.AddGitHubAppResponse\x12?\n" +
+	"\bAddToken\x12\x18.gitd.v1.AddTokenRequest\x1a\x19.gitd.v1.AddTokenResponse\x12T\n" +
+	"\x0fListConnections\x12\x1f.gitd.v1.ListConnectionsRequest\x1a .gitd.v1.ListConnectionsResponse\x12W\n" +
+	"\x10RemoveConnection\x12 .gitd.v1.RemoveConnectionRequest\x1a!.gitd.v1.RemoveConnectionResponse2\xfa\x01\n" +
+	"\x11PublishingService\x12H\n" +
+	"\vGetSettings\x12\x1b.gitd.v1.GetSettingsRequest\x1a\x1c.gitd.v1.GetSettingsResponse\x12H\n" +
+	"\vSetSettings\x12\x1b.gitd.v1.SetSettingsRequest\x1a\x1c.gitd.v1.SetSettingsResponse\x12Q\n" +
+	"\x0eRemoveSettings\x12\x1e.gitd.v1.RemoveSettingsRequest\x1a\x1f.gitd.v1.RemoveSettingsResponseB2Z0github.com/dooservice/gitd/gen/go/gitd/v1;gitdv1b\x06proto3"
 
 var (
 	file_gitd_v1_gitd_proto_rawDescOnce sync.Once
@@ -2898,121 +4933,196 @@ func file_gitd_v1_gitd_proto_rawDescGZIP() []byte {
 	return file_gitd_v1_gitd_proto_rawDescData
 }
 
-var file_gitd_v1_gitd_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_gitd_v1_gitd_proto_msgTypes = make([]protoimpl.MessageInfo, 37)
+var file_gitd_v1_gitd_proto_enumTypes = make([]protoimpl.EnumInfo, 7)
+var file_gitd_v1_gitd_proto_msgTypes = make([]protoimpl.MessageInfo, 65)
 var file_gitd_v1_gitd_proto_goTypes = []any{
-	(Strategy)(0),                  // 0: gitd.v1.Strategy
-	(GitFailure_Reason)(0),         // 1: gitd.v1.GitFailure.Reason
-	(ProbeResponse_Access)(0),      // 2: gitd.v1.ProbeResponse.Access
-	(*Credential)(nil),             // 3: gitd.v1.Credential
-	(*Revision)(nil),               // 4: gitd.v1.Revision
-	(*Progress)(nil),               // 5: gitd.v1.Progress
-	(*SubmoduleState)(nil),         // 6: gitd.v1.SubmoduleState
-	(*PendingSubmodule)(nil),       // 7: gitd.v1.PendingSubmodule
-	(*GitFailure)(nil),             // 8: gitd.v1.GitFailure
-	(*PrepareRequest)(nil),         // 9: gitd.v1.PrepareRequest
-	(*Layers)(nil),                 // 10: gitd.v1.Layers
-	(*PrepareResponse)(nil),        // 11: gitd.v1.PrepareResponse
-	(*WorkspaceResult)(nil),        // 12: gitd.v1.WorkspaceResult
-	(*UpdateRequest)(nil),          // 13: gitd.v1.UpdateRequest
-	(*UpdateResponse)(nil),         // 14: gitd.v1.UpdateResponse
-	(*CheckoutRequest)(nil),        // 15: gitd.v1.CheckoutRequest
-	(*CheckoutResponse)(nil),       // 16: gitd.v1.CheckoutResponse
-	(*SyncSubmodulesRequest)(nil),  // 17: gitd.v1.SyncSubmodulesRequest
-	(*SyncSubmodulesResponse)(nil), // 18: gitd.v1.SyncSubmodulesResponse
-	(*SyncSubmodulesResult)(nil),   // 19: gitd.v1.SyncSubmodulesResult
-	(*DescribeRequest)(nil),        // 20: gitd.v1.DescribeRequest
-	(*DescribeResponse)(nil),       // 21: gitd.v1.DescribeResponse
-	(*RemoveRequest)(nil),          // 22: gitd.v1.RemoveRequest
-	(*RemoveResponse)(nil),         // 23: gitd.v1.RemoveResponse
-	(*AdoptRequest)(nil),           // 24: gitd.v1.AdoptRequest
-	(*AdoptResponse)(nil),          // 25: gitd.v1.AdoptResponse
-	(*AdoptResult)(nil),            // 26: gitd.v1.AdoptResult
-	(*PublishRequest)(nil),         // 27: gitd.v1.PublishRequest
-	(*PublishedRepository)(nil),    // 28: gitd.v1.PublishedRepository
-	(*PublishResponse)(nil),        // 29: gitd.v1.PublishResponse
-	(*ProbeRequest)(nil),           // 30: gitd.v1.ProbeRequest
-	(*ProbeResponse)(nil),          // 31: gitd.v1.ProbeResponse
-	(*RetireRequest)(nil),          // 32: gitd.v1.RetireRequest
-	(*RetireResponse)(nil),         // 33: gitd.v1.RetireResponse
-	(*InfoRequest)(nil),            // 34: gitd.v1.InfoRequest
-	(*InfoResponse)(nil),           // 35: gitd.v1.InfoResponse
-	(*AuditRequest)(nil),           // 36: gitd.v1.AuditRequest
-	(*AuditResponse)(nil),          // 37: gitd.v1.AuditResponse
-	(*AuditEntry)(nil),             // 38: gitd.v1.AuditEntry
-	nil,                            // 39: gitd.v1.ProbeResponse.CommitsEntry
-	(*timestamppb.Timestamp)(nil),  // 40: google.protobuf.Timestamp
+	(Strategy)(0),                     // 0: gitd.v1.Strategy
+	(Preset)(0),                       // 1: gitd.v1.Preset
+	(GitFailure_Reason)(0),            // 2: gitd.v1.GitFailure.Reason
+	(ProbeResponse_Access)(0),         // 3: gitd.v1.ProbeResponse.Access
+	(ConfigurationChange_Action)(0),   // 4: gitd.v1.ConfigurationChange.Action
+	(Connection_Kind)(0),              // 5: gitd.v1.Connection.Kind
+	(PullRequestSettings_Open)(0),     // 6: gitd.v1.PullRequestSettings.Open
+	(*Credential)(nil),                // 7: gitd.v1.Credential
+	(*Revision)(nil),                  // 8: gitd.v1.Revision
+	(*Progress)(nil),                  // 9: gitd.v1.Progress
+	(*SubmoduleState)(nil),            // 10: gitd.v1.SubmoduleState
+	(*PendingSubmodule)(nil),          // 11: gitd.v1.PendingSubmodule
+	(*GitFailure)(nil),                // 12: gitd.v1.GitFailure
+	(*PrepareRequest)(nil),            // 13: gitd.v1.PrepareRequest
+	(*Layers)(nil),                    // 14: gitd.v1.Layers
+	(*PrepareResponse)(nil),           // 15: gitd.v1.PrepareResponse
+	(*WorkspaceResult)(nil),           // 16: gitd.v1.WorkspaceResult
+	(*UpdateRequest)(nil),             // 17: gitd.v1.UpdateRequest
+	(*UpdateResponse)(nil),            // 18: gitd.v1.UpdateResponse
+	(*CheckoutRequest)(nil),           // 19: gitd.v1.CheckoutRequest
+	(*CheckoutResponse)(nil),          // 20: gitd.v1.CheckoutResponse
+	(*SyncSubmodulesRequest)(nil),     // 21: gitd.v1.SyncSubmodulesRequest
+	(*SyncSubmodulesResponse)(nil),    // 22: gitd.v1.SyncSubmodulesResponse
+	(*SyncSubmodulesResult)(nil),      // 23: gitd.v1.SyncSubmodulesResult
+	(*DescribeRequest)(nil),           // 24: gitd.v1.DescribeRequest
+	(*DescribeResponse)(nil),          // 25: gitd.v1.DescribeResponse
+	(*RemoveRequest)(nil),             // 26: gitd.v1.RemoveRequest
+	(*RemoveResponse)(nil),            // 27: gitd.v1.RemoveResponse
+	(*AdoptRequest)(nil),              // 28: gitd.v1.AdoptRequest
+	(*AdoptResponse)(nil),             // 29: gitd.v1.AdoptResponse
+	(*AdoptResult)(nil),               // 30: gitd.v1.AdoptResult
+	(*PublishRequest)(nil),            // 31: gitd.v1.PublishRequest
+	(*PullRequestOptions)(nil),        // 32: gitd.v1.PullRequestOptions
+	(*OpenedPullRequest)(nil),         // 33: gitd.v1.OpenedPullRequest
+	(*PublishedRepository)(nil),       // 34: gitd.v1.PublishedRepository
+	(*PublishResponse)(nil),           // 35: gitd.v1.PublishResponse
+	(*ProbeRequest)(nil),              // 36: gitd.v1.ProbeRequest
+	(*ProbeResponse)(nil),             // 37: gitd.v1.ProbeResponse
+	(*RetireRequest)(nil),             // 38: gitd.v1.RetireRequest
+	(*RetireResponse)(nil),            // 39: gitd.v1.RetireResponse
+	(*InfoRequest)(nil),               // 40: gitd.v1.InfoRequest
+	(*InfoResponse)(nil),              // 41: gitd.v1.InfoResponse
+	(*AuditRequest)(nil),              // 42: gitd.v1.AuditRequest
+	(*AuditResponse)(nil),             // 43: gitd.v1.AuditResponse
+	(*AuditEntry)(nil),                // 44: gitd.v1.AuditEntry
+	(*ConfigurationChange)(nil),       // 45: gitd.v1.ConfigurationChange
+	(*Connection)(nil),                // 46: gitd.v1.Connection
+	(*BeginGitHubAppRequest)(nil),     // 47: gitd.v1.BeginGitHubAppRequest
+	(*BeginGitHubAppResponse)(nil),    // 48: gitd.v1.BeginGitHubAppResponse
+	(*CompleteGitHubAppRequest)(nil),  // 49: gitd.v1.CompleteGitHubAppRequest
+	(*CompleteGitHubAppResponse)(nil), // 50: gitd.v1.CompleteGitHubAppResponse
+	(*StartGitHubLoginRequest)(nil),   // 51: gitd.v1.StartGitHubLoginRequest
+	(*StartGitHubLoginResponse)(nil),  // 52: gitd.v1.StartGitHubLoginResponse
+	(*FinishGitHubLoginRequest)(nil),  // 53: gitd.v1.FinishGitHubLoginRequest
+	(*FinishGitHubLoginResponse)(nil), // 54: gitd.v1.FinishGitHubLoginResponse
+	(*AddGitHubAppRequest)(nil),       // 55: gitd.v1.AddGitHubAppRequest
+	(*AddGitHubAppResponse)(nil),      // 56: gitd.v1.AddGitHubAppResponse
+	(*AddTokenRequest)(nil),           // 57: gitd.v1.AddTokenRequest
+	(*AddTokenResponse)(nil),          // 58: gitd.v1.AddTokenResponse
+	(*ListConnectionsRequest)(nil),    // 59: gitd.v1.ListConnectionsRequest
+	(*ListConnectionsResponse)(nil),   // 60: gitd.v1.ListConnectionsResponse
+	(*RemoveConnectionRequest)(nil),   // 61: gitd.v1.RemoveConnectionRequest
+	(*RemoveConnectionResponse)(nil),  // 62: gitd.v1.RemoveConnectionResponse
+	(*PublishSettings)(nil),           // 63: gitd.v1.PublishSettings
+	(*PullRequestSettings)(nil),       // 64: gitd.v1.PullRequestSettings
+	(*GetSettingsRequest)(nil),        // 65: gitd.v1.GetSettingsRequest
+	(*GetSettingsResponse)(nil),       // 66: gitd.v1.GetSettingsResponse
+	(*SetSettingsRequest)(nil),        // 67: gitd.v1.SetSettingsRequest
+	(*SetSettingsResponse)(nil),       // 68: gitd.v1.SetSettingsResponse
+	(*RemoveSettingsRequest)(nil),     // 69: gitd.v1.RemoveSettingsRequest
+	(*RemoveSettingsResponse)(nil),    // 70: gitd.v1.RemoveSettingsResponse
+	nil,                               // 71: gitd.v1.ProbeResponse.CommitsEntry
+	(*timestamppb.Timestamp)(nil),     // 72: google.protobuf.Timestamp
 }
 var file_gitd_v1_gitd_proto_depIdxs = []int32{
-	8,  // 0: gitd.v1.PendingSubmodule.failure:type_name -> gitd.v1.GitFailure
-	1,  // 1: gitd.v1.GitFailure.reason:type_name -> gitd.v1.GitFailure.Reason
-	4,  // 2: gitd.v1.PrepareRequest.revision:type_name -> gitd.v1.Revision
-	3,  // 3: gitd.v1.PrepareRequest.credentials:type_name -> gitd.v1.Credential
+	12, // 0: gitd.v1.PendingSubmodule.failure:type_name -> gitd.v1.GitFailure
+	2,  // 1: gitd.v1.GitFailure.reason:type_name -> gitd.v1.GitFailure.Reason
+	8,  // 2: gitd.v1.PrepareRequest.revision:type_name -> gitd.v1.Revision
+	7,  // 3: gitd.v1.PrepareRequest.credentials:type_name -> gitd.v1.Credential
 	0,  // 4: gitd.v1.PrepareRequest.strategy:type_name -> gitd.v1.Strategy
-	5,  // 5: gitd.v1.PrepareResponse.progress:type_name -> gitd.v1.Progress
-	12, // 6: gitd.v1.PrepareResponse.result:type_name -> gitd.v1.WorkspaceResult
-	7,  // 7: gitd.v1.WorkspaceResult.pending_submodules:type_name -> gitd.v1.PendingSubmodule
+	9,  // 5: gitd.v1.PrepareResponse.progress:type_name -> gitd.v1.Progress
+	16, // 6: gitd.v1.PrepareResponse.result:type_name -> gitd.v1.WorkspaceResult
+	11, // 7: gitd.v1.WorkspaceResult.pending_submodules:type_name -> gitd.v1.PendingSubmodule
 	0,  // 8: gitd.v1.WorkspaceResult.strategy:type_name -> gitd.v1.Strategy
-	10, // 9: gitd.v1.WorkspaceResult.layers:type_name -> gitd.v1.Layers
-	3,  // 10: gitd.v1.UpdateRequest.credentials:type_name -> gitd.v1.Credential
-	5,  // 11: gitd.v1.UpdateResponse.progress:type_name -> gitd.v1.Progress
-	12, // 12: gitd.v1.UpdateResponse.result:type_name -> gitd.v1.WorkspaceResult
-	3,  // 13: gitd.v1.CheckoutRequest.credentials:type_name -> gitd.v1.Credential
-	5,  // 14: gitd.v1.CheckoutResponse.progress:type_name -> gitd.v1.Progress
-	12, // 15: gitd.v1.CheckoutResponse.result:type_name -> gitd.v1.WorkspaceResult
-	3,  // 16: gitd.v1.SyncSubmodulesRequest.credentials:type_name -> gitd.v1.Credential
-	5,  // 17: gitd.v1.SyncSubmodulesResponse.progress:type_name -> gitd.v1.Progress
-	19, // 18: gitd.v1.SyncSubmodulesResponse.result:type_name -> gitd.v1.SyncSubmodulesResult
-	6,  // 19: gitd.v1.SyncSubmodulesResult.submodules:type_name -> gitd.v1.SubmoduleState
-	7,  // 20: gitd.v1.SyncSubmodulesResult.pending_submodules:type_name -> gitd.v1.PendingSubmodule
-	6,  // 21: gitd.v1.DescribeResponse.submodules:type_name -> gitd.v1.SubmoduleState
+	14, // 9: gitd.v1.WorkspaceResult.layers:type_name -> gitd.v1.Layers
+	7,  // 10: gitd.v1.UpdateRequest.credentials:type_name -> gitd.v1.Credential
+	9,  // 11: gitd.v1.UpdateResponse.progress:type_name -> gitd.v1.Progress
+	16, // 12: gitd.v1.UpdateResponse.result:type_name -> gitd.v1.WorkspaceResult
+	7,  // 13: gitd.v1.CheckoutRequest.credentials:type_name -> gitd.v1.Credential
+	9,  // 14: gitd.v1.CheckoutResponse.progress:type_name -> gitd.v1.Progress
+	16, // 15: gitd.v1.CheckoutResponse.result:type_name -> gitd.v1.WorkspaceResult
+	7,  // 16: gitd.v1.SyncSubmodulesRequest.credentials:type_name -> gitd.v1.Credential
+	9,  // 17: gitd.v1.SyncSubmodulesResponse.progress:type_name -> gitd.v1.Progress
+	23, // 18: gitd.v1.SyncSubmodulesResponse.result:type_name -> gitd.v1.SyncSubmodulesResult
+	10, // 19: gitd.v1.SyncSubmodulesResult.submodules:type_name -> gitd.v1.SubmoduleState
+	11, // 20: gitd.v1.SyncSubmodulesResult.pending_submodules:type_name -> gitd.v1.PendingSubmodule
+	10, // 21: gitd.v1.DescribeResponse.submodules:type_name -> gitd.v1.SubmoduleState
 	0,  // 22: gitd.v1.DescribeResponse.strategy:type_name -> gitd.v1.Strategy
-	10, // 23: gitd.v1.DescribeResponse.layers:type_name -> gitd.v1.Layers
-	5,  // 24: gitd.v1.AdoptResponse.progress:type_name -> gitd.v1.Progress
-	26, // 25: gitd.v1.AdoptResponse.result:type_name -> gitd.v1.AdoptResult
-	3,  // 26: gitd.v1.PublishRequest.credentials:type_name -> gitd.v1.Credential
-	28, // 27: gitd.v1.PublishResponse.repository:type_name -> gitd.v1.PublishedRepository
-	28, // 28: gitd.v1.PublishResponse.submodules:type_name -> gitd.v1.PublishedRepository
-	3,  // 29: gitd.v1.ProbeRequest.credentials:type_name -> gitd.v1.Credential
-	2,  // 30: gitd.v1.ProbeResponse.access:type_name -> gitd.v1.ProbeResponse.Access
-	8,  // 31: gitd.v1.ProbeResponse.failure:type_name -> gitd.v1.GitFailure
-	39, // 32: gitd.v1.ProbeResponse.commits:type_name -> gitd.v1.ProbeResponse.CommitsEntry
-	0,  // 33: gitd.v1.InfoResponse.strategy:type_name -> gitd.v1.Strategy
-	40, // 34: gitd.v1.AuditRequest.since:type_name -> google.protobuf.Timestamp
-	38, // 35: gitd.v1.AuditResponse.entries:type_name -> gitd.v1.AuditEntry
-	40, // 36: gitd.v1.AuditEntry.time:type_name -> google.protobuf.Timestamp
-	28, // 37: gitd.v1.AuditEntry.repository:type_name -> gitd.v1.PublishedRepository
-	28, // 38: gitd.v1.AuditEntry.submodules:type_name -> gitd.v1.PublishedRepository
-	8,  // 39: gitd.v1.AuditEntry.refusal:type_name -> gitd.v1.GitFailure
-	9,  // 40: gitd.v1.WorkspaceService.Prepare:input_type -> gitd.v1.PrepareRequest
-	13, // 41: gitd.v1.WorkspaceService.Update:input_type -> gitd.v1.UpdateRequest
-	15, // 42: gitd.v1.WorkspaceService.Checkout:input_type -> gitd.v1.CheckoutRequest
-	17, // 43: gitd.v1.WorkspaceService.SyncSubmodules:input_type -> gitd.v1.SyncSubmodulesRequest
-	20, // 44: gitd.v1.WorkspaceService.Describe:input_type -> gitd.v1.DescribeRequest
-	22, // 45: gitd.v1.WorkspaceService.Remove:input_type -> gitd.v1.RemoveRequest
-	24, // 46: gitd.v1.WorkspaceService.Adopt:input_type -> gitd.v1.AdoptRequest
-	27, // 47: gitd.v1.WorkspaceService.Publish:input_type -> gitd.v1.PublishRequest
-	30, // 48: gitd.v1.RepositoryService.Probe:input_type -> gitd.v1.ProbeRequest
-	34, // 49: gitd.v1.ServerService.Info:input_type -> gitd.v1.InfoRequest
-	32, // 50: gitd.v1.ServerService.Retire:input_type -> gitd.v1.RetireRequest
-	36, // 51: gitd.v1.ServerService.Audit:input_type -> gitd.v1.AuditRequest
-	11, // 52: gitd.v1.WorkspaceService.Prepare:output_type -> gitd.v1.PrepareResponse
-	14, // 53: gitd.v1.WorkspaceService.Update:output_type -> gitd.v1.UpdateResponse
-	16, // 54: gitd.v1.WorkspaceService.Checkout:output_type -> gitd.v1.CheckoutResponse
-	18, // 55: gitd.v1.WorkspaceService.SyncSubmodules:output_type -> gitd.v1.SyncSubmodulesResponse
-	21, // 56: gitd.v1.WorkspaceService.Describe:output_type -> gitd.v1.DescribeResponse
-	23, // 57: gitd.v1.WorkspaceService.Remove:output_type -> gitd.v1.RemoveResponse
-	25, // 58: gitd.v1.WorkspaceService.Adopt:output_type -> gitd.v1.AdoptResponse
-	29, // 59: gitd.v1.WorkspaceService.Publish:output_type -> gitd.v1.PublishResponse
-	31, // 60: gitd.v1.RepositoryService.Probe:output_type -> gitd.v1.ProbeResponse
-	35, // 61: gitd.v1.ServerService.Info:output_type -> gitd.v1.InfoResponse
-	33, // 62: gitd.v1.ServerService.Retire:output_type -> gitd.v1.RetireResponse
-	37, // 63: gitd.v1.ServerService.Audit:output_type -> gitd.v1.AuditResponse
-	52, // [52:64] is the sub-list for method output_type
-	40, // [40:52] is the sub-list for method input_type
-	40, // [40:40] is the sub-list for extension type_name
-	40, // [40:40] is the sub-list for extension extendee
-	0,  // [0:40] is the sub-list for field type_name
+	14, // 23: gitd.v1.DescribeResponse.layers:type_name -> gitd.v1.Layers
+	9,  // 24: gitd.v1.AdoptResponse.progress:type_name -> gitd.v1.Progress
+	30, // 25: gitd.v1.AdoptResponse.result:type_name -> gitd.v1.AdoptResult
+	7,  // 26: gitd.v1.PublishRequest.credentials:type_name -> gitd.v1.Credential
+	32, // 27: gitd.v1.PublishRequest.pull_request:type_name -> gitd.v1.PullRequestOptions
+	34, // 28: gitd.v1.PublishResponse.repository:type_name -> gitd.v1.PublishedRepository
+	34, // 29: gitd.v1.PublishResponse.submodules:type_name -> gitd.v1.PublishedRepository
+	33, // 30: gitd.v1.PublishResponse.pull_request:type_name -> gitd.v1.OpenedPullRequest
+	12, // 31: gitd.v1.PublishResponse.pull_request_failure:type_name -> gitd.v1.GitFailure
+	7,  // 32: gitd.v1.ProbeRequest.credentials:type_name -> gitd.v1.Credential
+	3,  // 33: gitd.v1.ProbeResponse.access:type_name -> gitd.v1.ProbeResponse.Access
+	12, // 34: gitd.v1.ProbeResponse.failure:type_name -> gitd.v1.GitFailure
+	71, // 35: gitd.v1.ProbeResponse.commits:type_name -> gitd.v1.ProbeResponse.CommitsEntry
+	0,  // 36: gitd.v1.InfoResponse.strategy:type_name -> gitd.v1.Strategy
+	72, // 37: gitd.v1.AuditRequest.since:type_name -> google.protobuf.Timestamp
+	44, // 38: gitd.v1.AuditResponse.entries:type_name -> gitd.v1.AuditEntry
+	72, // 39: gitd.v1.AuditEntry.time:type_name -> google.protobuf.Timestamp
+	34, // 40: gitd.v1.AuditEntry.repository:type_name -> gitd.v1.PublishedRepository
+	34, // 41: gitd.v1.AuditEntry.submodules:type_name -> gitd.v1.PublishedRepository
+	12, // 42: gitd.v1.AuditEntry.refusal:type_name -> gitd.v1.GitFailure
+	33, // 43: gitd.v1.AuditEntry.pull_request:type_name -> gitd.v1.OpenedPullRequest
+	12, // 44: gitd.v1.AuditEntry.pull_request_failure:type_name -> gitd.v1.GitFailure
+	45, // 45: gitd.v1.AuditEntry.change:type_name -> gitd.v1.ConfigurationChange
+	4,  // 46: gitd.v1.ConfigurationChange.action:type_name -> gitd.v1.ConfigurationChange.Action
+	5,  // 47: gitd.v1.Connection.kind:type_name -> gitd.v1.Connection.Kind
+	72, // 48: gitd.v1.Connection.expires:type_name -> google.protobuf.Timestamp
+	72, // 49: gitd.v1.Connection.created:type_name -> google.protobuf.Timestamp
+	46, // 50: gitd.v1.CompleteGitHubAppResponse.connection:type_name -> gitd.v1.Connection
+	46, // 51: gitd.v1.FinishGitHubLoginResponse.connection:type_name -> gitd.v1.Connection
+	46, // 52: gitd.v1.AddGitHubAppResponse.connection:type_name -> gitd.v1.Connection
+	46, // 53: gitd.v1.AddTokenResponse.connection:type_name -> gitd.v1.Connection
+	46, // 54: gitd.v1.ListConnectionsResponse.connections:type_name -> gitd.v1.Connection
+	1,  // 55: gitd.v1.PublishSettings.preset:type_name -> gitd.v1.Preset
+	64, // 56: gitd.v1.PublishSettings.pull_requests:type_name -> gitd.v1.PullRequestSettings
+	6,  // 57: gitd.v1.PullRequestSettings.open:type_name -> gitd.v1.PullRequestSettings.Open
+	63, // 58: gitd.v1.GetSettingsResponse.settings:type_name -> gitd.v1.PublishSettings
+	63, // 59: gitd.v1.SetSettingsRequest.settings:type_name -> gitd.v1.PublishSettings
+	63, // 60: gitd.v1.SetSettingsResponse.settings:type_name -> gitd.v1.PublishSettings
+	13, // 61: gitd.v1.WorkspaceService.Prepare:input_type -> gitd.v1.PrepareRequest
+	17, // 62: gitd.v1.WorkspaceService.Update:input_type -> gitd.v1.UpdateRequest
+	19, // 63: gitd.v1.WorkspaceService.Checkout:input_type -> gitd.v1.CheckoutRequest
+	21, // 64: gitd.v1.WorkspaceService.SyncSubmodules:input_type -> gitd.v1.SyncSubmodulesRequest
+	24, // 65: gitd.v1.WorkspaceService.Describe:input_type -> gitd.v1.DescribeRequest
+	26, // 66: gitd.v1.WorkspaceService.Remove:input_type -> gitd.v1.RemoveRequest
+	28, // 67: gitd.v1.WorkspaceService.Adopt:input_type -> gitd.v1.AdoptRequest
+	31, // 68: gitd.v1.WorkspaceService.Publish:input_type -> gitd.v1.PublishRequest
+	36, // 69: gitd.v1.RepositoryService.Probe:input_type -> gitd.v1.ProbeRequest
+	40, // 70: gitd.v1.ServerService.Info:input_type -> gitd.v1.InfoRequest
+	38, // 71: gitd.v1.ServerService.Retire:input_type -> gitd.v1.RetireRequest
+	42, // 72: gitd.v1.ServerService.Audit:input_type -> gitd.v1.AuditRequest
+	47, // 73: gitd.v1.ConnectionService.BeginGitHubApp:input_type -> gitd.v1.BeginGitHubAppRequest
+	49, // 74: gitd.v1.ConnectionService.CompleteGitHubApp:input_type -> gitd.v1.CompleteGitHubAppRequest
+	51, // 75: gitd.v1.ConnectionService.StartGitHubLogin:input_type -> gitd.v1.StartGitHubLoginRequest
+	53, // 76: gitd.v1.ConnectionService.FinishGitHubLogin:input_type -> gitd.v1.FinishGitHubLoginRequest
+	55, // 77: gitd.v1.ConnectionService.AddGitHubApp:input_type -> gitd.v1.AddGitHubAppRequest
+	57, // 78: gitd.v1.ConnectionService.AddToken:input_type -> gitd.v1.AddTokenRequest
+	59, // 79: gitd.v1.ConnectionService.ListConnections:input_type -> gitd.v1.ListConnectionsRequest
+	61, // 80: gitd.v1.ConnectionService.RemoveConnection:input_type -> gitd.v1.RemoveConnectionRequest
+	65, // 81: gitd.v1.PublishingService.GetSettings:input_type -> gitd.v1.GetSettingsRequest
+	67, // 82: gitd.v1.PublishingService.SetSettings:input_type -> gitd.v1.SetSettingsRequest
+	69, // 83: gitd.v1.PublishingService.RemoveSettings:input_type -> gitd.v1.RemoveSettingsRequest
+	15, // 84: gitd.v1.WorkspaceService.Prepare:output_type -> gitd.v1.PrepareResponse
+	18, // 85: gitd.v1.WorkspaceService.Update:output_type -> gitd.v1.UpdateResponse
+	20, // 86: gitd.v1.WorkspaceService.Checkout:output_type -> gitd.v1.CheckoutResponse
+	22, // 87: gitd.v1.WorkspaceService.SyncSubmodules:output_type -> gitd.v1.SyncSubmodulesResponse
+	25, // 88: gitd.v1.WorkspaceService.Describe:output_type -> gitd.v1.DescribeResponse
+	27, // 89: gitd.v1.WorkspaceService.Remove:output_type -> gitd.v1.RemoveResponse
+	29, // 90: gitd.v1.WorkspaceService.Adopt:output_type -> gitd.v1.AdoptResponse
+	35, // 91: gitd.v1.WorkspaceService.Publish:output_type -> gitd.v1.PublishResponse
+	37, // 92: gitd.v1.RepositoryService.Probe:output_type -> gitd.v1.ProbeResponse
+	41, // 93: gitd.v1.ServerService.Info:output_type -> gitd.v1.InfoResponse
+	39, // 94: gitd.v1.ServerService.Retire:output_type -> gitd.v1.RetireResponse
+	43, // 95: gitd.v1.ServerService.Audit:output_type -> gitd.v1.AuditResponse
+	48, // 96: gitd.v1.ConnectionService.BeginGitHubApp:output_type -> gitd.v1.BeginGitHubAppResponse
+	50, // 97: gitd.v1.ConnectionService.CompleteGitHubApp:output_type -> gitd.v1.CompleteGitHubAppResponse
+	52, // 98: gitd.v1.ConnectionService.StartGitHubLogin:output_type -> gitd.v1.StartGitHubLoginResponse
+	54, // 99: gitd.v1.ConnectionService.FinishGitHubLogin:output_type -> gitd.v1.FinishGitHubLoginResponse
+	56, // 100: gitd.v1.ConnectionService.AddGitHubApp:output_type -> gitd.v1.AddGitHubAppResponse
+	58, // 101: gitd.v1.ConnectionService.AddToken:output_type -> gitd.v1.AddTokenResponse
+	60, // 102: gitd.v1.ConnectionService.ListConnections:output_type -> gitd.v1.ListConnectionsResponse
+	62, // 103: gitd.v1.ConnectionService.RemoveConnection:output_type -> gitd.v1.RemoveConnectionResponse
+	66, // 104: gitd.v1.PublishingService.GetSettings:output_type -> gitd.v1.GetSettingsResponse
+	68, // 105: gitd.v1.PublishingService.SetSettings:output_type -> gitd.v1.SetSettingsResponse
+	70, // 106: gitd.v1.PublishingService.RemoveSettings:output_type -> gitd.v1.RemoveSettingsResponse
+	84, // [84:107] is the sub-list for method output_type
+	61, // [61:84] is the sub-list for method input_type
+	61, // [61:61] is the sub-list for extension type_name
+	61, // [61:61] is the sub-list for extension extendee
+	0,  // [0:61] is the sub-list for field type_name
 }
 
 func init() { file_gitd_v1_gitd_proto_init() }
@@ -3048,15 +5158,17 @@ func file_gitd_v1_gitd_proto_init() {
 		(*AdoptResponse_Progress)(nil),
 		(*AdoptResponse_Result)(nil),
 	}
+	file_gitd_v1_gitd_proto_msgTypes[25].OneofWrappers = []any{}
+	file_gitd_v1_gitd_proto_msgTypes[56].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_gitd_v1_gitd_proto_rawDesc), len(file_gitd_v1_gitd_proto_rawDesc)),
-			NumEnums:      3,
-			NumMessages:   37,
+			NumEnums:      7,
+			NumMessages:   65,
 			NumExtensions: 0,
-			NumServices:   3,
+			NumServices:   5,
 		},
 		GoTypes:           file_gitd_v1_gitd_proto_goTypes,
 		DependencyIndexes: file_gitd_v1_gitd_proto_depIdxs,
