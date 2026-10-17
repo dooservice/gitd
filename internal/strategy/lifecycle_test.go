@@ -120,3 +120,31 @@ func TestALiftedLayerLeavesItsGitBehindAndIsPutBackWhenNotTaken(t *testing.T) {
 		t.Errorf("dropped: %v, records %v", err, maker.Records())
 	}
 }
+
+func TestARestartMountsAWorkspaceAgainOnItsWarmLayer(t *testing.T) {
+	root := t.TempDir()
+	template, warm, dest := filepath.Join(root, "template"), filepath.Join(root, "warm"), filepath.Join(root, "agent-1")
+	for dir, content := range map[string]string{template: "template", warm: "warm"} {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(dir, "README.md"), []byte(content), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	mounter := &countingMounter{}
+	maker := &OverlayMaker{Layers: filepath.Join(root, "layers"), Mounter: mounter}
+	if err := maker.MakeWarm(context.Background(), template, warm, dest); err != nil {
+		t.Fatal(err)
+	}
+	if record, ok := maker.RecordOf(dest); !ok || record.Warm != warm || record.Template != template {
+		t.Errorf("record = %+v, %v", record, ok)
+	}
+	_ = mounter.Unmount(dest)
+	if remounted, failed := maker.Remount(context.Background()); remounted != 1 || len(failed) != 0 {
+		t.Fatalf("remounted %d, failed %v", remounted, failed)
+	}
+	if data, _ := os.ReadFile(filepath.Join(dest, "README.md")); string(data) != "warm" {
+		t.Errorf("remounted without its warm layer: README.md is %q", data)
+	}
+}
