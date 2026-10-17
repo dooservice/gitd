@@ -27,7 +27,7 @@ version 0.7 (see [Review](#review)).
 
 The line that matters: **a sandbox is not trusted; a caller on the socket is.** gitd keeps
 the first from reaching credentials, its files or other branches; it does not keep the
-second from anything, until 0.8 gives callers tokens and tenants.
+second from anything, until 0.9 gives callers tokens and tenants.
 
 ## 3. How each threat is met
 
@@ -167,18 +167,18 @@ Known, and left to the deployment or to a later version:
 
 | Gap | Why | What to do |
 |---|---|---|
-| **A caller on the socket is fully trusted** | The socket has no authentication in 0.7: whoever can open it may prepare, remove or publish any workspace, and send credentials | Give the socket's group to the platform only. 0.8 adds tokens and tenants |
-| **An agent with MCP is a caller on the socket** | `gitd mcp` calls the socket; an agent that runs it, or has a shell where the socket is reachable, can do what any caller can — to other agents' workspaces too | Run `gitd mcp` for one agent at a time, and never mount the socket into a sandbox. 0.8 scopes each token to one workspace |
-| **Sandboxes read every pool they are given** | A workspace reads its pool's objects through `alternates`; a sandbox given the whole pools directory reads every repository in it | Mount only the pools a sandbox's workspace borrows from. 0.8 keeps tenants' pools apart |
+| **A caller on the socket is fully trusted** | The socket has no authentication in 0.7: whoever can open it may prepare, remove or publish any workspace, and send credentials | Give the socket's group to the platform only. 0.9 adds tokens and tenants |
+| **An agent with MCP is a caller on the socket** | `gitd mcp` calls the socket; an agent that runs it, or has a shell where the socket is reachable, can do what any caller can — to other agents' workspaces too | Run `gitd mcp` for one agent at a time, and never mount the socket into a sandbox. 0.9 scopes each token to one workspace |
+| **Sandboxes read every pool they are given** | A workspace reads its pool's objects through `alternates`; a sandbox given the whole pools directory reads every repository in it | Mount only the pools a sandbox's workspace borrows from. 0.9 keeps tenants' pools apart |
 | **Pools are readable by local users** | Pools and their files are `0755`/`0644`, so sandboxes running as other users can read them | On a shared host, give the state directory to a group (`StateDirectoryMode=0750`) and put sandboxes' users in it |
 | **Tokens are visible to gitd's user and root** | A token is in the environment of the git processes gitd starts, which `/proc/<pid>/environ` shows to the same user and to root | Run gitd as its own user, and no sandbox as that user |
 | **gitd fetches what repositories name** | A caller's URL, or a submodule URL in a repository, is fetched from gitd's network position — internal hosts included — and its contents end up in a workspace | Limit gitd's outbound network to the git hosts it serves |
-| **A sandbox running while gitd runs git in its workspace** | gitd checks `.git` — configuration, links, alternates — and then runs git, which reads it again; a sandbox changing it in between undoes the checks. No check made before git runs can close that | **Run update, checkout, submodules, publish and describe while the workspace's sandbox is stopped or paused** (`docker pause` is instant); prepare needs no pause, as a new workspace has no sandbox yet. An agent calling an MCP tool waits for its answer: let no process of its sandbox run in the background meanwhile. 0.8's sandbox repositories end this: the sandbox pushes to gitd, which no longer reads its `.git` |
+| **A sandbox running while gitd runs git in its workspace** | gitd checks `.git` — configuration, links, alternates — and then runs git, which reads it again; a sandbox changing it in between undoes the checks. No check made before git runs can close that | **Run update, checkout, submodules, publish and describe while the workspace's sandbox is stopped or paused** (`docker pause` is instant); prepare needs no pause, as a new workspace has no sandbox yet. An agent calling an MCP tool waits for its answer: let no process of its sandbox run in the background meanwhile. 0.9's sandbox repositories end this: the sandbox pushes to gitd, which no longer reads its `.git` |
 | **Submodules choose what a kept token reads** | A repository's `.gitmodules` names its submodules, and gitd reads each with the most specific kept credential that opens it: anything under a token's prefix, private repositories included | Give tokens prefixes as narrow as the repositories agents work on (`https://github.com/acme/web`, not the whole organization) |
 | **Adopting trusts the clone** | `Adopt` takes a clone's `origin` as its repository | Adopt only clones a sandbox has not had |
 | **The audit log is gitd's to write** | It records honestly but is not tamper-proof against gitd's own user, and a publish is not undone if its entry cannot be written (that is logged as an error) | Ship the file to a log store the gitd user cannot change |
 | **Container root on the host's disk** | A sandbox that is root in its container, without a user namespace, can leave setuid files or device nodes in its workspace on the host | Run sandboxes with user namespaces, and keep gitd's state and roots on a `nosuid,nodev` filesystem |
-| **Disk and CPU** | `[limits]` bounds concurrent fetches, writes and queued calls, but not how much a sandbox writes into its workspace | Quotas on the roots' filesystem. 0.8 adds per-tenant limits |
+| **Disk and CPU** | `[limits]` bounds concurrent fetches, writes and queued calls, but not how much a sandbox writes into its workspace | Quotas on the roots' filesystem. 0.9 adds per-tenant limits |
 | **git LFS** | gitd neither fetches LFS objects into pools nor allows `filter.lfs.*` in a workspace; a workspace gets LFS pointer files, and gitd says which (`lfs_patterns`) | Not supported; considered after 1.0, on demand |
 
 ## 5. Deploying it safely
@@ -240,6 +240,6 @@ was taken back (it shut gitd-mount out; the `nosuid` filesystem covers what it w
 CI runs the example on every push.
 
 It also showed that no check before git runs can stand against a sandbox changing `.git`
-at the same time: §4 now says to pause the sandbox for those operations, until 0.8. It
+at the same time: §4 now says to pause the sandbox for those operations, until 0.9. It
 added §4's rows on what submodules let a token read and on container root. **A review by a
-person outside the project is still due before 0.8 opens a network service.**
+person outside the project is still due before 0.9 opens a network service.**

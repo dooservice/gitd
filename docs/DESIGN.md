@@ -346,7 +346,7 @@ references, and alternates naming only pools that lend to it; the repository it 
 counts only when that repository's pool lists it among its own (`gitd-owned`), and a
 submodule is published only when gitd checked it out there; and gitd's writes in it go
 through an `os.Root`. The checks hold for what is on disk when gitd looks, so the calls
-that run git in a workspace are made while its sandbox is stopped or paused, until 0.8's
+that run git in a workspace are made while its sandbox is stopped or paused, until 0.9's
 sandbox repositories. What this protects, and what it does not, is in
 [THREAT_MODEL.md](THREAT_MODEL.md).
 
@@ -469,8 +469,8 @@ A client tells its users what happened from the reason, never by parsing the mes
 
 1. **Credentials in shared pools:** a private repository's pool is synced with the
    credential that opens it, kept or sent, and any workspace on the server borrows from it.
-   Until 0.8, one gitd is meant for one tenant; tenants who must not read each other's
-   repositories get a gitd each. 0.8 brings tenants to one gitd, each with its own pools,
+   Until 0.9, one gitd is meant for one tenant; tenants who must not read each other's
+   repositories get a gitd each. 0.9 brings tenants to one gitd, each with its own pools,
    templates, workspaces, credentials and limits ([ROADMAP](ROADMAP.md)). Likewise, whoever can reach the socket can ask for any repository gitd
    holds a credential for, so the socket is reachable only by gitd's own user and the
    programs acting for that tenant.
