@@ -13,9 +13,9 @@ type countingMounter struct {
 	mounts int
 }
 
-func (mounter *countingMounter) MountOverlay(lower, upper, work, target string) error {
+func (mounter *countingMounter) MountOverlay(lowers []string, upper, work, target string) error {
 	mounter.mounts++
-	return mounter.copyMounter.MountOverlay(lower, upper, work, target)
+	return mounter.copyMounter.MountOverlay(lowers, upper, work, target)
 }
 
 func TestARestartMountsAgainWhatIsUnmountedAndNeverMountsOverFiles(t *testing.T) {

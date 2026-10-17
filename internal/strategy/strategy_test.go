@@ -11,20 +11,30 @@ import (
 )
 
 // copyMounter stands in for the kernel without privilege: "mounting" copies the lower
-// layer's files into the target, writes then land in the target only, and unmounting
-// empties it. Enough to test everything around a mount.
+// layers' files into the target, the topmost last so it wins, writes then land in the
+// target only, and unmounting empties it. Enough to test everything around a mount.
 type copyMounter struct{ fail error }
 
-func (mounter copyMounter) MountOverlay(lower, _, _, target string) error {
+func (mounter copyMounter) MountOverlay(lowers []string, _, _, target string) error {
 	if mounter.fail != nil {
 		return mounter.fail
 	}
-	entries, err := os.ReadDir(lower)
+	for index := len(lowers) - 1; index >= 0; index-- {
+		if err := copyFlat(lowers[index], target); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// copyFlat copies the files directly in from into target.
+func copyFlat(from, target string) error {
+	entries, err := os.ReadDir(from)
 	if err != nil {
 		return err
 	}
 	for _, entry := range entries {
-		data, err := os.ReadFile(filepath.Join(lower, entry.Name()))
+		data, err := os.ReadFile(filepath.Join(from, entry.Name()))
 		if err != nil {
 			return err
 		}
@@ -45,11 +55,17 @@ func (copyMounter) Unmount(target string) error {
 
 func TestAnOverlayCannotNameAPathWithACommaOrAColon(t *testing.T) {
 	for _, path := range []string{"/a,b", "/a:b", `/a\b`} {
-		if _, err := overlayOptions(path, "/u", "/w"); !errors.Is(err, ErrUnsupported) {
+		if _, err := overlayOptions([]string{"/warm", path}, "/u", "/w"); !errors.Is(err, ErrUnsupported) {
 			t.Errorf("overlayOptions(%q) = %v", path, err)
 		}
 	}
-	if options, err := overlayOptions("/l", "/u", "/w"); err != nil || options != "lowerdir=/l,upperdir=/u,workdir=/w" {
+	if _, err := overlayOptions(nil, "/u", "/w"); !errors.Is(err, ErrUnsupported) {
+		t.Errorf("an overlay without a lower layer: %v", err)
+	}
+	if options, err := overlayOptions([]string{"/l"}, "/u", "/w"); err != nil || options != "lowerdir=/l,upperdir=/u,workdir=/w" {
+		t.Errorf("options = %q, %v", options, err)
+	}
+	if options, err := overlayOptions([]string{"/warm", "/l"}, "/u", "/w"); err != nil || options != "lowerdir=/warm:/l,upperdir=/u,workdir=/w" {
 		t.Errorf("options = %q, %v", options, err)
 	}
 }

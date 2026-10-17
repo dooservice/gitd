@@ -56,7 +56,7 @@ func (maker *OverlayMaker) Remount(ctx context.Context) (int, []error) {
 			continue
 		}
 		layer := maker.layer(record.Workspace)
-		if err := maker.Mounter.MountOverlay(record.Template, filepath.Join(layer, "upper"), filepath.Join(layer, "work"), record.Workspace); err != nil {
+		if err := maker.Mounter.MountOverlay(record.Lowers(), filepath.Join(layer, "upper"), filepath.Join(layer, "work"), record.Workspace); err != nil {
 			failed = append(failed, fmt.Errorf("%s: %w", record.Workspace, err))
 			continue
 		}

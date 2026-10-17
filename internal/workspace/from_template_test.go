@@ -18,12 +18,18 @@ import (
 	"github.com/dooservice/gitd/internal/template"
 )
 
-// treeMounter stands in for an overlay without privilege: "mounting" copies the template's
-// tree into the target, keeping modification times, and unmounting empties it.
+// treeMounter stands in for an overlay without privilege: "mounting" copies the lower
+// layers' trees into the target, the topmost last so it wins, keeping modification times,
+// and unmounting empties it.
 type treeMounter struct{}
 
-func (treeMounter) MountOverlay(lower, _, _, target string) error {
-	return exec.Command("cp", "-a", lower+"/.", target).Run()
+func (treeMounter) MountOverlay(lowers []string, _, _, target string) error {
+	for index := len(lowers) - 1; index >= 0; index-- {
+		if err := exec.Command("cp", "-a", lowers[index]+"/.", target).Run(); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (treeMounter) Unmount(target string) error {

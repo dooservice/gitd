@@ -102,5 +102,5 @@ func TestTheSweepFreesTheTemplateOfAWorkspaceThatIsGoneAndProbesLeftBehind(t *te
 // noMounter mounts nothing: enough for a layer to be recorded.
 type noMounter struct{}
 
-func (noMounter) MountOverlay(string, string, string, string) error { return nil }
+func (noMounter) MountOverlay([]string, string, string, string) error { return nil }
 func (noMounter) Unmount(string) error                              { return nil }

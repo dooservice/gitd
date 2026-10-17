@@ -32,7 +32,13 @@ func (maker *OverlayMaker) layer(dest string) string {
 }
 
 // Make mounts dest as the template with an empty layer of its own on top.
-func (maker *OverlayMaker) Make(_ context.Context, template, dest string) error {
+func (maker *OverlayMaker) Make(ctx context.Context, template, dest string) error {
+	return maker.MakeWarm(ctx, template, "", dest)
+}
+
+// MakeWarm mounts dest as the template, a warm layer above it when warm is set, and an
+// empty layer of its own on top.
+func (maker *OverlayMaker) MakeWarm(_ context.Context, template, warm, dest string) error {
 	if _, err := os.Lstat(dest); err == nil {
 		return fmt.Errorf("%s already exists", dest)
 	}
@@ -47,11 +53,14 @@ func (maker *OverlayMaker) Make(_ context.Context, template, dest string) error 
 		}
 	}
 	record := dest + "\n" + template + "\n"
+	if warm != "" {
+		record += warm + "\n"
+	}
 	if err := os.WriteFile(filepath.Join(layer, "workspace"), []byte(record), 0o644); err != nil {
 		maker.discard(dest, layer)
 		return err
 	}
-	if err := maker.Mounter.MountOverlay(template, upper, work, dest); err != nil {
+	if err := maker.Mounter.MountOverlay(Record{Template: template, Warm: warm}.Lowers(), upper, work, dest); err != nil {
 		maker.discard(dest, layer)
 		return err
 	}
@@ -83,9 +92,28 @@ func (maker *OverlayMaker) LayersOf(dest string) (lower, upper, work string, ok 
 	return "", "", "", false
 }
 
-// Record is one overlay workspace as its layer records it.
+// WarmOf is the warm layer the overlay workspace at dest was made on, if any.
+func (maker *OverlayMaker) WarmOf(dest string) string {
+	for _, record := range maker.Records() {
+		if record.Workspace == dest {
+			return record.Warm
+		}
+	}
+	return ""
+}
+
+// Record is one overlay workspace as its layer records it: its template, and the warm layer
+// above it, if any.
 type Record struct {
-	Workspace, Template string
+	Workspace, Template, Warm string
+}
+
+// Lowers are the record's read-only layers, the topmost first.
+func (record Record) Lowers() []string {
+	if record.Warm != "" {
+		return []string{record.Warm, record.Template}
+	}
+	return []string{record.Template}
 }
 
 // Records are the overlay workspaces whose layers are on disk, for mounting them again
@@ -102,8 +130,11 @@ func (maker *OverlayMaker) Records() []Record {
 			continue
 		}
 		lines := strings.Split(strings.TrimSpace(string(data)), "\n")
-		if len(lines) == 2 {
+		switch len(lines) {
+		case 2:
 			records = append(records, Record{Workspace: lines[0], Template: lines[1]})
+		case 3:
+			records = append(records, Record{Workspace: lines[0], Template: lines[1], Warm: lines[2]})
 		}
 	}
 	return records

@@ -79,7 +79,7 @@ func probeOverlay(state string, roots []string, mounter Mounter) error {
 	if err := os.WriteFile(filepath.Join(lower, "below"), []byte("below"), 0o644); err != nil {
 		return err
 	}
-	if err := mounter.MountOverlay(lower, upper, work, merged); err != nil {
+	if err := mounter.MountOverlay([]string{lower}, upper, work, merged); err != nil {
 		return err
 	}
 	defer func() { _ = mounter.Unmount(merged) }()
