@@ -70,6 +70,17 @@ func (maker *OverlayMaker) discard(dest, layer string) {
 	_ = os.Remove(dest)
 }
 
+// LayersOf are the template and the layer of the overlay workspace at dest, when it is one.
+func (maker *OverlayMaker) LayersOf(dest string) (lower, upper, work string, ok bool) {
+	for _, record := range maker.Records() {
+		if record.Workspace == dest {
+			layer := maker.layer(dest)
+			return record.Template, filepath.Join(layer, "upper"), filepath.Join(layer, "work"), true
+		}
+	}
+	return "", "", "", false
+}
+
 // Record is one overlay workspace as its layer records it.
 type Record struct {
 	Workspace, Template string

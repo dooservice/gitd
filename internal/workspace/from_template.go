@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"path/filepath"
 	"strings"
 
+	gitdv1 "github.com/dooservice/gitd/gen/go/gitd/v1"
 	"github.com/dooservice/gitd/internal/git"
 	"github.com/dooservice/gitd/internal/repo"
 	"github.com/dooservice/gitd/internal/strategy"
@@ -16,7 +18,10 @@ import (
 // was picked, and for what templates hold so far — one commit, without its whole history
 // or its submodules. Anything else is made by writing its files.
 func (workspaces *Workspaces) fromTemplate(work job) bool {
-	return workspaces.maker != nil && workspaces.templates != nil && !work.full && !work.submodules
+	if workspaces.maker == nil || workspaces.templates == nil || work.full || work.submodules {
+		return false
+	}
+	return work.strategy == "" || work.strategy == workspaces.maker.Name()
 }
 
 // createFromTemplate makes the workspace from the template of its commit, without writing
@@ -42,7 +47,13 @@ func (workspaces *Workspaces) createFromTemplate(ctx context.Context, work job) 
 		_ = workspaces.unmake(ctx, work.path)
 		return Result{}, err
 	}
-	return Result{Commit: commit, Branch: branch}, workspaces.note(ctx, work.path, []repo.Repo{work.repository})
+	if err := workspaces.runner.SetConfig(ctx, work.path, "gitd.strategy", string(workspaces.maker.Name())); err != nil {
+		_ = workspaces.unmake(ctx, work.path)
+		return Result{}, err
+	}
+	made, layers := workspaces.made(ctx, work.path)
+	result := Result{Commit: commit, Branch: branch, Strategy: made, Layers: layers}
+	return result, workspaces.note(ctx, work.path, []repo.Repo{work.repository})
 }
 
 // target is the commit a job goes to, in full, and the branch it follows, if any: the commit
@@ -141,4 +152,23 @@ func (workspaces *Workspaces) madeByMaker(path string) bool {
 		}
 	}
 	return false
+}
+
+// made is how the workspace at path was made, as it notes in gitd.strategy — copy for one
+// made before gitd noted it — and its layers when by overlay.
+func (workspaces *Workspaces) made(ctx context.Context, path string) (gitdv1.Strategy, *gitdv1.Layers) {
+	noted, _ := workspaces.runner.Config(ctx, filepath.Join(path, ".git", "config"), "gitd.strategy")
+	name := strategy.Name(strings.TrimSpace(noted))
+	if name == "" {
+		name = strategy.Copy
+	}
+	overlay, ok := workspaces.maker.(*strategy.OverlayMaker)
+	if !ok || name != strategy.Overlay {
+		return name.Proto(), nil
+	}
+	lower, upper, work, ok := overlay.LayersOf(path)
+	if !ok {
+		return name.Proto(), nil
+	}
+	return name.Proto(), &gitdv1.Layers{Lower: lower, Upper: upper, Work: work}
 }

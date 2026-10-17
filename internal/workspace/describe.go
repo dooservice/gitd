@@ -37,6 +37,7 @@ func (workspaces *Workspaces) Describe(
 		return nil, err
 	}
 	described.Branch, _ = workspaces.following(ctx, path)
+	described.Strategy, described.Layers = workspaces.made(ctx, path)
 	status, err := workspaces.runner.Run(ctx, git.Cmd{Dir: path, Args: []string{
 		"status", "--porcelain=v1", "--untracked-files=no", "--ignore-submodules=dirty",
 	}})

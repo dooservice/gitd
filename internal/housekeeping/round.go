@@ -13,6 +13,13 @@ func (keeper *Keeper) round(ctx context.Context) {
 	// Templates first: one retired lets go of its pools, which may then retire this round.
 	if keeper.templates != nil {
 		keeper.templates.Retire(ctx, keeper.settings.TemplateGrace)
+		var count, bytes int64
+		for _, key := range keeper.templates.All() {
+			count++
+			bytes += size(key.Dir(keeper.templates.Dir))
+		}
+		keeper.templateCount.Store(count)
+		keeper.templateBytes.Store(bytes)
 	}
 	var count, bytes int64
 	defer func() {

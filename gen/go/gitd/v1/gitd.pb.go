@@ -21,6 +21,63 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// How a workspace was made.
+type Strategy int32
+
+const (
+	Strategy_STRATEGY_UNSPECIFIED Strategy = 0
+	// Every file written.
+	Strategy_STRATEGY_COPY Strategy = 1
+	// A layer of its own mounted on a shared template, read only: milliseconds, and only
+	// what changes takes disk.
+	Strategy_STRATEGY_OVERLAY Strategy = 2
+	// The template cloned block by block: almost no disk.
+	Strategy_STRATEGY_REFLINK Strategy = 3
+)
+
+// Enum value maps for Strategy.
+var (
+	Strategy_name = map[int32]string{
+		0: "STRATEGY_UNSPECIFIED",
+		1: "STRATEGY_COPY",
+		2: "STRATEGY_OVERLAY",
+		3: "STRATEGY_REFLINK",
+	}
+	Strategy_value = map[string]int32{
+		"STRATEGY_UNSPECIFIED": 0,
+		"STRATEGY_COPY":        1,
+		"STRATEGY_OVERLAY":     2,
+		"STRATEGY_REFLINK":     3,
+	}
+)
+
+func (x Strategy) Enum() *Strategy {
+	p := new(Strategy)
+	*p = x
+	return p
+}
+
+func (x Strategy) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (Strategy) Descriptor() protoreflect.EnumDescriptor {
+	return file_gitd_v1_gitd_proto_enumTypes[0].Descriptor()
+}
+
+func (Strategy) Type() protoreflect.EnumType {
+	return &file_gitd_v1_gitd_proto_enumTypes[0]
+}
+
+func (x Strategy) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use Strategy.Descriptor instead.
+func (Strategy) EnumDescriptor() ([]byte, []int) {
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{0}
+}
+
 type GitFailure_Reason int32
 
 const (
@@ -78,11 +135,11 @@ func (x GitFailure_Reason) String() string {
 }
 
 func (GitFailure_Reason) Descriptor() protoreflect.EnumDescriptor {
-	return file_gitd_v1_gitd_proto_enumTypes[0].Descriptor()
+	return file_gitd_v1_gitd_proto_enumTypes[1].Descriptor()
 }
 
 func (GitFailure_Reason) Type() protoreflect.EnumType {
-	return &file_gitd_v1_gitd_proto_enumTypes[0]
+	return &file_gitd_v1_gitd_proto_enumTypes[1]
 }
 
 func (x GitFailure_Reason) Number() protoreflect.EnumNumber {
@@ -133,11 +190,11 @@ func (x ProbeResponse_Access) String() string {
 }
 
 func (ProbeResponse_Access) Descriptor() protoreflect.EnumDescriptor {
-	return file_gitd_v1_gitd_proto_enumTypes[1].Descriptor()
+	return file_gitd_v1_gitd_proto_enumTypes[2].Descriptor()
 }
 
 func (ProbeResponse_Access) Type() protoreflect.EnumType {
-	return &file_gitd_v1_gitd_proto_enumTypes[1]
+	return &file_gitd_v1_gitd_proto_enumTypes[2]
 }
 
 func (x ProbeResponse_Access) Number() protoreflect.EnumNumber {
@@ -146,7 +203,7 @@ func (x ProbeResponse_Access) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use ProbeResponse_Access.Descriptor instead.
 func (ProbeResponse_Access) EnumDescriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{27, 0}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{28, 0}
 }
 
 // What opens repositories whose address starts with `url_prefix`, on any host:
@@ -609,7 +666,11 @@ type PrepareRequest struct {
 	// a clone; later updates keep it.
 	// Otherwise only what is checked out, without the history behind it; submodules are
 	// always so.
-	FullHistory   bool `protobuf:"varint,6,opt,name=full_history,json=fullHistory,proto3" json:"full_history,omitempty"`
+	FullHistory bool `protobuf:"varint,6,opt,name=full_history,json=fullHistory,proto3" json:"full_history,omitempty"`
+	// How to make it, when there is a preference: STRATEGY_COPY writes every file even where
+	// an overlay could be mounted. Unspecified is gitd's choice, the fastest this machine
+	// allows. A strategy that cannot run here falls back to copy; the result says which ran.
+	Strategy      Strategy `protobuf:"varint,7,opt,name=strategy,proto3,enum=gitd.v1.Strategy" json:"strategy,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -686,6 +747,75 @@ func (x *PrepareRequest) GetFullHistory() bool {
 	return false
 }
 
+func (x *PrepareRequest) GetStrategy() Strategy {
+	if x != nil {
+		return x.Strategy
+	}
+	return Strategy_STRATEGY_UNSPECIFIED
+}
+
+// The directories of an overlay workspace: the template below, read only, and the
+// workspace's own layer above.
+type Layers struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Lower         string                 `protobuf:"bytes,1,opt,name=lower,proto3" json:"lower,omitempty"`
+	Upper         string                 `protobuf:"bytes,2,opt,name=upper,proto3" json:"upper,omitempty"`
+	Work          string                 `protobuf:"bytes,3,opt,name=work,proto3" json:"work,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Layers) Reset() {
+	*x = Layers{}
+	mi := &file_gitd_v1_gitd_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Layers) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Layers) ProtoMessage() {}
+
+func (x *Layers) ProtoReflect() protoreflect.Message {
+	mi := &file_gitd_v1_gitd_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Layers.ProtoReflect.Descriptor instead.
+func (*Layers) Descriptor() ([]byte, []int) {
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *Layers) GetLower() string {
+	if x != nil {
+		return x.Lower
+	}
+	return ""
+}
+
+func (x *Layers) GetUpper() string {
+	if x != nil {
+		return x.Upper
+	}
+	return ""
+}
+
+func (x *Layers) GetWork() string {
+	if x != nil {
+		return x.Work
+	}
+	return ""
+}
+
 type PrepareResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Types that are valid to be assigned to Event:
@@ -699,7 +829,7 @@ type PrepareResponse struct {
 
 func (x *PrepareResponse) Reset() {
 	*x = PrepareResponse{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[7]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -711,7 +841,7 @@ func (x *PrepareResponse) String() string {
 func (*PrepareResponse) ProtoMessage() {}
 
 func (x *PrepareResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[7]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -724,7 +854,7 @@ func (x *PrepareResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PrepareResponse.ProtoReflect.Descriptor instead.
 func (*PrepareResponse) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{7}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *PrepareResponse) GetEvent() isPrepareResponse_Event {
@@ -773,13 +903,16 @@ type WorkspaceResult struct {
 	Commit            string                 `protobuf:"bytes,1,opt,name=commit,proto3" json:"commit,omitempty"`
 	Branch            string                 `protobuf:"bytes,2,opt,name=branch,proto3" json:"branch,omitempty"`
 	PendingSubmodules []*PendingSubmodule    `protobuf:"bytes,3,rep,name=pending_submodules,json=pendingSubmodules,proto3" json:"pending_submodules,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	// How the workspace was made, and its layers when by overlay.
+	Strategy      Strategy `protobuf:"varint,4,opt,name=strategy,proto3,enum=gitd.v1.Strategy" json:"strategy,omitempty"`
+	Layers        *Layers  `protobuf:"bytes,5,opt,name=layers,proto3" json:"layers,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *WorkspaceResult) Reset() {
 	*x = WorkspaceResult{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[8]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -791,7 +924,7 @@ func (x *WorkspaceResult) String() string {
 func (*WorkspaceResult) ProtoMessage() {}
 
 func (x *WorkspaceResult) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[8]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -804,7 +937,7 @@ func (x *WorkspaceResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WorkspaceResult.ProtoReflect.Descriptor instead.
 func (*WorkspaceResult) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{8}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *WorkspaceResult) GetCommit() string {
@@ -828,6 +961,20 @@ func (x *WorkspaceResult) GetPendingSubmodules() []*PendingSubmodule {
 	return nil
 }
 
+func (x *WorkspaceResult) GetStrategy() Strategy {
+	if x != nil {
+		return x.Strategy
+	}
+	return Strategy_STRATEGY_UNSPECIFIED
+}
+
+func (x *WorkspaceResult) GetLayers() *Layers {
+	if x != nil {
+		return x.Layers
+	}
+	return nil
+}
+
 type UpdateRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	Path  string                 `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
@@ -841,7 +988,7 @@ type UpdateRequest struct {
 
 func (x *UpdateRequest) Reset() {
 	*x = UpdateRequest{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[9]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -853,7 +1000,7 @@ func (x *UpdateRequest) String() string {
 func (*UpdateRequest) ProtoMessage() {}
 
 func (x *UpdateRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[9]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -866,7 +1013,7 @@ func (x *UpdateRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateRequest.ProtoReflect.Descriptor instead.
 func (*UpdateRequest) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{9}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *UpdateRequest) GetPath() string {
@@ -910,7 +1057,7 @@ type UpdateResponse struct {
 
 func (x *UpdateResponse) Reset() {
 	*x = UpdateResponse{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[10]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -922,7 +1069,7 @@ func (x *UpdateResponse) String() string {
 func (*UpdateResponse) ProtoMessage() {}
 
 func (x *UpdateResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[10]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -935,7 +1082,7 @@ func (x *UpdateResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateResponse.ProtoReflect.Descriptor instead.
 func (*UpdateResponse) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{10}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *UpdateResponse) GetEvent() isUpdateResponse_Event {
@@ -992,7 +1139,7 @@ type CheckoutRequest struct {
 
 func (x *CheckoutRequest) Reset() {
 	*x = CheckoutRequest{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[11]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1004,7 +1151,7 @@ func (x *CheckoutRequest) String() string {
 func (*CheckoutRequest) ProtoMessage() {}
 
 func (x *CheckoutRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[11]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1017,7 +1164,7 @@ func (x *CheckoutRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CheckoutRequest.ProtoReflect.Descriptor instead.
 func (*CheckoutRequest) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{11}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *CheckoutRequest) GetPath() string {
@@ -1061,7 +1208,7 @@ type CheckoutResponse struct {
 
 func (x *CheckoutResponse) Reset() {
 	*x = CheckoutResponse{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[12]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1073,7 +1220,7 @@ func (x *CheckoutResponse) String() string {
 func (*CheckoutResponse) ProtoMessage() {}
 
 func (x *CheckoutResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[12]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1086,7 +1233,7 @@ func (x *CheckoutResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CheckoutResponse.ProtoReflect.Descriptor instead.
 func (*CheckoutResponse) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{12}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *CheckoutResponse) GetEvent() isCheckoutResponse_Event {
@@ -1142,7 +1289,7 @@ type SyncSubmodulesRequest struct {
 
 func (x *SyncSubmodulesRequest) Reset() {
 	*x = SyncSubmodulesRequest{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[13]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1154,7 +1301,7 @@ func (x *SyncSubmodulesRequest) String() string {
 func (*SyncSubmodulesRequest) ProtoMessage() {}
 
 func (x *SyncSubmodulesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[13]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1167,7 +1314,7 @@ func (x *SyncSubmodulesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SyncSubmodulesRequest.ProtoReflect.Descriptor instead.
 func (*SyncSubmodulesRequest) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{13}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *SyncSubmodulesRequest) GetPath() string {
@@ -1204,7 +1351,7 @@ type SyncSubmodulesResponse struct {
 
 func (x *SyncSubmodulesResponse) Reset() {
 	*x = SyncSubmodulesResponse{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[14]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1216,7 +1363,7 @@ func (x *SyncSubmodulesResponse) String() string {
 func (*SyncSubmodulesResponse) ProtoMessage() {}
 
 func (x *SyncSubmodulesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[14]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1229,7 +1376,7 @@ func (x *SyncSubmodulesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SyncSubmodulesResponse.ProtoReflect.Descriptor instead.
 func (*SyncSubmodulesResponse) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{14}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *SyncSubmodulesResponse) GetEvent() isSyncSubmodulesResponse_Event {
@@ -1283,7 +1430,7 @@ type SyncSubmodulesResult struct {
 
 func (x *SyncSubmodulesResult) Reset() {
 	*x = SyncSubmodulesResult{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[15]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1295,7 +1442,7 @@ func (x *SyncSubmodulesResult) String() string {
 func (*SyncSubmodulesResult) ProtoMessage() {}
 
 func (x *SyncSubmodulesResult) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[15]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1308,7 +1455,7 @@ func (x *SyncSubmodulesResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SyncSubmodulesResult.ProtoReflect.Descriptor instead.
 func (*SyncSubmodulesResult) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{15}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *SyncSubmodulesResult) GetSubmodules() []*SubmoduleState {
@@ -1334,7 +1481,7 @@ type DescribeRequest struct {
 
 func (x *DescribeRequest) Reset() {
 	*x = DescribeRequest{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[16]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1346,7 +1493,7 @@ func (x *DescribeRequest) String() string {
 func (*DescribeRequest) ProtoMessage() {}
 
 func (x *DescribeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[16]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1359,7 +1506,7 @@ func (x *DescribeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DescribeRequest.ProtoReflect.Descriptor instead.
 func (*DescribeRequest) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{16}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *DescribeRequest) GetPath() string {
@@ -1376,15 +1523,19 @@ type DescribeResponse struct {
 	Branch string                 `protobuf:"bytes,3,opt,name=branch,proto3" json:"branch,omitempty"`
 	// Whether something on disk differs from the commit, as somebody running git in it may
 	// leave it.
-	Modified      bool              `protobuf:"varint,4,opt,name=modified,proto3" json:"modified,omitempty"`
-	Submodules    []*SubmoduleState `protobuf:"bytes,5,rep,name=submodules,proto3" json:"submodules,omitempty"`
+	Modified   bool              `protobuf:"varint,4,opt,name=modified,proto3" json:"modified,omitempty"`
+	Submodules []*SubmoduleState `protobuf:"bytes,5,rep,name=submodules,proto3" json:"submodules,omitempty"`
+	// How the workspace was made, and its layers when by overlay. Workspaces made before
+	// gitd said so read as STRATEGY_COPY.
+	Strategy      Strategy `protobuf:"varint,6,opt,name=strategy,proto3,enum=gitd.v1.Strategy" json:"strategy,omitempty"`
+	Layers        *Layers  `protobuf:"bytes,7,opt,name=layers,proto3" json:"layers,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *DescribeResponse) Reset() {
 	*x = DescribeResponse{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[17]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1396,7 +1547,7 @@ func (x *DescribeResponse) String() string {
 func (*DescribeResponse) ProtoMessage() {}
 
 func (x *DescribeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[17]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1409,7 +1560,7 @@ func (x *DescribeResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DescribeResponse.ProtoReflect.Descriptor instead.
 func (*DescribeResponse) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{17}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *DescribeResponse) GetUrl() string {
@@ -1447,6 +1598,20 @@ func (x *DescribeResponse) GetSubmodules() []*SubmoduleState {
 	return nil
 }
 
+func (x *DescribeResponse) GetStrategy() Strategy {
+	if x != nil {
+		return x.Strategy
+	}
+	return Strategy_STRATEGY_UNSPECIFIED
+}
+
+func (x *DescribeResponse) GetLayers() *Layers {
+	if x != nil {
+		return x.Layers
+	}
+	return nil
+}
+
 type RemoveRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Path          string                 `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
@@ -1456,7 +1621,7 @@ type RemoveRequest struct {
 
 func (x *RemoveRequest) Reset() {
 	*x = RemoveRequest{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[18]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1468,7 +1633,7 @@ func (x *RemoveRequest) String() string {
 func (*RemoveRequest) ProtoMessage() {}
 
 func (x *RemoveRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[18]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1481,7 +1646,7 @@ func (x *RemoveRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveRequest.ProtoReflect.Descriptor instead.
 func (*RemoveRequest) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{18}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *RemoveRequest) GetPath() string {
@@ -1499,7 +1664,7 @@ type RemoveResponse struct {
 
 func (x *RemoveResponse) Reset() {
 	*x = RemoveResponse{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[19]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1511,7 +1676,7 @@ func (x *RemoveResponse) String() string {
 func (*RemoveResponse) ProtoMessage() {}
 
 func (x *RemoveResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[19]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1524,7 +1689,7 @@ func (x *RemoveResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveResponse.ProtoReflect.Descriptor instead.
 func (*RemoveResponse) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{19}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{20}
 }
 
 type AdoptRequest struct {
@@ -1536,7 +1701,7 @@ type AdoptRequest struct {
 
 func (x *AdoptRequest) Reset() {
 	*x = AdoptRequest{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[20]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1548,7 +1713,7 @@ func (x *AdoptRequest) String() string {
 func (*AdoptRequest) ProtoMessage() {}
 
 func (x *AdoptRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[20]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1561,7 +1726,7 @@ func (x *AdoptRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AdoptRequest.ProtoReflect.Descriptor instead.
 func (*AdoptRequest) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{20}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *AdoptRequest) GetPath() string {
@@ -1584,7 +1749,7 @@ type AdoptResponse struct {
 
 func (x *AdoptResponse) Reset() {
 	*x = AdoptResponse{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[21]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1596,7 +1761,7 @@ func (x *AdoptResponse) String() string {
 func (*AdoptResponse) ProtoMessage() {}
 
 func (x *AdoptResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[21]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1609,7 +1774,7 @@ func (x *AdoptResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AdoptResponse.ProtoReflect.Descriptor instead.
 func (*AdoptResponse) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{21}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *AdoptResponse) GetEvent() isAdoptResponse_Event {
@@ -1663,7 +1828,7 @@ type AdoptResult struct {
 
 func (x *AdoptResult) Reset() {
 	*x = AdoptResult{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[22]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1675,7 +1840,7 @@ func (x *AdoptResult) String() string {
 func (*AdoptResult) ProtoMessage() {}
 
 func (x *AdoptResult) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[22]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1688,7 +1853,7 @@ func (x *AdoptResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AdoptResult.ProtoReflect.Descriptor instead.
 func (*AdoptResult) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{22}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *AdoptResult) GetBytesReleased() int64 {
@@ -1710,7 +1875,7 @@ type PublishRequest struct {
 
 func (x *PublishRequest) Reset() {
 	*x = PublishRequest{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[23]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1722,7 +1887,7 @@ func (x *PublishRequest) String() string {
 func (*PublishRequest) ProtoMessage() {}
 
 func (x *PublishRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[23]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1735,7 +1900,7 @@ func (x *PublishRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PublishRequest.ProtoReflect.Descriptor instead.
 func (*PublishRequest) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{23}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *PublishRequest) GetPath() string {
@@ -1773,7 +1938,7 @@ type PublishedRepository struct {
 
 func (x *PublishedRepository) Reset() {
 	*x = PublishedRepository{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[24]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1785,7 +1950,7 @@ func (x *PublishedRepository) String() string {
 func (*PublishedRepository) ProtoMessage() {}
 
 func (x *PublishedRepository) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[24]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1798,7 +1963,7 @@ func (x *PublishedRepository) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PublishedRepository.ProtoReflect.Descriptor instead.
 func (*PublishedRepository) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{24}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *PublishedRepository) GetUrl() string {
@@ -1840,7 +2005,7 @@ type PublishResponse struct {
 
 func (x *PublishResponse) Reset() {
 	*x = PublishResponse{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[25]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1852,7 +2017,7 @@ func (x *PublishResponse) String() string {
 func (*PublishResponse) ProtoMessage() {}
 
 func (x *PublishResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[25]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1865,7 +2030,7 @@ func (x *PublishResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PublishResponse.ProtoReflect.Descriptor instead.
 func (*PublishResponse) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{25}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *PublishResponse) GetBranch() string {
@@ -1899,7 +2064,7 @@ type ProbeRequest struct {
 
 func (x *ProbeRequest) Reset() {
 	*x = ProbeRequest{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[26]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1911,7 +2076,7 @@ func (x *ProbeRequest) String() string {
 func (*ProbeRequest) ProtoMessage() {}
 
 func (x *ProbeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[26]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1924,7 +2089,7 @@ func (x *ProbeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ProbeRequest.ProtoReflect.Descriptor instead.
 func (*ProbeRequest) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{26}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *ProbeRequest) GetUrl() string {
@@ -1956,7 +2121,7 @@ type ProbeResponse struct {
 
 func (x *ProbeResponse) Reset() {
 	*x = ProbeResponse{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[27]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1968,7 +2133,7 @@ func (x *ProbeResponse) String() string {
 func (*ProbeResponse) ProtoMessage() {}
 
 func (x *ProbeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[27]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1981,7 +2146,7 @@ func (x *ProbeResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ProbeResponse.ProtoReflect.Descriptor instead.
 func (*ProbeResponse) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{27}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *ProbeResponse) GetAccess() ProbeResponse_Access {
@@ -2029,7 +2194,7 @@ type RetireRequest struct {
 
 func (x *RetireRequest) Reset() {
 	*x = RetireRequest{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[28]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2041,7 +2206,7 @@ func (x *RetireRequest) String() string {
 func (*RetireRequest) ProtoMessage() {}
 
 func (x *RetireRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[28]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2054,7 +2219,7 @@ func (x *RetireRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RetireRequest.ProtoReflect.Descriptor instead.
 func (*RetireRequest) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{28}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *RetireRequest) GetUnusedForSeconds() int64 {
@@ -2074,7 +2239,7 @@ type RetireResponse struct {
 
 func (x *RetireResponse) Reset() {
 	*x = RetireResponse{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[29]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2086,7 +2251,7 @@ func (x *RetireResponse) String() string {
 func (*RetireResponse) ProtoMessage() {}
 
 func (x *RetireResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[29]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2099,7 +2264,7 @@ func (x *RetireResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RetireResponse.ProtoReflect.Descriptor instead.
 func (*RetireResponse) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{29}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *RetireResponse) GetRetired() int32 {
@@ -2124,7 +2289,7 @@ type InfoRequest struct {
 
 func (x *InfoRequest) Reset() {
 	*x = InfoRequest{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[30]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2136,7 +2301,7 @@ func (x *InfoRequest) String() string {
 func (*InfoRequest) ProtoMessage() {}
 
 func (x *InfoRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[30]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2149,7 +2314,7 @@ func (x *InfoRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InfoRequest.ProtoReflect.Descriptor instead.
 func (*InfoRequest) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{30}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{31}
 }
 
 type InfoResponse struct {
@@ -2158,15 +2323,21 @@ type InfoResponse struct {
 	// What `git version` says, e.g. "git version 2.48.1".
 	GitVersion string `protobuf:"bytes,2,opt,name=git_version,json=gitVersion,proto3" json:"git_version,omitempty"`
 	// How many pools there are and the disk they take, as of the last maintenance round.
-	Pools         int32 `protobuf:"varint,3,opt,name=pools,proto3" json:"pools,omitempty"`
-	PoolsBytes    int64 `protobuf:"varint,4,opt,name=pools_bytes,json=poolsBytes,proto3" json:"pools_bytes,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Pools      int32 `protobuf:"varint,3,opt,name=pools,proto3" json:"pools,omitempty"`
+	PoolsBytes int64 `protobuf:"varint,4,opt,name=pools_bytes,json=poolsBytes,proto3" json:"pools_bytes,omitempty"`
+	// How new workspaces are made on this machine, and why: what gitd detected at start.
+	Strategy       Strategy `protobuf:"varint,5,opt,name=strategy,proto3,enum=gitd.v1.Strategy" json:"strategy,omitempty"`
+	StrategyReason string   `protobuf:"bytes,6,opt,name=strategy_reason,json=strategyReason,proto3" json:"strategy_reason,omitempty"`
+	// How many templates there are and the disk they take, as of the last maintenance round.
+	Templates      int32 `protobuf:"varint,7,opt,name=templates,proto3" json:"templates,omitempty"`
+	TemplatesBytes int64 `protobuf:"varint,8,opt,name=templates_bytes,json=templatesBytes,proto3" json:"templates_bytes,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *InfoResponse) Reset() {
 	*x = InfoResponse{}
-	mi := &file_gitd_v1_gitd_proto_msgTypes[31]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2178,7 +2349,7 @@ func (x *InfoResponse) String() string {
 func (*InfoResponse) ProtoMessage() {}
 
 func (x *InfoResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gitd_v1_gitd_proto_msgTypes[31]
+	mi := &file_gitd_v1_gitd_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2191,7 +2362,7 @@ func (x *InfoResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InfoResponse.ProtoReflect.Descriptor instead.
 func (*InfoResponse) Descriptor() ([]byte, []int) {
-	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{31}
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *InfoResponse) GetVersion() string {
@@ -2218,6 +2389,34 @@ func (x *InfoResponse) GetPools() int32 {
 func (x *InfoResponse) GetPoolsBytes() int64 {
 	if x != nil {
 		return x.PoolsBytes
+	}
+	return 0
+}
+
+func (x *InfoResponse) GetStrategy() Strategy {
+	if x != nil {
+		return x.Strategy
+	}
+	return Strategy_STRATEGY_UNSPECIFIED
+}
+
+func (x *InfoResponse) GetStrategyReason() string {
+	if x != nil {
+		return x.StrategyReason
+	}
+	return ""
+}
+
+func (x *InfoResponse) GetTemplates() int32 {
+	if x != nil {
+		return x.Templates
+	}
+	return 0
+}
+
+func (x *InfoResponse) GetTemplatesBytes() int64 {
+	if x != nil {
+		return x.TemplatesBytes
 	}
 	return 0
 }
@@ -2277,22 +2476,29 @@ const file_gitd_v1_gitd_proto_rawDesc = "" +
 	"\x0eREASON_CORRUPT\x10\b\x12\x15\n" +
 	"\x11REASON_GIT_FAILED\x10\t\x12\x16\n" +
 	"\x12REASON_NOTHING_NEW\x10\n" +
-	"\"\xe8\x01\n" +
+	"\"\x97\x02\n" +
 	"\x0ePrepareRequest\x12\x10\n" +
 	"\x03url\x18\x01 \x01(\tR\x03url\x12\x12\n" +
 	"\x04path\x18\x02 \x01(\tR\x04path\x12-\n" +
 	"\brevision\x18\x03 \x01(\v2\x11.gitd.v1.RevisionR\brevision\x12'\n" +
 	"\x0fwith_submodules\x18\x04 \x01(\bR\x0ewithSubmodules\x125\n" +
 	"\vcredentials\x18\x05 \x03(\v2\x13.gitd.v1.CredentialR\vcredentials\x12!\n" +
-	"\ffull_history\x18\x06 \x01(\bR\vfullHistory\"\x7f\n" +
+	"\ffull_history\x18\x06 \x01(\bR\vfullHistory\x12-\n" +
+	"\bstrategy\x18\a \x01(\x0e2\x11.gitd.v1.StrategyR\bstrategy\"H\n" +
+	"\x06Layers\x12\x14\n" +
+	"\x05lower\x18\x01 \x01(\tR\x05lower\x12\x14\n" +
+	"\x05upper\x18\x02 \x01(\tR\x05upper\x12\x12\n" +
+	"\x04work\x18\x03 \x01(\tR\x04work\"\x7f\n" +
 	"\x0fPrepareResponse\x12/\n" +
 	"\bprogress\x18\x01 \x01(\v2\x11.gitd.v1.ProgressH\x00R\bprogress\x122\n" +
 	"\x06result\x18\x02 \x01(\v2\x18.gitd.v1.WorkspaceResultH\x00R\x06resultB\a\n" +
-	"\x05event\"\x8b\x01\n" +
+	"\x05event\"\xe3\x01\n" +
 	"\x0fWorkspaceResult\x12\x16\n" +
 	"\x06commit\x18\x01 \x01(\tR\x06commit\x12\x16\n" +
 	"\x06branch\x18\x02 \x01(\tR\x06branch\x12H\n" +
-	"\x12pending_submodules\x18\x03 \x03(\v2\x19.gitd.v1.PendingSubmoduleR\x11pendingSubmodules\"\x9b\x01\n" +
+	"\x12pending_submodules\x18\x03 \x03(\v2\x19.gitd.v1.PendingSubmoduleR\x11pendingSubmodules\x12-\n" +
+	"\bstrategy\x18\x04 \x01(\x0e2\x11.gitd.v1.StrategyR\bstrategy\x12'\n" +
+	"\x06layers\x18\x05 \x01(\v2\x0f.gitd.v1.LayersR\x06layers\"\x9b\x01\n" +
 	"\rUpdateRequest\x12\x12\n" +
 	"\x04path\x18\x01 \x01(\tR\x04path\x12\x16\n" +
 	"\x06branch\x18\x02 \x01(\tR\x06branch\x12'\n" +
@@ -2325,7 +2531,7 @@ const file_gitd_v1_gitd_proto_rawDesc = "" +
 	"submodules\x12H\n" +
 	"\x12pending_submodules\x18\x02 \x03(\v2\x19.gitd.v1.PendingSubmoduleR\x11pendingSubmodules\"%\n" +
 	"\x0fDescribeRequest\x12\x12\n" +
-	"\x04path\x18\x01 \x01(\tR\x04path\"\xa9\x01\n" +
+	"\x04path\x18\x01 \x01(\tR\x04path\"\x81\x02\n" +
 	"\x10DescribeResponse\x12\x10\n" +
 	"\x03url\x18\x01 \x01(\tR\x03url\x12\x16\n" +
 	"\x06commit\x18\x02 \x01(\tR\x06commit\x12\x16\n" +
@@ -2333,7 +2539,9 @@ const file_gitd_v1_gitd_proto_rawDesc = "" +
 	"\bmodified\x18\x04 \x01(\bR\bmodified\x127\n" +
 	"\n" +
 	"submodules\x18\x05 \x03(\v2\x17.gitd.v1.SubmoduleStateR\n" +
-	"submodules\"#\n" +
+	"submodules\x12-\n" +
+	"\bstrategy\x18\x06 \x01(\x0e2\x11.gitd.v1.StrategyR\bstrategy\x12'\n" +
+	"\x06layers\x18\a \x01(\v2\x0f.gitd.v1.LayersR\x06layers\"#\n" +
 	"\rRemoveRequest\x12\x12\n" +
 	"\x04path\x18\x01 \x01(\tR\x04path\"\x10\n" +
 	"\x0eRemoveResponse\"\"\n" +
@@ -2385,14 +2593,23 @@ const file_gitd_v1_gitd_proto_rawDesc = "" +
 	"\aretired\x18\x01 \x01(\x05R\aretired\x12\x1f\n" +
 	"\vfreed_bytes\x18\x02 \x01(\x03R\n" +
 	"freedBytes\"\r\n" +
-	"\vInfoRequest\"\x80\x01\n" +
+	"\vInfoRequest\"\x9f\x02\n" +
 	"\fInfoResponse\x12\x18\n" +
 	"\aversion\x18\x01 \x01(\tR\aversion\x12\x1f\n" +
 	"\vgit_version\x18\x02 \x01(\tR\n" +
 	"gitVersion\x12\x14\n" +
 	"\x05pools\x18\x03 \x01(\x05R\x05pools\x12\x1f\n" +
 	"\vpools_bytes\x18\x04 \x01(\x03R\n" +
-	"poolsBytes2\x9b\x04\n" +
+	"poolsBytes\x12-\n" +
+	"\bstrategy\x18\x05 \x01(\x0e2\x11.gitd.v1.StrategyR\bstrategy\x12'\n" +
+	"\x0fstrategy_reason\x18\x06 \x01(\tR\x0estrategyReason\x12\x1c\n" +
+	"\ttemplates\x18\a \x01(\x05R\ttemplates\x12'\n" +
+	"\x0ftemplates_bytes\x18\b \x01(\x03R\x0etemplatesBytes*c\n" +
+	"\bStrategy\x12\x18\n" +
+	"\x14STRATEGY_UNSPECIFIED\x10\x00\x12\x11\n" +
+	"\rSTRATEGY_COPY\x10\x01\x12\x14\n" +
+	"\x10STRATEGY_OVERLAY\x10\x02\x12\x14\n" +
+	"\x10STRATEGY_REFLINK\x10\x032\x9b\x04\n" +
 	"\x10WorkspaceService\x12>\n" +
 	"\aPrepare\x12\x17.gitd.v1.PrepareRequest\x1a\x18.gitd.v1.PrepareResponse0\x01\x12;\n" +
 	"\x06Update\x12\x16.gitd.v1.UpdateRequest\x1a\x17.gitd.v1.UpdateResponse0\x01\x12A\n" +
@@ -2420,101 +2637,109 @@ func file_gitd_v1_gitd_proto_rawDescGZIP() []byte {
 	return file_gitd_v1_gitd_proto_rawDescData
 }
 
-var file_gitd_v1_gitd_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_gitd_v1_gitd_proto_msgTypes = make([]protoimpl.MessageInfo, 33)
+var file_gitd_v1_gitd_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
+var file_gitd_v1_gitd_proto_msgTypes = make([]protoimpl.MessageInfo, 34)
 var file_gitd_v1_gitd_proto_goTypes = []any{
-	(GitFailure_Reason)(0),         // 0: gitd.v1.GitFailure.Reason
-	(ProbeResponse_Access)(0),      // 1: gitd.v1.ProbeResponse.Access
-	(*Credential)(nil),             // 2: gitd.v1.Credential
-	(*Revision)(nil),               // 3: gitd.v1.Revision
-	(*Progress)(nil),               // 4: gitd.v1.Progress
-	(*SubmoduleState)(nil),         // 5: gitd.v1.SubmoduleState
-	(*PendingSubmodule)(nil),       // 6: gitd.v1.PendingSubmodule
-	(*GitFailure)(nil),             // 7: gitd.v1.GitFailure
-	(*PrepareRequest)(nil),         // 8: gitd.v1.PrepareRequest
-	(*PrepareResponse)(nil),        // 9: gitd.v1.PrepareResponse
-	(*WorkspaceResult)(nil),        // 10: gitd.v1.WorkspaceResult
-	(*UpdateRequest)(nil),          // 11: gitd.v1.UpdateRequest
-	(*UpdateResponse)(nil),         // 12: gitd.v1.UpdateResponse
-	(*CheckoutRequest)(nil),        // 13: gitd.v1.CheckoutRequest
-	(*CheckoutResponse)(nil),       // 14: gitd.v1.CheckoutResponse
-	(*SyncSubmodulesRequest)(nil),  // 15: gitd.v1.SyncSubmodulesRequest
-	(*SyncSubmodulesResponse)(nil), // 16: gitd.v1.SyncSubmodulesResponse
-	(*SyncSubmodulesResult)(nil),   // 17: gitd.v1.SyncSubmodulesResult
-	(*DescribeRequest)(nil),        // 18: gitd.v1.DescribeRequest
-	(*DescribeResponse)(nil),       // 19: gitd.v1.DescribeResponse
-	(*RemoveRequest)(nil),          // 20: gitd.v1.RemoveRequest
-	(*RemoveResponse)(nil),         // 21: gitd.v1.RemoveResponse
-	(*AdoptRequest)(nil),           // 22: gitd.v1.AdoptRequest
-	(*AdoptResponse)(nil),          // 23: gitd.v1.AdoptResponse
-	(*AdoptResult)(nil),            // 24: gitd.v1.AdoptResult
-	(*PublishRequest)(nil),         // 25: gitd.v1.PublishRequest
-	(*PublishedRepository)(nil),    // 26: gitd.v1.PublishedRepository
-	(*PublishResponse)(nil),        // 27: gitd.v1.PublishResponse
-	(*ProbeRequest)(nil),           // 28: gitd.v1.ProbeRequest
-	(*ProbeResponse)(nil),          // 29: gitd.v1.ProbeResponse
-	(*RetireRequest)(nil),          // 30: gitd.v1.RetireRequest
-	(*RetireResponse)(nil),         // 31: gitd.v1.RetireResponse
-	(*InfoRequest)(nil),            // 32: gitd.v1.InfoRequest
-	(*InfoResponse)(nil),           // 33: gitd.v1.InfoResponse
-	nil,                            // 34: gitd.v1.ProbeResponse.CommitsEntry
+	(Strategy)(0),                  // 0: gitd.v1.Strategy
+	(GitFailure_Reason)(0),         // 1: gitd.v1.GitFailure.Reason
+	(ProbeResponse_Access)(0),      // 2: gitd.v1.ProbeResponse.Access
+	(*Credential)(nil),             // 3: gitd.v1.Credential
+	(*Revision)(nil),               // 4: gitd.v1.Revision
+	(*Progress)(nil),               // 5: gitd.v1.Progress
+	(*SubmoduleState)(nil),         // 6: gitd.v1.SubmoduleState
+	(*PendingSubmodule)(nil),       // 7: gitd.v1.PendingSubmodule
+	(*GitFailure)(nil),             // 8: gitd.v1.GitFailure
+	(*PrepareRequest)(nil),         // 9: gitd.v1.PrepareRequest
+	(*Layers)(nil),                 // 10: gitd.v1.Layers
+	(*PrepareResponse)(nil),        // 11: gitd.v1.PrepareResponse
+	(*WorkspaceResult)(nil),        // 12: gitd.v1.WorkspaceResult
+	(*UpdateRequest)(nil),          // 13: gitd.v1.UpdateRequest
+	(*UpdateResponse)(nil),         // 14: gitd.v1.UpdateResponse
+	(*CheckoutRequest)(nil),        // 15: gitd.v1.CheckoutRequest
+	(*CheckoutResponse)(nil),       // 16: gitd.v1.CheckoutResponse
+	(*SyncSubmodulesRequest)(nil),  // 17: gitd.v1.SyncSubmodulesRequest
+	(*SyncSubmodulesResponse)(nil), // 18: gitd.v1.SyncSubmodulesResponse
+	(*SyncSubmodulesResult)(nil),   // 19: gitd.v1.SyncSubmodulesResult
+	(*DescribeRequest)(nil),        // 20: gitd.v1.DescribeRequest
+	(*DescribeResponse)(nil),       // 21: gitd.v1.DescribeResponse
+	(*RemoveRequest)(nil),          // 22: gitd.v1.RemoveRequest
+	(*RemoveResponse)(nil),         // 23: gitd.v1.RemoveResponse
+	(*AdoptRequest)(nil),           // 24: gitd.v1.AdoptRequest
+	(*AdoptResponse)(nil),          // 25: gitd.v1.AdoptResponse
+	(*AdoptResult)(nil),            // 26: gitd.v1.AdoptResult
+	(*PublishRequest)(nil),         // 27: gitd.v1.PublishRequest
+	(*PublishedRepository)(nil),    // 28: gitd.v1.PublishedRepository
+	(*PublishResponse)(nil),        // 29: gitd.v1.PublishResponse
+	(*ProbeRequest)(nil),           // 30: gitd.v1.ProbeRequest
+	(*ProbeResponse)(nil),          // 31: gitd.v1.ProbeResponse
+	(*RetireRequest)(nil),          // 32: gitd.v1.RetireRequest
+	(*RetireResponse)(nil),         // 33: gitd.v1.RetireResponse
+	(*InfoRequest)(nil),            // 34: gitd.v1.InfoRequest
+	(*InfoResponse)(nil),           // 35: gitd.v1.InfoResponse
+	nil,                            // 36: gitd.v1.ProbeResponse.CommitsEntry
 }
 var file_gitd_v1_gitd_proto_depIdxs = []int32{
-	7,  // 0: gitd.v1.PendingSubmodule.failure:type_name -> gitd.v1.GitFailure
-	0,  // 1: gitd.v1.GitFailure.reason:type_name -> gitd.v1.GitFailure.Reason
-	3,  // 2: gitd.v1.PrepareRequest.revision:type_name -> gitd.v1.Revision
-	2,  // 3: gitd.v1.PrepareRequest.credentials:type_name -> gitd.v1.Credential
-	4,  // 4: gitd.v1.PrepareResponse.progress:type_name -> gitd.v1.Progress
-	10, // 5: gitd.v1.PrepareResponse.result:type_name -> gitd.v1.WorkspaceResult
-	6,  // 6: gitd.v1.WorkspaceResult.pending_submodules:type_name -> gitd.v1.PendingSubmodule
-	2,  // 7: gitd.v1.UpdateRequest.credentials:type_name -> gitd.v1.Credential
-	4,  // 8: gitd.v1.UpdateResponse.progress:type_name -> gitd.v1.Progress
-	10, // 9: gitd.v1.UpdateResponse.result:type_name -> gitd.v1.WorkspaceResult
-	2,  // 10: gitd.v1.CheckoutRequest.credentials:type_name -> gitd.v1.Credential
-	4,  // 11: gitd.v1.CheckoutResponse.progress:type_name -> gitd.v1.Progress
-	10, // 12: gitd.v1.CheckoutResponse.result:type_name -> gitd.v1.WorkspaceResult
-	2,  // 13: gitd.v1.SyncSubmodulesRequest.credentials:type_name -> gitd.v1.Credential
-	4,  // 14: gitd.v1.SyncSubmodulesResponse.progress:type_name -> gitd.v1.Progress
-	17, // 15: gitd.v1.SyncSubmodulesResponse.result:type_name -> gitd.v1.SyncSubmodulesResult
-	5,  // 16: gitd.v1.SyncSubmodulesResult.submodules:type_name -> gitd.v1.SubmoduleState
-	6,  // 17: gitd.v1.SyncSubmodulesResult.pending_submodules:type_name -> gitd.v1.PendingSubmodule
-	5,  // 18: gitd.v1.DescribeResponse.submodules:type_name -> gitd.v1.SubmoduleState
-	4,  // 19: gitd.v1.AdoptResponse.progress:type_name -> gitd.v1.Progress
-	24, // 20: gitd.v1.AdoptResponse.result:type_name -> gitd.v1.AdoptResult
-	2,  // 21: gitd.v1.PublishRequest.credentials:type_name -> gitd.v1.Credential
-	26, // 22: gitd.v1.PublishResponse.repository:type_name -> gitd.v1.PublishedRepository
-	26, // 23: gitd.v1.PublishResponse.submodules:type_name -> gitd.v1.PublishedRepository
-	2,  // 24: gitd.v1.ProbeRequest.credentials:type_name -> gitd.v1.Credential
-	1,  // 25: gitd.v1.ProbeResponse.access:type_name -> gitd.v1.ProbeResponse.Access
-	7,  // 26: gitd.v1.ProbeResponse.failure:type_name -> gitd.v1.GitFailure
-	34, // 27: gitd.v1.ProbeResponse.commits:type_name -> gitd.v1.ProbeResponse.CommitsEntry
-	8,  // 28: gitd.v1.WorkspaceService.Prepare:input_type -> gitd.v1.PrepareRequest
-	11, // 29: gitd.v1.WorkspaceService.Update:input_type -> gitd.v1.UpdateRequest
-	13, // 30: gitd.v1.WorkspaceService.Checkout:input_type -> gitd.v1.CheckoutRequest
-	15, // 31: gitd.v1.WorkspaceService.SyncSubmodules:input_type -> gitd.v1.SyncSubmodulesRequest
-	18, // 32: gitd.v1.WorkspaceService.Describe:input_type -> gitd.v1.DescribeRequest
-	20, // 33: gitd.v1.WorkspaceService.Remove:input_type -> gitd.v1.RemoveRequest
-	22, // 34: gitd.v1.WorkspaceService.Adopt:input_type -> gitd.v1.AdoptRequest
-	25, // 35: gitd.v1.WorkspaceService.Publish:input_type -> gitd.v1.PublishRequest
-	28, // 36: gitd.v1.RepositoryService.Probe:input_type -> gitd.v1.ProbeRequest
-	32, // 37: gitd.v1.ServerService.Info:input_type -> gitd.v1.InfoRequest
-	30, // 38: gitd.v1.ServerService.Retire:input_type -> gitd.v1.RetireRequest
-	9,  // 39: gitd.v1.WorkspaceService.Prepare:output_type -> gitd.v1.PrepareResponse
-	12, // 40: gitd.v1.WorkspaceService.Update:output_type -> gitd.v1.UpdateResponse
-	14, // 41: gitd.v1.WorkspaceService.Checkout:output_type -> gitd.v1.CheckoutResponse
-	16, // 42: gitd.v1.WorkspaceService.SyncSubmodules:output_type -> gitd.v1.SyncSubmodulesResponse
-	19, // 43: gitd.v1.WorkspaceService.Describe:output_type -> gitd.v1.DescribeResponse
-	21, // 44: gitd.v1.WorkspaceService.Remove:output_type -> gitd.v1.RemoveResponse
-	23, // 45: gitd.v1.WorkspaceService.Adopt:output_type -> gitd.v1.AdoptResponse
-	27, // 46: gitd.v1.WorkspaceService.Publish:output_type -> gitd.v1.PublishResponse
-	29, // 47: gitd.v1.RepositoryService.Probe:output_type -> gitd.v1.ProbeResponse
-	33, // 48: gitd.v1.ServerService.Info:output_type -> gitd.v1.InfoResponse
-	31, // 49: gitd.v1.ServerService.Retire:output_type -> gitd.v1.RetireResponse
-	39, // [39:50] is the sub-list for method output_type
-	28, // [28:39] is the sub-list for method input_type
-	28, // [28:28] is the sub-list for extension type_name
-	28, // [28:28] is the sub-list for extension extendee
-	0,  // [0:28] is the sub-list for field type_name
+	8,  // 0: gitd.v1.PendingSubmodule.failure:type_name -> gitd.v1.GitFailure
+	1,  // 1: gitd.v1.GitFailure.reason:type_name -> gitd.v1.GitFailure.Reason
+	4,  // 2: gitd.v1.PrepareRequest.revision:type_name -> gitd.v1.Revision
+	3,  // 3: gitd.v1.PrepareRequest.credentials:type_name -> gitd.v1.Credential
+	0,  // 4: gitd.v1.PrepareRequest.strategy:type_name -> gitd.v1.Strategy
+	5,  // 5: gitd.v1.PrepareResponse.progress:type_name -> gitd.v1.Progress
+	12, // 6: gitd.v1.PrepareResponse.result:type_name -> gitd.v1.WorkspaceResult
+	7,  // 7: gitd.v1.WorkspaceResult.pending_submodules:type_name -> gitd.v1.PendingSubmodule
+	0,  // 8: gitd.v1.WorkspaceResult.strategy:type_name -> gitd.v1.Strategy
+	10, // 9: gitd.v1.WorkspaceResult.layers:type_name -> gitd.v1.Layers
+	3,  // 10: gitd.v1.UpdateRequest.credentials:type_name -> gitd.v1.Credential
+	5,  // 11: gitd.v1.UpdateResponse.progress:type_name -> gitd.v1.Progress
+	12, // 12: gitd.v1.UpdateResponse.result:type_name -> gitd.v1.WorkspaceResult
+	3,  // 13: gitd.v1.CheckoutRequest.credentials:type_name -> gitd.v1.Credential
+	5,  // 14: gitd.v1.CheckoutResponse.progress:type_name -> gitd.v1.Progress
+	12, // 15: gitd.v1.CheckoutResponse.result:type_name -> gitd.v1.WorkspaceResult
+	3,  // 16: gitd.v1.SyncSubmodulesRequest.credentials:type_name -> gitd.v1.Credential
+	5,  // 17: gitd.v1.SyncSubmodulesResponse.progress:type_name -> gitd.v1.Progress
+	19, // 18: gitd.v1.SyncSubmodulesResponse.result:type_name -> gitd.v1.SyncSubmodulesResult
+	6,  // 19: gitd.v1.SyncSubmodulesResult.submodules:type_name -> gitd.v1.SubmoduleState
+	7,  // 20: gitd.v1.SyncSubmodulesResult.pending_submodules:type_name -> gitd.v1.PendingSubmodule
+	6,  // 21: gitd.v1.DescribeResponse.submodules:type_name -> gitd.v1.SubmoduleState
+	0,  // 22: gitd.v1.DescribeResponse.strategy:type_name -> gitd.v1.Strategy
+	10, // 23: gitd.v1.DescribeResponse.layers:type_name -> gitd.v1.Layers
+	5,  // 24: gitd.v1.AdoptResponse.progress:type_name -> gitd.v1.Progress
+	26, // 25: gitd.v1.AdoptResponse.result:type_name -> gitd.v1.AdoptResult
+	3,  // 26: gitd.v1.PublishRequest.credentials:type_name -> gitd.v1.Credential
+	28, // 27: gitd.v1.PublishResponse.repository:type_name -> gitd.v1.PublishedRepository
+	28, // 28: gitd.v1.PublishResponse.submodules:type_name -> gitd.v1.PublishedRepository
+	3,  // 29: gitd.v1.ProbeRequest.credentials:type_name -> gitd.v1.Credential
+	2,  // 30: gitd.v1.ProbeResponse.access:type_name -> gitd.v1.ProbeResponse.Access
+	8,  // 31: gitd.v1.ProbeResponse.failure:type_name -> gitd.v1.GitFailure
+	36, // 32: gitd.v1.ProbeResponse.commits:type_name -> gitd.v1.ProbeResponse.CommitsEntry
+	0,  // 33: gitd.v1.InfoResponse.strategy:type_name -> gitd.v1.Strategy
+	9,  // 34: gitd.v1.WorkspaceService.Prepare:input_type -> gitd.v1.PrepareRequest
+	13, // 35: gitd.v1.WorkspaceService.Update:input_type -> gitd.v1.UpdateRequest
+	15, // 36: gitd.v1.WorkspaceService.Checkout:input_type -> gitd.v1.CheckoutRequest
+	17, // 37: gitd.v1.WorkspaceService.SyncSubmodules:input_type -> gitd.v1.SyncSubmodulesRequest
+	20, // 38: gitd.v1.WorkspaceService.Describe:input_type -> gitd.v1.DescribeRequest
+	22, // 39: gitd.v1.WorkspaceService.Remove:input_type -> gitd.v1.RemoveRequest
+	24, // 40: gitd.v1.WorkspaceService.Adopt:input_type -> gitd.v1.AdoptRequest
+	27, // 41: gitd.v1.WorkspaceService.Publish:input_type -> gitd.v1.PublishRequest
+	30, // 42: gitd.v1.RepositoryService.Probe:input_type -> gitd.v1.ProbeRequest
+	34, // 43: gitd.v1.ServerService.Info:input_type -> gitd.v1.InfoRequest
+	32, // 44: gitd.v1.ServerService.Retire:input_type -> gitd.v1.RetireRequest
+	11, // 45: gitd.v1.WorkspaceService.Prepare:output_type -> gitd.v1.PrepareResponse
+	14, // 46: gitd.v1.WorkspaceService.Update:output_type -> gitd.v1.UpdateResponse
+	16, // 47: gitd.v1.WorkspaceService.Checkout:output_type -> gitd.v1.CheckoutResponse
+	18, // 48: gitd.v1.WorkspaceService.SyncSubmodules:output_type -> gitd.v1.SyncSubmodulesResponse
+	21, // 49: gitd.v1.WorkspaceService.Describe:output_type -> gitd.v1.DescribeResponse
+	23, // 50: gitd.v1.WorkspaceService.Remove:output_type -> gitd.v1.RemoveResponse
+	25, // 51: gitd.v1.WorkspaceService.Adopt:output_type -> gitd.v1.AdoptResponse
+	29, // 52: gitd.v1.WorkspaceService.Publish:output_type -> gitd.v1.PublishResponse
+	31, // 53: gitd.v1.RepositoryService.Probe:output_type -> gitd.v1.ProbeResponse
+	35, // 54: gitd.v1.ServerService.Info:output_type -> gitd.v1.InfoResponse
+	33, // 55: gitd.v1.ServerService.Retire:output_type -> gitd.v1.RetireResponse
+	45, // [45:56] is the sub-list for method output_type
+	34, // [34:45] is the sub-list for method input_type
+	34, // [34:34] is the sub-list for extension type_name
+	34, // [34:34] is the sub-list for extension extendee
+	0,  // [0:34] is the sub-list for field type_name
 }
 
 func init() { file_gitd_v1_gitd_proto_init() }
@@ -2530,23 +2755,23 @@ func file_gitd_v1_gitd_proto_init() {
 		(*Revision_Branch)(nil),
 		(*Revision_Commit)(nil),
 	}
-	file_gitd_v1_gitd_proto_msgTypes[7].OneofWrappers = []any{
+	file_gitd_v1_gitd_proto_msgTypes[8].OneofWrappers = []any{
 		(*PrepareResponse_Progress)(nil),
 		(*PrepareResponse_Result)(nil),
 	}
-	file_gitd_v1_gitd_proto_msgTypes[10].OneofWrappers = []any{
+	file_gitd_v1_gitd_proto_msgTypes[11].OneofWrappers = []any{
 		(*UpdateResponse_Progress)(nil),
 		(*UpdateResponse_Result)(nil),
 	}
-	file_gitd_v1_gitd_proto_msgTypes[12].OneofWrappers = []any{
+	file_gitd_v1_gitd_proto_msgTypes[13].OneofWrappers = []any{
 		(*CheckoutResponse_Progress)(nil),
 		(*CheckoutResponse_Result)(nil),
 	}
-	file_gitd_v1_gitd_proto_msgTypes[14].OneofWrappers = []any{
+	file_gitd_v1_gitd_proto_msgTypes[15].OneofWrappers = []any{
 		(*SyncSubmodulesResponse_Progress)(nil),
 		(*SyncSubmodulesResponse_Result)(nil),
 	}
-	file_gitd_v1_gitd_proto_msgTypes[21].OneofWrappers = []any{
+	file_gitd_v1_gitd_proto_msgTypes[22].OneofWrappers = []any{
 		(*AdoptResponse_Progress)(nil),
 		(*AdoptResponse_Result)(nil),
 	}
@@ -2555,8 +2780,8 @@ func file_gitd_v1_gitd_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_gitd_v1_gitd_proto_rawDesc), len(file_gitd_v1_gitd_proto_rawDesc)),
-			NumEnums:      2,
-			NumMessages:   33,
+			NumEnums:      3,
+			NumMessages:   34,
 			NumExtensions: 0,
 			NumServices:   3,
 		},

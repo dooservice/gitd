@@ -22,16 +22,24 @@ import (
 // directories are looked for down to the configured sweep depth under the roots, where the
 // deepest workspace is, and as deep as a repository's path goes under the pools.
 type Keeper struct {
-	pools      *pool.Pools
-	templates  *template.Store
-	runner     *git.Runner
-	roots      []string
-	settings   config.Housekeeping
-	metrics    *metrics.Metrics
-	looseLimit int
-	packLimit  int
-	poolCount  atomic.Int64
-	poolBytes  atomic.Int64
+	pools         *pool.Pools
+	templates     *template.Store
+	runner        *git.Runner
+	roots         []string
+	settings      config.Housekeeping
+	metrics       *metrics.Metrics
+	looseLimit    int
+	packLimit     int
+	poolCount     atomic.Int64
+	poolBytes     atomic.Int64
+	templateCount atomic.Int64
+	templateBytes atomic.Int64
+}
+
+// TemplateTotals are how many templates there were and the disk they took, as of the last
+// round.
+func (keeper *Keeper) TemplateTotals() (int, int64) {
+	return int(keeper.templateCount.Load()), keeper.templateBytes.Load()
 }
 
 // Totals are how many pools there were and the disk they took, as of the last round.

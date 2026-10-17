@@ -74,14 +74,17 @@ func Run(ctx context.Context, path, socket, version string) error {
 	go keeper.Run(ctx)
 
 	served := &server.Server{
-		Version:     version,
-		Workspaces:  workspaces,
-		Pools:       pools,
-		Runner:      runner,
-		Metrics:     measured,
-		Operation:   limits.Operation,
-		Totals:      keeper.Totals,
-		RetirePools: keeper.Retire,
+		Version:        version,
+		Workspaces:     workspaces,
+		Pools:          pools,
+		Runner:         runner,
+		Metrics:        measured,
+		Operation:      limits.Operation,
+		Totals:         keeper.Totals,
+		RetirePools:    keeper.Retire,
+		Strategy:       made.Proto(),
+		StrategyReason: why,
+		TemplateTotals: keeper.TemplateTotals,
 	}
 	return served.Serve(ctx, settings.Socket, settings.Metrics)
 }

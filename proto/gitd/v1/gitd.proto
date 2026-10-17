@@ -131,6 +131,30 @@ message PrepareRequest {
   // Otherwise only what is checked out, without the history behind it; submodules are
   // always so.
   bool full_history = 6;
+  // How to make it, when there is a preference: STRATEGY_COPY writes every file even where
+  // an overlay could be mounted. Unspecified is gitd's choice, the fastest this machine
+  // allows. A strategy that cannot run here falls back to copy; the result says which ran.
+  Strategy strategy = 7;
+}
+
+// How a workspace was made.
+enum Strategy {
+  STRATEGY_UNSPECIFIED = 0;
+  // Every file written.
+  STRATEGY_COPY = 1;
+  // A layer of its own mounted on a shared template, read only: milliseconds, and only
+  // what changes takes disk.
+  STRATEGY_OVERLAY = 2;
+  // The template cloned block by block: almost no disk.
+  STRATEGY_REFLINK = 3;
+}
+
+// The directories of an overlay workspace: the template below, read only, and the
+// workspace's own layer above.
+message Layers {
+  string lower = 1;
+  string upper = 2;
+  string work = 3;
 }
 
 message PrepareResponse {
@@ -144,6 +168,9 @@ message WorkspaceResult {
   string commit = 1;
   string branch = 2;
   repeated PendingSubmodule pending_submodules = 3;
+  // How the workspace was made, and its layers when by overlay.
+  Strategy strategy = 4;
+  Layers layers = 5;
 }
 
 message UpdateRequest {
@@ -207,6 +234,10 @@ message DescribeResponse {
   // leave it.
   bool modified = 4;
   repeated SubmoduleState submodules = 5;
+  // How the workspace was made, and its layers when by overlay. Workspaces made before
+  // gitd said so read as STRATEGY_COPY.
+  Strategy strategy = 6;
+  Layers layers = 7;
 }
 
 message RemoveRequest {
@@ -296,4 +327,10 @@ message InfoResponse {
   // How many pools there are and the disk they take, as of the last maintenance round.
   int32 pools = 3;
   int64 pools_bytes = 4;
+  // How new workspaces are made on this machine, and why: what gitd detected at start.
+  Strategy strategy = 5;
+  string strategy_reason = 6;
+  // How many templates there are and the disk they take, as of the last maintenance round.
+  int32 templates = 7;
+  int64 templates_bytes = 8;
 }

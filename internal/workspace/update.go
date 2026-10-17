@@ -86,5 +86,6 @@ func (workspaces *Workspaces) moveTo(ctx context.Context, work job) (Result, err
 	if err != nil {
 		return Result{}, err
 	}
+	result.Strategy, result.Layers = workspaces.made(ctx, work.path)
 	return result, workspaces.note(ctx, work.path, used)
 }

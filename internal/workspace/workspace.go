@@ -65,14 +65,19 @@ func New(
 
 // Result is where a workspace ended up, and the submodules that could not come along.
 type Result struct {
-	Commit  string
-	Branch  string
-	Pending []*gitdv1.PendingSubmodule
+	Commit   string
+	Branch   string
+	Pending  []*gitdv1.PendingSubmodule
+	Strategy gitdv1.Strategy
+	Layers   *gitdv1.Layers
 }
 
 // Proto is the result as the contract carries it.
 func (result Result) Proto() *gitdv1.WorkspaceResult {
-	return &gitdv1.WorkspaceResult{Commit: result.Commit, Branch: result.Branch, PendingSubmodules: result.Pending}
+	return &gitdv1.WorkspaceResult{
+		Commit: result.Commit, Branch: result.Branch, PendingSubmodules: result.Pending,
+		Strategy: result.Strategy, Layers: result.Layers,
+	}
 }
 
 // job is one write on one workspace: where it is, the repository it holds, the revision it
@@ -86,6 +91,8 @@ type job struct {
 	full       bool
 	given      []credentials.Credential
 	report     Report
+	// strategy is how the job asks for a new workspace to be made, "" for gitd's choice.
+	strategy strategy.Name
 }
 
 // want is what the job needs of its pool: the commit it goes to, the whole history, or the

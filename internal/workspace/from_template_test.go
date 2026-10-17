@@ -78,12 +78,18 @@ func TestAWorkspaceMadeFromATemplateIsOnItsBranchAndUnmadeOnRemove(t *testing.T)
 	if result.Commit != tip || result.Branch != "main" {
 		t.Errorf("result = %+v; want %s on main", result, tip)
 	}
+	if result.Strategy != gitdv1.Strategy_STRATEGY_OVERLAY || result.Layers == nil || result.Layers.GetLower() == "" {
+		t.Errorf("the result does not say it was made by overlay, with its layers: %+v", result)
+	}
 	described, err := workspaces.Describe(ctx, &gitdv1.DescribeRequest{Path: agent("agent-1").path})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if described.GetBranch() != "main" || described.GetCommit() != tip || described.GetModified() || described.GetUrl() != repository.HTTPS() {
 		t.Errorf("described = %+v", described)
+	}
+	if described.GetStrategy() != gitdv1.Strategy_STRATEGY_OVERLAY || described.GetLayers().GetUpper() == "" {
+		t.Errorf("describe does not say it was made by overlay: %+v", described)
 	}
 	if head := run(t, agent("agent-1").path, "symbolic-ref", "HEAD"); head != "refs/heads/main" {
 		t.Errorf("HEAD is %s, not refs/heads/main", head)
@@ -120,5 +126,23 @@ func TestAWorkspaceMadeFromATemplateIsOnItsBranchAndUnmadeOnRemove(t *testing.T)
 	full.full = true
 	if workspaces.fromTemplate(full) {
 		t.Error("a whole-history workspace would be made from a template, which holds one commit")
+	}
+	for _, asked := range []strategy.Name{strategy.Copy, strategy.Reflink} {
+		other := agent("agent-4")
+		other.strategy = asked
+		if workspaces.fromTemplate(other) {
+			t.Errorf("asked for %s, the workspace would be made by overlay", asked)
+		}
+	}
+
+	written, err := workspaces.create(ctx, agent("agent-5"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if written.Strategy != gitdv1.Strategy_STRATEGY_COPY || written.Layers != nil {
+		t.Errorf("a written workspace's result = %+v", written)
+	}
+	if made, _ := workspaces.made(ctx, agent("agent-5").path); made != gitdv1.Strategy_STRATEGY_COPY {
+		t.Errorf("a written workspace reads as %v", made)
 	}
 }

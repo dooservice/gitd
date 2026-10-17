@@ -9,6 +9,7 @@ import (
 
 	"github.com/dooservice/gitd/internal/git"
 	"github.com/dooservice/gitd/internal/pool"
+	"github.com/dooservice/gitd/internal/strategy"
 )
 
 // create makes the workspace in a temporary directory next to where it goes, borrowing
@@ -38,10 +39,12 @@ func (workspaces *Workspaces) create(ctx context.Context, work job) (Result, err
 		"gitd.url", work.repository.HTTPS(),
 		"gitd.pool", workspaces.pools.Path(work.repository),
 		"gitd.history", history,
+		"gitd.strategy", string(strategy.Copy),
 	); err != nil {
 		return Result{}, err
 	}
 	result, used, err := workspaces.bringUp(ctx, building)
+	result.Strategy = strategy.Copy.Proto()
 	if err != nil {
 		return Result{}, err
 	}

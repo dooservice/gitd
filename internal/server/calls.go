@@ -42,12 +42,19 @@ func (server *Server) Info(
 		return nil, server.refuse(err)
 	}
 	pools, poolsBytes := server.Totals()
-	return connect.NewResponse(&gitdv1.InfoResponse{
-		Version:    server.Version,
-		GitVersion: gitVersion,
-		Pools:      int32(pools),
-		PoolsBytes: poolsBytes,
-	}), nil
+	answer := &gitdv1.InfoResponse{
+		Version:        server.Version,
+		GitVersion:     gitVersion,
+		Pools:          int32(pools),
+		PoolsBytes:     poolsBytes,
+		Strategy:       server.Strategy,
+		StrategyReason: server.StrategyReason,
+	}
+	if server.TemplateTotals != nil {
+		templates, templatesBytes := server.TemplateTotals()
+		answer.Templates, answer.TemplatesBytes = int32(templates), templatesBytes
+	}
+	return connect.NewResponse(answer), nil
 }
 
 func (server *Server) Retire(

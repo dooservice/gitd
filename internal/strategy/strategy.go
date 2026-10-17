@@ -7,6 +7,8 @@ package strategy
 import (
 	"context"
 	"errors"
+
+	gitdv1 "github.com/dooservice/gitd/gen/go/gitd/v1"
 )
 
 // Name names a strategy, as the configuration and the answers say it.
@@ -33,3 +35,29 @@ type Maker interface {
 
 // ErrUnsupported is a strategy this machine, or this path, cannot run.
 var ErrUnsupported = errors.New("not supported here")
+
+// Proto is the name as the contract carries it.
+func (name Name) Proto() gitdv1.Strategy {
+	switch name {
+	case Overlay:
+		return gitdv1.Strategy_STRATEGY_OVERLAY
+	case Reflink:
+		return gitdv1.Strategy_STRATEGY_REFLINK
+	case Copy:
+		return gitdv1.Strategy_STRATEGY_COPY
+	}
+	return gitdv1.Strategy_STRATEGY_UNSPECIFIED
+}
+
+// FromProto is the name a request's strategy asks for; unspecified is "".
+func FromProto(strategy gitdv1.Strategy) Name {
+	switch strategy {
+	case gitdv1.Strategy_STRATEGY_OVERLAY:
+		return Overlay
+	case gitdv1.Strategy_STRATEGY_REFLINK:
+		return Reflink
+	case gitdv1.Strategy_STRATEGY_COPY:
+		return Copy
+	}
+	return ""
+}

@@ -7,6 +7,7 @@ import (
 	"github.com/dooservice/gitd/internal/credentials"
 	"github.com/dooservice/gitd/internal/git"
 	"github.com/dooservice/gitd/internal/repo"
+	"github.com/dooservice/gitd/internal/strategy"
 )
 
 // Prepare makes a workspace of a repository at a path, at a branch, a commit, or the
@@ -46,6 +47,7 @@ func (workspaces *Workspaces) Prepare(
 		revision:   request.GetRevision(),
 		submodules: request.GetWithSubmodules(),
 		full:       request.GetFullHistory() || held != nil && workspaces.keepsHistory(ctx, path),
+		strategy:   strategy.FromProto(request.GetStrategy()),
 		given:      credentials.FromProto(request.GetCredentials()),
 		report:     report,
 	}
