@@ -181,6 +181,15 @@ func (client *Client) Retire(ctx context.Context, unusedForSeconds int64) (*gitd
 	return answer.Msg, nil
 }
 
+// Audit reads the audit log: every publish, done or refused, newest first.
+func (client *Client) Audit(ctx context.Context, request *gitdv1.AuditRequest) (*gitdv1.AuditResponse, error) {
+	answer, err := client.Server.Audit(ctx, connect.NewRequest(request))
+	if err != nil {
+		return nil, err
+	}
+	return answer.Msg, nil
+}
+
 // Reason is why gitd refused a call, as the contract names it, and what git said, read
 // from the error's typed detail; empty when the error is not one of gitd's refusals.
 func Reason(err error) (reason, said string) {

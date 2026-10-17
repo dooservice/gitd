@@ -3,9 +3,12 @@ package mcpserver
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
+	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	gitdv1 "github.com/dooservice/gitd/gen/go/gitd/v1"
 	"github.com/dooservice/gitd/internal/client"
@@ -62,6 +65,12 @@ func (tools *tools) register(server *mcp.Server) {
 		Description: "Say whether a repository can be read with the credentials gitd keeps, its default branch, and its branches with the commit each points at.",
 		Annotations: &mcp.ToolAnnotations{ReadOnlyHint: true, IdempotentHint: true, OpenWorldHint: yes()},
 	}, tools.probe)
+	mcp.AddTool(server, &mcp.Tool{
+		Name:        "read_audit_log",
+		Title:       "Read the audit log",
+		Description: "List the publishes gitd made or refused, newest first: when, from which workspace, to which repository and branch, and what was pushed or why it was refused.",
+		Annotations: &mcp.ToolAnnotations{ReadOnlyHint: true, IdempotentHint: true, OpenWorldHint: no()},
+	}, tools.audit)
 }
 
 // Inputs and outputs, as the agent sees them.
@@ -98,6 +107,12 @@ type publishInput struct {
 
 type probeInput struct {
 	URL string `json:"url" jsonschema:"the repository, as https://host/owner/name, git@host:owner/name or ssh://"`
+}
+
+type auditInput struct {
+	Since string `json:"since,omitempty" jsonschema:"only the publishes of this long ago or later, e.g. 24h or 30m; default: all"`
+	URL   string `json:"url,omitempty" jsonschema:"only the publishes of this repository, by its https URL"`
+	Limit int32  `json:"limit,omitempty" jsonschema:"at most this many; default 100, at most 1000"`
 }
 
 type pending struct {
@@ -153,6 +168,19 @@ type probeOutput struct {
 	Denied        string            `json:"denied,omitempty" jsonschema:"why it cannot be read"`
 }
 
+type auditEntry struct {
+	Time         string      `json:"time"`
+	Workspace    string      `json:"workspace"`
+	URL          string      `json:"url,omitempty"`
+	Branch       string      `json:"branch"`
+	Repositories []published `json:"repositories,omitempty" jsonschema:"what was pushed, when it was published"`
+	Refused      string      `json:"refused,omitempty" jsonschema:"why it was refused, when it was"`
+}
+
+type auditOutput struct {
+	Entries []auditEntry `json:"entries" jsonschema:"newest first"`
+}
+
 // Handlers.
 
 func (tools *tools) prepare(ctx context.Context, _ *mcp.CallToolRequest, in prepareInput) (*mcp.CallToolResult, workspaceOutput, error) {
@@ -196,13 +224,7 @@ func (tools *tools) publish(ctx context.Context, _ *mcp.CallToolRequest, in publ
 	if err != nil {
 		return nil, publishOutput{}, refusal(err)
 	}
-	out := publishOutput{Branch: answer.GetBranch()}
-	for _, repository := range append([]*gitdv1.PublishedRepository{answer.GetRepository()}, answer.GetSubmodules()...) {
-		out.Repositories = append(out.Repositories, published{
-			URL: repository.GetUrl(), Path: repository.GetPath(), Commit: repository.GetCommit(), Subjects: repository.GetSubjects(),
-		})
-	}
-	return nil, out, nil
+	return nil, publishOutput{Branch: answer.GetBranch(), Repositories: publishedOf(answer.GetRepository(), answer.GetSubmodules())}, nil
 }
 
 func (tools *tools) remove(ctx context.Context, _ *mcp.CallToolRequest, in pathInput) (*mcp.CallToolResult, removeOutput, error) {
@@ -222,6 +244,45 @@ func (tools *tools) probe(ctx context.Context, _ *mcp.CallToolRequest, in probeI
 		out.Denied = failure.GetGitSaid()
 	}
 	return nil, out, nil
+}
+
+func (tools *tools) audit(ctx context.Context, _ *mcp.CallToolRequest, in auditInput) (*mcp.CallToolResult, auditOutput, error) {
+	request := &gitdv1.AuditRequest{Url: in.URL, Limit: in.Limit}
+	if in.Since != "" {
+		ago, err := time.ParseDuration(in.Since)
+		if err != nil {
+			return nil, auditOutput{}, fmt.Errorf("since %q is not a duration such as 24h", in.Since)
+		}
+		request.Since = timestamppb.New(time.Now().Add(-ago))
+	}
+	answer, err := tools.gitd.Audit(ctx, request)
+	if err != nil {
+		return nil, auditOutput{}, refusal(err)
+	}
+	out := auditOutput{Entries: []auditEntry{}}
+	for _, entry := range answer.GetEntries() {
+		recorded := auditEntry{
+			Time: entry.GetTime().AsTime().UTC().Format(time.RFC3339), Workspace: entry.GetWorkspace(),
+			URL: entry.GetUrl(), Branch: entry.GetBranch(),
+		}
+		if failure := entry.GetRefusal(); failure != nil {
+			recorded.Refused = strings.TrimPrefix(failure.GetReason().String(), "REASON_") + ": " + failure.GetGitSaid()
+		} else {
+			recorded.Repositories = publishedOf(entry.GetRepository(), entry.GetSubmodules())
+		}
+		out.Entries = append(out.Entries, recorded)
+	}
+	return nil, out, nil
+}
+
+// publishedOf is what a publish pushed, as the agent reads it: the workspace's repository
+// first, then each submodule.
+func publishedOf(repository *gitdv1.PublishedRepository, submodules []*gitdv1.PublishedRepository) []published {
+	var out []published
+	for _, pushed := range append([]*gitdv1.PublishedRepository{repository}, submodules...) {
+		out = append(out, published{URL: pushed.GetUrl(), Path: pushed.GetPath(), Commit: pushed.GetCommit(), Subjects: pushed.GetSubjects()})
+	}
+	return out
 }
 
 // workspace is where a workspace ended up, as the agent reads it.

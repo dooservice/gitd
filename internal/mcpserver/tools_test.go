@@ -56,6 +56,7 @@ func TestEveryToolSaysWhetherItReadsOrDestroys(t *testing.T) {
 		"publish_branch":     {false, false},
 		"remove_workspace":   {false, true},
 		"probe_repository":   {true, false},
+		"read_audit_log":     {true, false},
 	}
 	got := listed(t)
 	if len(got) != len(want) {

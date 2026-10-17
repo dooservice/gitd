@@ -87,3 +87,16 @@ func TestEveryPublishIsRecordedAndABranchOutsideThePrefixRefused(t *testing.T) {
 		t.Errorf("the entry names %q; want the workspace's repository", url)
 	}
 }
+
+func TestADonePublishIsRecordedWithWhatItPushed(t *testing.T) {
+	recorded := &entries{}
+	workspaces := &Workspaces{publishing: Publishing{Recorder: recorded}}
+	pushed := &gitdv1.PublishedRepository{Url: "https://github.com/acme/web", Commit: "abc", Subjects: []string{"Fix"}}
+	submodule := &gitdv1.PublishedRepository{Url: "https://github.com/acme/lib", Path: "lib", Commit: "def"}
+	answer := &gitdv1.PublishResponse{Branch: "agents/fix", Repository: pushed, Submodules: []*gitdv1.PublishedRepository{submodule}}
+	workspaces.record(&gitdv1.AuditEntry{Workspace: "/w", Branch: "agents/fix"}, answer, nil)
+	entry := recorded.kept[0]
+	if entry.GetRefusal() != nil || entry.GetRepository() != pushed || len(entry.GetSubmodules()) != 1 {
+		t.Fatalf("entry = %v; want what was pushed and no refusal", entry)
+	}
+}
