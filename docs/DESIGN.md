@@ -338,9 +338,13 @@ carries each repository's new commit subjects.
 
 **Rules.** The **publishing settings** of every prefix that opens a repository — those of
 `[[publish.settings]]` and `[publish] branch_prefix`, and those a platform sets through
-`PublishingService` — make what publishing it must follow (`publishing.Effective`): their
-paths added up, the smallest file limit, the most specific branch prefix and pull request
-choices. A branch outside the prefix is refused (`BRANCH_REFUSED`) before anything is
+`PublishingService` — make what publishing it must follow (`publishing.Effective`): each
+setting's rules as a group — its **preset's**, by name, and its own — checked on their own,
+its allowed paths leaving only that group's rules free (git's `:(exclude)` pathspecs); the
+smallest file limit; the most specific branch prefix and pull request choices. Presets are
+data: gitd's own `recommended`, which one of its name replaces, the file's
+`[[publish.presets]]`, and those set through `PublishingService`, kept in
+`<state>/publishing/presets.json`; one settings take cannot be removed. A branch outside the prefix is refused (`BRANCH_REFUSED`) before anything is
 staged. Once staged, the commits to push are read in the pool, each on its own, with
 `git log --no-renames --diff-merges=remerge` (`pool.Touched`): a protected path changed, a
 kept path deleted or renamed away, or more files changed than allowed refuses the publish

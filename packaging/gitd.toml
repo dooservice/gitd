@@ -66,6 +66,15 @@ known_hosts = []
 # pushes over a branch that exists, so a prefix keeps agents off every branch people use.
 branch_prefix = ""               # e.g. "agents/"
 
+# Presets: named sets of rules settings take by name. gitd has its own, "recommended"
+# (protects the CI, CODEOWNERS and .gitmodules; keeps tests; 200 files); one of that name
+# replaces it. Platforms usually set them through the API (`gitd publishing preset set`).
+# [[publish.presets]]
+# name = "strict"
+# protected_paths = [".github/**", "deploy/**"]
+# kept_paths = ["migrations/**"]
+# max_changed_files = 50
+
 # The rules publishing follows for the repositories under a prefix ("" for every one).
 # Platforms usually set them through the API (`gitd publishing set`, or PublishingService);
 # those declared here are shown there and never changed. Every setting whose prefix opens
@@ -73,9 +82,10 @@ branch_prefix = ""               # e.g. "agents/"
 # never loosens a broader one. Checked on the commits to push, before anything is pushed.
 # [[publish.settings]]
 # prefix = "https://github.com/your-org"
-# preset = "recommended"         # protects the CI, CODEOWNERS, .gitmodules; keeps tests; 200 files
+# preset = "recommended"                   # a preset, by name, whose rules these take
 # protected_paths = ["deploy/**"]          # may not be changed, as git's glob pathspecs
 # kept_paths = ["migrations/**"]           # may change, not be deleted or renamed away
+# allowed_paths = [".gitmodules"]          # left free of these settings' own rules
 # max_changed_files = 100
 # branch_prefix = "agents/"                # must start with every broader one
 # pull_requests = { open = "always", draft = true, labels = ["agent"], request_review_from_requester = true }

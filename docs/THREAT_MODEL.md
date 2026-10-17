@@ -168,9 +168,11 @@ is stopped or paused** (§4, first rows). So:
   (`TestTheCommitsToPublishSayWhichPathsTheyTouch`,
   `TestAPublishThatBreaksARuleIsRefusedBeforeAnythingIsPushed`). git matches the paths;
   a pattern that would be git's pathspec magic is refused.
-- **Every setting that opens a repository applies**: paths add up, the smallest file limit
-  wins, and a narrower branch prefix must start with every broader one, so no setting
-  loosens another.
+- **Every setting that opens a repository applies**, each checked on its own: the paths a
+  setting allows free only its own rules, never what another setting protects or keeps
+  (`TestAllowedPathsFreeOnlyTheirOwnSettingsRules`); the smallest file limit wins; and a
+  narrower branch prefix must start with every broader one, so no setting loosens another.
+  Presets are set by a caller on the socket, as settings are, and recorded.
 - **A pull request is opened with the credential that pushed**, after the push; if it cannot
   be, the branch stays published and the answer says why. An agent may ask for one through
   MCP, but never say who asked for the work: that would let it have gitd ask anyone to

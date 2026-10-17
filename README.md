@@ -98,7 +98,8 @@ gitd audit [--since 24h] [--repository URL] [--limit N]
 gitd publish PATH BRANCH [--requested-by LOGIN] [--pull-request] [--title T] [--draft]
 gitd connect github | github-app --name N [--org O]
 gitd connections list | remove ID | add-token PREFIX --token-env VAR | add-github-app
-gitd publishing show | set PREFIX [--preset recommended] … | remove PREFIX
+gitd publishing show | set PREFIX [--preset NAME] [--allow PATH] … | remove PREFIX
+gitd publishing preset list | set NAME [--protect P] [--keep P] [--max-files N] | remove NAME
 gitd mcp
 ```
 
@@ -173,12 +174,23 @@ $ gitd publishing set https://github.com/acme --preset recommended --branch-pref
     --pull-requests always --draft --label agent --review-requester
 ```
 
-The `recommended` preset protects `.github/workflows/**`, `.gitlab-ci.yml`, `CODEOWNERS`
-and `.gitmodules`, keeps tests from being deleted or renamed away, and allows at most 200
-files changed. A merge counts only what it brings itself, so merging what people changed on
-`main` is not the agent's change. Every setting whose prefix opens a repository applies,
-and a narrower one never loosens a broader one. The same settings can be declared in the
-file (`[[publish.settings]]`, and `[publish] branch_prefix` for every repository).
+gitd's own `recommended` preset protects `.github/workflows/**`, `.gitlab-ci.yml`,
+`CODEOWNERS` and `.gitmodules`, keeps tests from being deleted or renamed away, and allows at
+most 200 files changed. Presets are data, not code: define your own, or replace
+`recommended` with one of its name, and every setting that takes it changes at once; a
+setting can also leave paths of its preset free:
+
+```sh
+$ gitd publishing preset set strict --protect '.github/**' --protect 'deploy/**' --keep 'migrations/**' --max-files 50
+$ gitd publishing set https://github.com/acme/tools --preset recommended --allow .gitmodules
+```
+
+A merge counts only what it brings itself, so merging what people changed on `main` is not
+the agent's change. Every setting whose prefix opens a repository applies, each checked on
+its own: what one allows never frees what another protects, and a narrower one never
+loosens a broader one. Presets and settings can be declared in the file too
+(`[[publish.presets]]`, `[[publish.settings]]`, and `[publish] branch_prefix` for every
+repository).
 
 When the settings say so, or a publish asks, gitd opens the pull request on GitHub with
 the credential that pushed: from the App's bot, the person who asked for the work
@@ -253,6 +265,7 @@ Every key has a default; [`packaging/gitd.toml`](packaging/gitd.toml) shows them
 | `secrets_key_file` | empty | The key that encrypts the secrets of connections made through the API |
 | `[github]` | gitd's public App | The App people sign in through with `gitd connect github` |
 | `[publish]` | `branch_prefix = ""` (any new branch) | What every published branch must start with |
+| `[[publish.presets]]` | gitd's `recommended` | Named sets of rules settings take; one named `recommended` replaces gitd's |
 | `[[publish.settings]]` | none | Rules and pull requests per repository prefix, as the API sets them |
 | `[audit]` | rotate at 16 MiB, keep a year | How the audit log of every publish and change is kept |
 | `[hosts."<host>"]` | — | `https_port`, `ssh_port`, `ssh_user` of a host not on the usual ones |
