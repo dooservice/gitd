@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"maps"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -80,13 +81,15 @@ func TestATokenIsForOneRepositoryAndWhatTheOperationNeeds(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	want := []string{"contents:read", "contents:write", "pull_requests:write"}
+	want := []map[string]any{
+		{"contents": "read", "metadata": "read"},
+		{"contents": "write", "metadata": "read"},
+		{"pull_requests": "write", "contents": "read", "metadata": "read"},
+	}
 	for index, asked := range fake.asked {
 		repositories := asked["repositories"].([]any)
-		granted := asked["permissions"].(map[string]any)
-		key, level, _ := strings.Cut(want[index], ":")
-		if len(repositories) != 1 || repositories[0] != "web" || granted[key] != level || len(granted) != 2 {
-			t.Errorf("token %d asked for %v", index, asked)
+		if len(repositories) != 1 || repositories[0] != "web" || !maps.Equal(asked["permissions"].(map[string]any), want[index]) {
+			t.Errorf("token %d asked for %v; want %v", index, asked, want[index])
 		}
 	}
 }

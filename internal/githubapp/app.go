@@ -17,11 +17,12 @@ import (
 // enough for the longest push to finish with it.
 const renewBefore = 5 * time.Minute
 
-// permissions are what a token is limited to for each purpose.
+// permissions are what a token is limited to for each purpose. Opening a pull request
+// reads the branches it compares, so it takes contents to read as well.
 var permissions = map[credentials.Purpose]map[string]string{
 	credentials.Read:         {"contents": "read", "metadata": "read"},
 	credentials.Write:        {"contents": "write", "metadata": "read"},
-	credentials.PullRequests: {"pull_requests": "write", "metadata": "read"},
+	credentials.PullRequests: {"pull_requests": "write", "contents": "read", "metadata": "read"},
 }
 
 // ErrNotInstalled is a repository the App cannot reach: not installed on its owner, or not
