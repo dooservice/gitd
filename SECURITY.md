@@ -4,6 +4,9 @@ gitd holds the credentials that read and push private repositories, so that the 
 and sandboxes working in its workspaces never do. Keeping them out of reach is its whole
 point, and we treat every report seriously.
 
+What gitd protects, from whom, how, and what it leaves to the deployment is in
+[docs/THREAT_MODEL.md](docs/THREAT_MODEL.md).
+
 ## Reporting a vulnerability
 
 Do not open a public issue. Report it privately through GitHub:

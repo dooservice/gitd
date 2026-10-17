@@ -117,8 +117,9 @@ ssh_key = "/etc/gitd/keys/id_ed25519"
 A repository is read with the most specific credential that opens it, and only that one. A
 token reaches git as an HTTP header in its environment, scoped to that one repository; a
 key, through `GIT_SSH_COMMAND`, with hosts checked against known keys (GitHub, GitLab,
-Bitbucket and Codeberg are built in). A caller may still send a credential with a request,
-which wins over a kept one of the same prefix.
+Bitbucket and Codeberg are built in). A token's prefix must name its host, or gitd does not
+start: with none it would go to any host a submodule names. A caller may still send a
+credential with a request, which wins over a kept one of the same prefix.
 
 ## Publishing rules
 
@@ -231,8 +232,9 @@ Pushing a tag such as `0.6.0` releases the binaries, the image and both clients.
 
 ## Contributing and security
 
-See [CONTRIBUTING.md](CONTRIBUTING.md). To report a vulnerability, do not open an issue:
-follow [SECURITY.md](SECURITY.md).
+See [CONTRIBUTING.md](CONTRIBUTING.md). What gitd protects, from whom, and what it leaves to
+you is in [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md). To report a vulnerability, do not
+open an issue: follow [SECURITY.md](SECURITY.md).
 
 ## License
 

@@ -128,8 +128,9 @@ it. It is a service rather than a setcap binary because gitd's unit keeps
 `NoNewPrivileges`, and it has no mount namespace of its own, so its mounts are seen.
 
 ### Credential
-What opens a repository, bound to a **URL prefix** (`https://github.com/acme/web`, or empty
-for "any repository"). Two kinds:
+What opens a repository, bound to a **URL prefix** (`https://github.com/acme/web`, or, for
+a key only, empty for "any repository": a token's prefix must name its host, or it would go
+to any host a submodule names). Two kinds:
 
 - **Kept by gitd**, in `[[credentials]]` of its configuration, which names where each
   secret is — `token_file`, `token_env` or `ssh_key` — never the secret. They are read once
@@ -322,6 +323,16 @@ reads it newest first, by time and repository, as `gitd audit` and `read_audit_l
 publish is done by the time it is recorded, so an entry that cannot be written is logged
 as an error rather than answered as one.
 
+### What a workspace may not do
+
+Whoever works in a workspace writes its `.git`, so gitd trusts nothing there it has not
+checked: every key of its configuration, and of each submodule's, must be on an allow-list
+(`internal/workspace/config_keys.go`), or the call is refused (`CONFIG_REFUSED`); `.git`
+must be a directory of its own; the repository it names counts only when that repository's
+pool lists it among its own (`gitd-owned`); and gitd's writes for a submodule go through an
+`os.Root` of the workspace. What this protects, and what it does not, is in
+[THREAT_MODEL.md](THREAT_MODEL.md).
+
 ### Remove (`Remove`)
 Deletes a workspace. Its pool stays; when no workspace borrows from it for a configurable
 time, maintenance retires it.
@@ -385,6 +396,7 @@ Connect codes with a typed detail (`GitFailure`) saying what happened and what g
 | `CORRUPT` | `fsck` found missing objects | `DATA_LOSS` |
 | `NOTHING_NEW` | `Publish` found no new commit to push | `FAILED_PRECONDITION` |
 | `BRANCH_REFUSED` | `Publish` to a branch outside `[publish] branch_prefix` | `PERMISSION_DENIED` |
+| `CONFIG_REFUSED` | The workspace's git configuration sets a key gitd does not run git under | `FAILED_PRECONDITION` |
 | `GIT_FAILED` | Any other git failure | `INTERNAL` |
 
 A call cancelled or out of time without git failing answers `CANCELED` or
