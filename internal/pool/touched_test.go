@@ -81,4 +81,8 @@ func TestTheCommitsToPublishSayWhichPathsTheyTouch(t *testing.T) {
 	if !slices.Equal(deleted, []string{"tests/a_test.go"}) {
 		t.Errorf("deleted = %v; a test renamed away is deleted", deleted)
 	}
+	added, removed, err := kept.Lines(ctx, repository, "agents/fix")
+	if err != nil || added != 2 || removed != 2 {
+		t.Errorf("lines = +%d -%d, %v; want app.go's change and the rename, not main's", added, removed, err)
+	}
 }
