@@ -104,9 +104,11 @@ GitHub runner (4 CPUs, git 2.55):
 - **reflink is not a speed strategy.** Cloning file by file is slower than writing the files
   (3.3 s against 2.3 s); it only saves disk. It stays as an option for machines short of
   disk and without overlay, never chosen for speed.
-- **fuse-overlayfs, as tried, does not work:** run unprivileged outside a user namespace, it
-  refuses writes inside `.git`, and git breaks. It is kept out of the automatic choice until
-  a run inside a user namespace (how rootless Podman uses it) proves it, in task 6.
+- **fuse-overlayfs stays out of gitd:** run unprivileged outside a user namespace, it refuses
+  writes inside `.git`, and git breaks. Inside a user namespace it may work, but a mount made
+  there is seen only in that namespace, so gitd could never hand it to a sandbox: whatever
+  the result, it could not join gitd's choice. It is a runtime's tool — rootless Podman can
+  use it on the layers gitd hands over in 0.9 — and gitd does not test it.
 - **The `git status` tuning (D4) matters for reflink** (3.96 s to 0.74 s) and is a small gain
   on overlay; it is applied to both.
 
@@ -175,7 +177,8 @@ calls gitd in a few lines instead of writing a client.
 | D3 | The runtime mounts when it can; `gitd-mount` otherwise; never gitd itself | gitd stays unprivileged; the privilege is confined to one tiny program |
 | D3b | `gitd-mount` is a socket-activated service, not a setcap or setuid binary | Built that way after finding that gitd's unit keeps `NoNewPrivileges`, which voids file capabilities; a service also knows its caller by the kernel's credentials (`SO_PEERCRED`), not by anything it is told |
 | D4 | `core.checkStat=minimal` and `core.trustctime=false` in copy-on-write workspaces | The first `git status` stays fast (3.96 s to 0.74 s with reflink) |
-| D5 | A strategy is chosen automatically only if the conformance suite passes on it | git correctness is not negotiable — it is what kept fuse-overlayfs out |
+| D5 | A strategy is chosen automatically only if the conformance suite passes on it | git correctness is not negotiable — it is what kept fuse-overlayfs out of the spike's choice |
+| D5b | fuse-overlayfs is not tested in a user namespace | A mount made in one is seen only there, so gitd could not hand it to a sandbox: the result could not change a decision. It is left to runtimes, on the layers of 0.9 |
 | D6 | `update` and `checkout` stay plain git inside the workspace | Correct in every case |
 | D7 | New contract fields only | Principle 2 |
 | D7b | Handing a runtime the layers to mount itself moves to 0.9 | Docker needs none — gitd-mount mounts the workspace on the host, and the container binds it like any directory; the CSI driver is the first that needs layers, so it shapes that part of the contract |
@@ -205,7 +208,7 @@ calls gitd in a few lines instead of writing a client.
 | **0.7 · 3 `gitd-mount`** ✓ | The helper: a small root service with `CAP_SYS_ADMIN` only, socket-activated, with systemd units | Done: refuses any path outside its directories or through a symlink, any caller but gitd's user, any unmount of what is not an overlay; tests (root ones in CI) and a fuzz target; end to end, an unprivileged gitd made workspaces in 34–36 ms through it |
 | **0.7 · 4 Contract** ✓ | `[workspaces] strategy`; `strategy` on `Prepare`; `strategy` and `layers` in `WorkspaceResult` and `Describe`; strategy, its reason and templates in `Info`; CLI flags and MCP output | Done: buf breaking finds nothing against 0.6.0, and the 0.6.0 command line works against it |
 | **0.7 · 5 Lifecycle** ✓ | Unmount on remove; remount at start; templates and layers in the start-up sweep and in `Info` | Done: remounted at start and every round, never over files written while unmounted; half-built and orphaned layers swept, their templates let go; an agent's commit survives a reboot, end to end |
-| **0.7 · 6 Conformance** | What agents do — status, diff, add, commit, stash, rebase, checkout, submodules, publish — on every strategy in CI; fuse-overlayfs retried inside a user namespace | It gates D5; fuse-overlayfs either passes and joins, or stays out, recorded here |
+| **0.7 · 6 Conformance** ✓ | What agents do — status, diff, add, commit, stash, rebase, checkout, publish — on every strategy in CI | Done: copy, overlay and reflink pass, the other workspace sees nothing and the template never changes; CI runs it as root with an XFS disk. fuse-overlayfs is not tested: it could not join gitd's choice whatever the result (above) |
 | **0.7 · 7 SDKs** | Python and TypeScript clients from the contract with buf; published; one example each | `pip install` / `npm install`, then prepare, describe and publish in a few lines |
 | **0.7 · 8 Publishing rules** | `[publish] branch_prefix`; the audit log with its API, CLI and MCP reads, and rotation | A branch outside the prefix is refused; every publish is in the log |
 | **0.7 · 9 Threat model** | `docs/THREAT_MODEL.md`: what gitd protects, from whom, and how — credentials, roots, `gitd-mount`, MCP | Reviewed against the code |
@@ -426,7 +429,7 @@ benchmark, its docs and a release (principle 7).
 | 5 | 0.7 · 3 ✓ | `gitd-mount` | 4 |
 | 6 | 0.7 · 4 ✓ | Contract, CLI and MCP | 4 |
 | 7 | 0.7 · 5 ✓ | Lifecycle | 5, 6 |
-| 8 | 0.7 · 6 | Conformance suite gating the strategies; fuse-overlayfs in a user namespace | 4 |
+| 8 | 0.7 · 6 ✓ | Conformance suite gating the strategies | 4 |
 | 9 | 0.7 · 7 | Python and TypeScript SDKs | 6 |
 | 10 | 0.7 · 8 | Branch prefix and audit log | 6 |
 | 11 | 0.7 · 9–10 | Threat model and security review | 5, 10 |
