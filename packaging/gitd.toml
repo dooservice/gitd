@@ -24,6 +24,24 @@ known_hosts = []
 # ssh_port = 2222
 # ssh_user = "git"
 
+# Credentials gitd keeps, so that whoever asks for a workspace or a branch never holds one.
+# Each names where its secret is, never the secret: a token file (best a systemd credential,
+# `LoadCredential=` in gitd.service, which lives in memory at $CREDENTIALS_DIRECTORY), an
+# environment variable, or an SSH key. The most specific prefix that opens a repository is
+# used; a credential a request brings wins over a kept one of the same prefix.
+# [[credentials]]
+# prefix = "https://github.com/your-org"
+# token_file = "/run/credentials/gitd.service/github"
+#
+# [[credentials]]
+# prefix = "https://gitlab.com/your-group"
+# token_env = "GITLAB_TOKEN"
+# token_user = "oauth2"          # default: the one the host expects
+#
+# [[credentials]]
+# prefix = ""                    # any repository, e.g. a deploy key for everything public
+# ssh_key = "/etc/gitd/keys/id_ed25519"
+
 [limits]
 fetches = 4
 writes = 8

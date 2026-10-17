@@ -1,5 +1,5 @@
 [Unit]
-Description=gitd, the local copies of git repositories
+Description=gitd, instant and secretless git checkouts
 After=network-online.target
 Wants=network-online.target
 
@@ -8,7 +8,10 @@ Type=simple
 # The user that owns the workspaces: what gitd checks out is theirs, and the socket is
 # theirs alone. Create it first (`useradd --system --home /var/lib/gitd gitd`).
 User=gitd
-ExecStart=/usr/local/bin/gitd -config /etc/gitd/gitd.toml
+ExecStart=/usr/local/bin/gitd serve --config /etc/gitd/gitd.toml
+# Tokens gitd keeps, handed in memory: the file stays root's, and gitd reads its copy at
+# /run/credentials/gitd.service/<name>, which `token_file` in gitd.toml names.
+# LoadCredential=github:/etc/gitd/secrets/github-token
 Restart=always
 RestartSec=5
 RuntimeDirectory=gitd
