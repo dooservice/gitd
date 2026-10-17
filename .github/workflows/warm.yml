@@ -1,0 +1,41 @@
+name: warm layers
+
+# N workspaces of a JavaScript repository on a warm layer sealed after one install, against
+# N workspaces each installing its own. By hand, on a GitHub runner, so anyone can run it
+# again and get comparable numbers.
+on:
+  workflow_dispatch:
+    inputs:
+      repository:
+        description: "The repository"
+        default: "https://github.com/socketio/socket.io"
+      agents:
+        description: "How many workspaces"
+        default: "10"
+      install:
+        description: "The command that installs the dependencies"
+        default: "npm ci --ignore-scripts --no-audit --no-fund"
+
+jobs:
+  warm:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Build the image
+        run: docker build -t gitd:bench .
+
+      # gitd mounts overlays as root in its container, on the runner's disk, as gitd-mount
+      # does for an unprivileged gitd on a server.
+      - name: Run
+        env:
+          REPOSITORY: ${{ inputs.repository }}
+          AGENTS: ${{ inputs.agents }}
+          INSTALL: ${{ inputs.install }}
+        run: |
+          set -o pipefail
+          sudo benchmarks/warm.sh "$REPOSITORY" "$AGENTS" /mnt/gitd-warm "$INSTALL" | tee results.md
+
+      - name: Summary
+        run: cat results.md >> "$GITHUB_STEP_SUMMARY"
