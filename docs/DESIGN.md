@@ -294,6 +294,12 @@ All of them, or one. Reads the workspace's `.gitmodules` and brings each in from
 Commit, branch, whether there are local changes, and the state of each submodule, read from
 disk without the network.
 
+**git LFS.** gitd does not download LFS objects, so the files a repository keeps in LFS are
+pointer files in its workspaces. Prepare, update, checkout and describe say which, as
+`lfs_patterns` read from the workspace's `.gitattributes` (through an `os.Root`, so a link
+cannot make gitd read a file outside it): an agent learns why a test cannot read a model
+before it wonders.
+
 ### Probe a repository (`Probe`)
 `ls-remote --symref` with the credential that opens the repository, or with nothing:
 whether it can be read (public, reachable with that credential, or denied and why), its

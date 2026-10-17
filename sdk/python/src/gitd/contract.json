@@ -431,6 +431,13 @@
               "type": "TYPE_MESSAGE",
               "typeName": ".gitd.v1.Layers",
               "jsonName": "layers"
+            },
+            {
+              "name": "lfs_patterns",
+              "number": 6,
+              "label": "LABEL_REPEATED",
+              "type": "TYPE_STRING",
+              "jsonName": "lfsPatterns"
             }
           ]
         },
@@ -700,6 +707,13 @@
               "type": "TYPE_MESSAGE",
               "typeName": ".gitd.v1.Layers",
               "jsonName": "layers"
+            },
+            {
+              "name": "lfs_patterns",
+              "number": 8,
+              "label": "LABEL_REPEATED",
+              "type": "TYPE_STRING",
+              "jsonName": "lfsPatterns"
             }
           ]
         },

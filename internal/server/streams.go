@@ -19,6 +19,7 @@ func (server *Server) Prepare(
 	if err != nil {
 		return server.refuse(err)
 	}
+	result.LFS = server.Workspaces.LFS(request.Msg.GetPath())
 	return stream.Send(&gitdv1.PrepareResponse{Event: &gitdv1.PrepareResponse_Result{Result: result.Proto()}})
 }
 
@@ -33,6 +34,7 @@ func (server *Server) Update(
 	if err != nil {
 		return server.refuse(err)
 	}
+	result.LFS = server.Workspaces.LFS(request.Msg.GetPath())
 	return stream.Send(&gitdv1.UpdateResponse{Event: &gitdv1.UpdateResponse_Result{Result: result.Proto()}})
 }
 
@@ -47,6 +49,7 @@ func (server *Server) Checkout(
 	if err != nil {
 		return server.refuse(err)
 	}
+	result.LFS = server.Workspaces.LFS(request.Msg.GetPath())
 	return stream.Send(&gitdv1.CheckoutResponse{Event: &gitdv1.CheckoutResponse_Result{Result: result.Proto()}})
 }
 

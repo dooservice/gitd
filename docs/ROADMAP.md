@@ -377,6 +377,11 @@ publishes, and the pod never holds a credential.
 | **1.0 · 1 Guides** | One per sandbox: Docker, Kubernetes, E2B, Modal, Claude Code and Codex with bubblewrap | Each guide runs as written |
 | **1.0 · 2 Stability** | The contract declared stable; a deprecation policy | Documented |
 
+**After 1.0, on demand: git LFS.** Today a workspace holds LFS pointer files, and gitd says
+which (`lfs_patterns`). Supporting LFS means pools fetching LFS objects — another API, often
+another host for the token — and allowing `filter.lfs.*` with git-lfs's own values only.
+Coding agents rarely need it; it waits until users ask.
+
 ---
 
 ## Sandboxes and how each gets a workspace

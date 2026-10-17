@@ -14,6 +14,8 @@ export interface Workspace {
   layers?: Layers;
   /** Submodules that could not be checked out, and why. */
   pendingSubmodules: PendingSubmodule[];
+  /** Files the repository keeps in git LFS: pointers here, as gitd does not download them. */
+  lfsPatterns: string[];
 }
 
 export interface Layers {
@@ -37,6 +39,8 @@ export interface Description {
   modified: boolean;
   strategy: StrategyName;
   submodules: Submodule[];
+  /** Files kept in git LFS, which are pointers here. */
+  lfsPatterns: string[];
 }
 
 export interface Submodule {

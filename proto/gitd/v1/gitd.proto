@@ -182,6 +182,10 @@ message WorkspaceResult {
   // How the workspace was made, and its layers when by overlay.
   Strategy strategy = 4;
   Layers layers = 5;
+  // The patterns the repository's .gitattributes sends to git LFS, e.g. "*.onnx": those files
+  // are pointers in the workspace, as gitd does not download LFS objects. Empty when the
+  // repository uses no LFS.
+  repeated string lfs_patterns = 6;
 }
 
 message UpdateRequest {
@@ -249,6 +253,8 @@ message DescribeResponse {
   // gitd said so read as STRATEGY_COPY.
   Strategy strategy = 6;
   Layers layers = 7;
+  // The patterns its .gitattributes sends to git LFS, whose files are pointers here.
+  repeated string lfs_patterns = 8;
 }
 
 message RemoveRequest {

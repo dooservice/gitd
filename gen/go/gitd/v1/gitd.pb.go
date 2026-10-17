@@ -915,8 +915,12 @@ type WorkspaceResult struct {
 	Branch            string                 `protobuf:"bytes,2,opt,name=branch,proto3" json:"branch,omitempty"`
 	PendingSubmodules []*PendingSubmodule    `protobuf:"bytes,3,rep,name=pending_submodules,json=pendingSubmodules,proto3" json:"pending_submodules,omitempty"`
 	// How the workspace was made, and its layers when by overlay.
-	Strategy      Strategy `protobuf:"varint,4,opt,name=strategy,proto3,enum=gitd.v1.Strategy" json:"strategy,omitempty"`
-	Layers        *Layers  `protobuf:"bytes,5,opt,name=layers,proto3" json:"layers,omitempty"`
+	Strategy Strategy `protobuf:"varint,4,opt,name=strategy,proto3,enum=gitd.v1.Strategy" json:"strategy,omitempty"`
+	Layers   *Layers  `protobuf:"bytes,5,opt,name=layers,proto3" json:"layers,omitempty"`
+	// The patterns the repository's .gitattributes sends to git LFS, e.g. "*.onnx": those files
+	// are pointers in the workspace, as gitd does not download LFS objects. Empty when the
+	// repository uses no LFS.
+	LfsPatterns   []string `protobuf:"bytes,6,rep,name=lfs_patterns,json=lfsPatterns,proto3" json:"lfs_patterns,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -982,6 +986,13 @@ func (x *WorkspaceResult) GetStrategy() Strategy {
 func (x *WorkspaceResult) GetLayers() *Layers {
 	if x != nil {
 		return x.Layers
+	}
+	return nil
+}
+
+func (x *WorkspaceResult) GetLfsPatterns() []string {
+	if x != nil {
+		return x.LfsPatterns
 	}
 	return nil
 }
@@ -1538,8 +1549,10 @@ type DescribeResponse struct {
 	Submodules []*SubmoduleState `protobuf:"bytes,5,rep,name=submodules,proto3" json:"submodules,omitempty"`
 	// How the workspace was made, and its layers when by overlay. Workspaces made before
 	// gitd said so read as STRATEGY_COPY.
-	Strategy      Strategy `protobuf:"varint,6,opt,name=strategy,proto3,enum=gitd.v1.Strategy" json:"strategy,omitempty"`
-	Layers        *Layers  `protobuf:"bytes,7,opt,name=layers,proto3" json:"layers,omitempty"`
+	Strategy Strategy `protobuf:"varint,6,opt,name=strategy,proto3,enum=gitd.v1.Strategy" json:"strategy,omitempty"`
+	Layers   *Layers  `protobuf:"bytes,7,opt,name=layers,proto3" json:"layers,omitempty"`
+	// The patterns its .gitattributes sends to git LFS, whose files are pointers here.
+	LfsPatterns   []string `protobuf:"bytes,8,rep,name=lfs_patterns,json=lfsPatterns,proto3" json:"lfs_patterns,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1619,6 +1632,13 @@ func (x *DescribeResponse) GetStrategy() Strategy {
 func (x *DescribeResponse) GetLayers() *Layers {
 	if x != nil {
 		return x.Layers
+	}
+	return nil
+}
+
+func (x *DescribeResponse) GetLfsPatterns() []string {
+	if x != nil {
+		return x.LfsPatterns
 	}
 	return nil
 }
@@ -2711,13 +2731,14 @@ const file_gitd_v1_gitd_proto_rawDesc = "" +
 	"\x0fPrepareResponse\x12/\n" +
 	"\bprogress\x18\x01 \x01(\v2\x11.gitd.v1.ProgressH\x00R\bprogress\x122\n" +
 	"\x06result\x18\x02 \x01(\v2\x18.gitd.v1.WorkspaceResultH\x00R\x06resultB\a\n" +
-	"\x05event\"\xe3\x01\n" +
+	"\x05event\"\x86\x02\n" +
 	"\x0fWorkspaceResult\x12\x16\n" +
 	"\x06commit\x18\x01 \x01(\tR\x06commit\x12\x16\n" +
 	"\x06branch\x18\x02 \x01(\tR\x06branch\x12H\n" +
 	"\x12pending_submodules\x18\x03 \x03(\v2\x19.gitd.v1.PendingSubmoduleR\x11pendingSubmodules\x12-\n" +
 	"\bstrategy\x18\x04 \x01(\x0e2\x11.gitd.v1.StrategyR\bstrategy\x12'\n" +
-	"\x06layers\x18\x05 \x01(\v2\x0f.gitd.v1.LayersR\x06layers\"\x9b\x01\n" +
+	"\x06layers\x18\x05 \x01(\v2\x0f.gitd.v1.LayersR\x06layers\x12!\n" +
+	"\flfs_patterns\x18\x06 \x03(\tR\vlfsPatterns\"\x9b\x01\n" +
 	"\rUpdateRequest\x12\x12\n" +
 	"\x04path\x18\x01 \x01(\tR\x04path\x12\x16\n" +
 	"\x06branch\x18\x02 \x01(\tR\x06branch\x12'\n" +
@@ -2750,7 +2771,7 @@ const file_gitd_v1_gitd_proto_rawDesc = "" +
 	"submodules\x12H\n" +
 	"\x12pending_submodules\x18\x02 \x03(\v2\x19.gitd.v1.PendingSubmoduleR\x11pendingSubmodules\"%\n" +
 	"\x0fDescribeRequest\x12\x12\n" +
-	"\x04path\x18\x01 \x01(\tR\x04path\"\x81\x02\n" +
+	"\x04path\x18\x01 \x01(\tR\x04path\"\xa4\x02\n" +
 	"\x10DescribeResponse\x12\x10\n" +
 	"\x03url\x18\x01 \x01(\tR\x03url\x12\x16\n" +
 	"\x06commit\x18\x02 \x01(\tR\x06commit\x12\x16\n" +
@@ -2760,7 +2781,8 @@ const file_gitd_v1_gitd_proto_rawDesc = "" +
 	"submodules\x18\x05 \x03(\v2\x17.gitd.v1.SubmoduleStateR\n" +
 	"submodules\x12-\n" +
 	"\bstrategy\x18\x06 \x01(\x0e2\x11.gitd.v1.StrategyR\bstrategy\x12'\n" +
-	"\x06layers\x18\a \x01(\v2\x0f.gitd.v1.LayersR\x06layers\"#\n" +
+	"\x06layers\x18\a \x01(\v2\x0f.gitd.v1.LayersR\x06layers\x12!\n" +
+	"\flfs_patterns\x18\b \x03(\tR\vlfsPatterns\"#\n" +
 	"\rRemoveRequest\x12\x12\n" +
 	"\x04path\x18\x01 \x01(\tR\x04path\"\x10\n" +
 	"\x0eRemoveResponse\"\"\n" +

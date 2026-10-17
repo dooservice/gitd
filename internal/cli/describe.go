@@ -28,6 +28,7 @@ func describeCommand(app *app) *cobra.Command {
 				}
 				fmt.Fprintf(out, "%s\n%s, %s%s, made by %s\n", answer.GetUrl(), short(answer.GetCommit()), on, changed, strategyName(answer.GetStrategy()))
 				states(out, answer.GetSubmodules())
+				lfsNote(out, answer.GetLfsPatterns())
 			})
 			return nil
 		},

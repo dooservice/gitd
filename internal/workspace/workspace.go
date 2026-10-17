@@ -72,13 +72,15 @@ type Result struct {
 	Pending  []*gitdv1.PendingSubmodule
 	Strategy gitdv1.Strategy
 	Layers   *gitdv1.Layers
+	// LFS are the patterns sent to git LFS, whose files are pointers in the workspace.
+	LFS []string
 }
 
 // Proto is the result as the contract carries it.
 func (result Result) Proto() *gitdv1.WorkspaceResult {
 	return &gitdv1.WorkspaceResult{
 		Commit: result.Commit, Branch: result.Branch, PendingSubmodules: result.Pending,
-		Strategy: result.Strategy, Layers: result.Layers,
+		Strategy: result.Strategy, Layers: result.Layers, LfsPatterns: result.LFS,
 	}
 }
 

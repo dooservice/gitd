@@ -127,6 +127,7 @@ type workspaceOutput struct {
 	Strategy string    `json:"strategy" jsonschema:"how it was made: overlay (milliseconds, a shared template), reflink or copy"`
 	Branch   string    `json:"branch,omitempty" jsonschema:"the branch it follows; empty when detached"`
 	Pending  []pending `json:"pending_submodules,omitempty" jsonschema:"submodules that could not be checked out, and why"`
+	LFS      []string  `json:"lfs_patterns,omitempty" jsonschema:"files the repository keeps in git LFS: they are pointers here, as gitd does not download them"`
 }
 
 type submodule struct {
@@ -143,6 +144,7 @@ type describeOutput struct {
 	Branch     string      `json:"branch,omitempty"`
 	Modified   bool        `json:"modified" jsonschema:"whether there are uncommitted changes"`
 	Submodules []submodule `json:"submodules,omitempty"`
+	LFS        []string    `json:"lfs_patterns,omitempty" jsonschema:"files the repository keeps in git LFS: they are pointers here"`
 }
 
 type published struct {
@@ -212,7 +214,10 @@ func (tools *tools) describe(ctx context.Context, _ *mcp.CallToolRequest, in pat
 	if err != nil {
 		return nil, describeOutput{}, refusal(err)
 	}
-	out := describeOutput{URL: answer.GetUrl(), Commit: answer.GetCommit(), Branch: answer.GetBranch(), Modified: answer.GetModified(), Strategy: made(answer.GetStrategy())}
+	out := describeOutput{
+		URL: answer.GetUrl(), Commit: answer.GetCommit(), Branch: answer.GetBranch(), Modified: answer.GetModified(),
+		Strategy: made(answer.GetStrategy()), LFS: answer.GetLfsPatterns(),
+	}
 	for _, state := range answer.GetSubmodules() {
 		out.Submodules = append(out.Submodules, submodule{Path: state.GetPath(), URL: state.GetUrl(), Commit: state.GetCommit(), CheckedOut: state.GetCheckedOut()})
 	}
@@ -287,7 +292,10 @@ func publishedOf(repository *gitdv1.PublishedRepository, submodules []*gitdv1.Pu
 
 // workspace is where a workspace ended up, as the agent reads it.
 func workspace(path string, result *gitdv1.WorkspaceResult) workspaceOutput {
-	out := workspaceOutput{Path: path, Commit: result.GetCommit(), Branch: result.GetBranch(), Strategy: made(result.GetStrategy())}
+	out := workspaceOutput{
+		Path: path, Commit: result.GetCommit(), Branch: result.GetBranch(), Strategy: made(result.GetStrategy()),
+		LFS: result.GetLfsPatterns(),
+	}
 	for _, left := range result.GetPendingSubmodules() {
 		out.Pending = append(out.Pending, pending{Path: left.GetPath(), URL: left.GetUrl(), Reason: left.GetFailure().GetGitSaid()})
 	}

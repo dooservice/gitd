@@ -155,7 +155,7 @@ Known, and left to the deployment or to a later version:
 | **Adopting trusts the clone** | `Adopt` takes a clone's `origin` as its repository | Adopt only clones a sandbox has not had |
 | **The audit log is gitd's to write** | It records honestly but is not tamper-proof against gitd's own user, and a publish is not undone if its entry cannot be written (that is logged as an error) | Ship the file to a log store the gitd user cannot change |
 | **Disk and CPU** | `[limits]` bounds concurrent fetches, writes and queued calls, but not how much a sandbox writes into its workspace | Quotas on the roots' filesystem. 0.8 adds per-tenant limits |
-| **git LFS** | gitd neither fetches LFS objects into pools nor allows `filter.lfs.*` in a workspace; a workspace gets LFS pointer files | Not supported in 0.7 |
+| **git LFS** | gitd neither fetches LFS objects into pools nor allows `filter.lfs.*` in a workspace; a workspace gets LFS pointer files, and gitd says which (`lfs_patterns`) | Not supported; considered after 1.0, on demand |
 | **Redirects** | git follows an HTTP redirect on the first request (`http.followRedirects=initial`); that the token header is not carried to another host relies on libcurl (7.58+) | To be confirmed in the security review (0.7 · 10) |
 
 ## 5. Deploying it safely

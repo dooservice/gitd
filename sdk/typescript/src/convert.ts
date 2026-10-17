@@ -25,6 +25,7 @@ export function toWorkspace(path: string, result: WorkspaceResult): Workspace {
       url: submodule.url,
       reason: submodule.failure?.gitSaid ?? "",
     })),
+    lfsPatterns: result.lfsPatterns,
   };
 }
 

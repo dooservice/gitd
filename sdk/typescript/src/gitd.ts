@@ -120,6 +120,7 @@ export class Gitd {
         commit: submodule.commit,
         checkedOut: submodule.checkedOut,
       })),
+      lfsPatterns: answer.lfsPatterns,
     };
   }
 

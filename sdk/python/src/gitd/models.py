@@ -90,7 +90,9 @@ class PendingSubmodule:
 
 @dataclass(frozen=True)
 class Workspace:
-    """Where a workspace ended up. branch is empty when it is detached at a commit."""
+    """Where a workspace ended up. branch is empty when it is detached at a commit;
+    lfs_patterns are the files the repository keeps in git LFS, which are pointers here, as
+    gitd does not download them."""
 
     path: str
     commit: str
@@ -98,6 +100,7 @@ class Workspace:
     strategy: Strategy
     layers: Layers | None = None
     pending_submodules: list[PendingSubmodule] = field(default_factory=list)
+    lfs_patterns: list[str] = field(default_factory=list)
 
     @classmethod
     def from_message(cls, path: str, result: Any) -> Workspace:
@@ -110,6 +113,7 @@ class Workspace:
             pending_submodules=[
                 PendingSubmodule.from_message(pending) for pending in result.pending_submodules
             ],
+            lfs_patterns=list(result.lfs_patterns),
         )
 
 
@@ -132,7 +136,8 @@ class Submodule:
 
 @dataclass(frozen=True)
 class Description:
-    """What a workspace is on disk. modified says whether it has uncommitted changes."""
+    """What a workspace is on disk. modified says whether it has uncommitted changes;
+    lfs_patterns are the files kept in git LFS, which are pointers here."""
 
     url: str
     commit: str
@@ -140,6 +145,7 @@ class Description:
     modified: bool
     strategy: Strategy
     submodules: list[Submodule] = field(default_factory=list)
+    lfs_patterns: list[str] = field(default_factory=list)
 
     @classmethod
     def from_message(cls, response: Any) -> Description:
@@ -150,6 +156,7 @@ class Description:
             modified=response.modified,
             strategy=Strategy.from_message(response.strategy),
             submodules=[Submodule.from_message(submodule) for submodule in response.submodules],
+            lfs_patterns=list(response.lfs_patterns),
         )
 
 

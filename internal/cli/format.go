@@ -3,6 +3,7 @@ package cli
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	gitdv1 "github.com/dooservice/gitd/gen/go/gitd/v1"
 )
@@ -15,6 +16,15 @@ func workspaceLine(out io.Writer, path string, result *gitdv1.WorkspaceResult) {
 	}
 	fmt.Fprintf(out, "%s at %s, %s, made by %s\n", path, short(result.GetCommit()), on, strategyName(result.GetStrategy()))
 	pending(out, result.GetPendingSubmodules())
+	lfsNote(out, result.GetLfsPatterns())
+}
+
+// lfsNote says which files are LFS pointers, as gitd does not download them.
+func lfsNote(out io.Writer, patterns []string) {
+	if len(patterns) > 0 {
+		fmt.Fprintf(out, "  note: this repository uses git LFS (%s); those files are pointers, gitd does not download them\n",
+			strings.Join(patterns, ", "))
+	}
 }
 
 // strategyName is how a workspace was made, as people read it.
