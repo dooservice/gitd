@@ -60,6 +60,9 @@ func auditLine(out io.Writer, entry *gitdv1.AuditEntry) {
 	if requester := entry.GetRequestedBy(); requester != "" {
 		fmt.Fprintf(out, "  requested by %s\n", requester)
 	}
+	if origin := entry.GetProvenance(); origin != nil {
+		fmt.Fprintf(out, "  from %s\n", strings.Join(nonEmpty(origin.GetAgent(), origin.GetModel(), origin.GetSession(), origin.GetTaskUrl()), ", "))
+	}
 	if refusal := entry.GetRefusal(); refusal != nil {
 		reason := strings.TrimPrefix(refusal.GetReason().String(), "REASON_")
 		fmt.Fprintf(out, "  refused, %s: %s\n", reason, refusal.GetGitSaid())
@@ -81,4 +84,15 @@ func pullRequestLine(out io.Writer, opened *gitdv1.OpenedPullRequest, failure *g
 		reason := strings.TrimPrefix(failure.GetReason().String(), "REASON_")
 		fmt.Fprintf(out, "  no pull request, %s: %s\n", reason, failure.GetGitSaid())
 	}
+}
+
+// nonEmpty are the values given that are not empty.
+func nonEmpty(values ...string) []string {
+	var kept []string
+	for _, value := range values {
+		if value != "" {
+			kept = append(kept, value)
+		}
+	}
+	return kept
 }

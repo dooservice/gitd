@@ -20,7 +20,7 @@ func publishCommand(app *app) *cobra.Command {
 		Args: cobra.ExactArgs(2),
 	}
 	credentials := addCredentialFlags(command)
-	var requestedBy, title, body, base string
+	var requestedBy, title, body, base, agent, model, session, task string
 	var open, draft bool
 	flags := command.Flags()
 	flags.StringVar(&requestedBy, "requested-by", "", "who asked for the work, as their account on the host")
@@ -29,12 +29,19 @@ func publishCommand(app *app) *cobra.Command {
 	flags.StringVar(&body, "body", "", "text that comes before what gitd checked")
 	flags.StringVar(&base, "base", "", "the branch it merges into (default: the repository's default branch)")
 	flags.BoolVar(&draft, "draft", false, "open it as a draft (default: as the settings say)")
+	flags.StringVar(&agent, "agent", "", "the agent that did the work, for the record and the pull request")
+	flags.StringVar(&model, "model", "", "the model it ran on")
+	flags.StringVar(&session, "session", "", "the platform's name for the session or run")
+	flags.StringVar(&task, "task-url", "", "where the task is: an issue, a ticket (https)")
 	command.RunE = func(cmd *cobra.Command, args []string) error {
 		given, err := credentials.proto()
 		if err != nil {
 			return err
 		}
 		request := &gitdv1.PublishRequest{Path: args[0], Branch: args[1], Credentials: given, RequestedBy: requestedBy}
+		if agent != "" || model != "" || session != "" || task != "" {
+			request.Provenance = &gitdv1.Provenance{Agent: agent, Model: model, Session: session, TaskUrl: task}
+		}
 		if open || title != "" || body != "" || base != "" || cmd.Flags().Changed("draft") {
 			request.PullRequest = &gitdv1.PullRequestOptions{Open: open, Title: title, Body: body, Base: base}
 			if cmd.Flags().Changed("draft") {
