@@ -35,10 +35,7 @@ func (pools *Pools) Stage(ctx context.Context, repository repo.Repo, source, bra
 	if err != nil {
 		return "", nil, err
 	}
-	out, err := pools.runner.Run(ctx, git.Cmd{Dir: dir, Args: []string{
-		"log", "--format=%s", staged, "--not", "--branches",
-		"--glob=refs/gitd/commits/*", "--glob=refs/gitd/published/*",
-	}})
+	out, err := pools.runner.Run(ctx, git.Cmd{Dir: dir, Args: append([]string{"log", "--format=%s"}, unpublished(branch)...)})
 	if err != nil {
 		return "", nil, err
 	}
