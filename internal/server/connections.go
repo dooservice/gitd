@@ -61,3 +61,16 @@ func (handlers *connectionHandlers) RemoveConnection(
 	handlers.server.recordChange(gitdv1.ConfigurationChange_ACTION_CONNECTION_REMOVED, id, record.URLPrefix)
 	return connect.NewResponse(&gitdv1.RemoveConnectionResponse{}), nil
 }
+
+func (handlers *connectionHandlers) AddGitHubApp(
+	ctx context.Context, request *connect.Request[gitdv1.AddGitHubAppRequest],
+) (*connect.Response[gitdv1.AddGitHubAppResponse], error) {
+	message := request.Msg
+	added, err := handlers.server.Connections.AddApp(ctx, message.GetHost(), message.GetAppId(),
+		[]byte(message.GetPrivateKey()), message.GetUrlPrefix())
+	if err != nil {
+		return nil, refuseChange(err)
+	}
+	handlers.server.recordChange(gitdv1.ConfigurationChange_ACTION_CONNECTION_ADDED, added.ID, added.URLPrefix)
+	return connect.NewResponse(&gitdv1.AddGitHubAppResponse{Connection: added.Shown()}), nil
+}

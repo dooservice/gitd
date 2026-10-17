@@ -8,11 +8,24 @@ import (
 	"github.com/dooservice/gitd/internal/repo"
 )
 
-// GitHub is how gitd reaches GitHub's API: as which User-Agent, and on which port of each
-// host that is not reached on the usual one.
+// GitHub is how gitd reaches GitHub: as which User-Agent, and on which port of each host
+// that is not reached on the usual one. APIBase and WebBase, when set, are where its API
+// and its pages are reached instead of their usual addresses, for every host: a proxy, or a
+// test.
 type GitHub struct {
 	UserAgent string
 	Hosts     repo.Hosts
+	APIBase   string
+	WebBase   string
+}
+
+// api is GitHub's API for a host.
+func (github GitHub) api(host string) *githubapp.API {
+	base := github.APIBase
+	if base == "" {
+		base = githubapp.APIBase(host, github.Hosts[host].HTTPSPort)
+	}
+	return githubapp.NewAPI(base, github.UserAgent)
 }
 
 // apps are the GitHub Apps of the connections kept, one each, made the first time one is
@@ -37,8 +50,7 @@ func (store *Store) app(record Record) (*githubapp.App, error) {
 	if err != nil {
 		return nil, err
 	}
-	port := store.github.Hosts[record.Host].HTTPSPort
-	made := githubapp.NewApp(signer, githubapp.NewAPI(githubapp.APIBase(record.Host, port), store.github.UserAgent))
+	made := githubapp.NewApp(signer, store.github.api(record.Host))
 	if store.apps.made == nil {
 		store.apps.made = map[string]*githubapp.App{}
 	}
