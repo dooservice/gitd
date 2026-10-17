@@ -135,7 +135,8 @@ class Platform:
                 raise
             print(f"refused before anything was pushed: {refusal}")
             entry = self.gitd.audit(limit=1)[0]
-            print(f"on the record: {entry}")
+            reason = entry.refused.reason if entry.refused else "published"
+            print(f"on the record: {entry.time:%Y-%m-%d %H:%M:%S} {entry.branch} {reason}")
             self.gitd.remove(path)
             return
         sys.exit("the injected agent's change to the CI was published")
