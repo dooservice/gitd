@@ -32,12 +32,14 @@ type Access struct {
 type Keys struct {
 	knownHosts string
 	hosts      repo.Hosts
+	stored     []Credential
 }
 
 // NewKeys writes the host keys under dir, where every ssh gitd starts reads them: the
 // built-in ones followed by those of each file in extra. hosts say how the hosts not
-// reached the usual way are, lowercased as config.Load leaves them.
-func NewKeys(dir string, extra []string, hosts repo.Hosts) (*Keys, error) {
+// reached the usual way are, lowercased as config.Load leaves them, and stored are the
+// credentials the configuration keeps (Stored).
+func NewKeys(dir string, extra []string, hosts repo.Hosts, stored []Credential) (*Keys, error) {
 	keys := append([]byte(nil), builtInKnownHosts...)
 	for _, file := range extra {
 		read, err := os.ReadFile(file)
@@ -56,7 +58,7 @@ func NewKeys(dir string, extra []string, hosts repo.Hosts) (*Keys, error) {
 	if err := os.WriteFile(path, keys, 0o644); err != nil {
 		return nil, err
 	}
-	return &Keys{knownHosts: path, hosts: hosts}, nil
+	return &Keys{knownHosts: path, hosts: hosts, stored: stored}, nil
 }
 
 // Address is where a repository is read over HTTPS, on its host's port: what a copy of it
@@ -65,18 +67,19 @@ func (keys *Keys) Address(repository repo.Repo) string {
 	return keys.hosts.HTTPS(repository)
 }
 
-// For is how a repository is read: with the most specific credential that opens it, or
-// with nothing when none does. One credential and one attempt — which one opens a
-// repository is decided by whoever sends the request, from what its host says about it,
-// so nothing here guesses by trying them in turn.
+// For is how a repository is read: with the most specific credential that opens it, of
+// those the request gives and those gitd keeps, or with nothing when none does. A request's
+// wins over a kept one of the same prefix, so a caller can always say which. One credential
+// and one attempt: nothing here guesses by trying them in turn.
 func (keys *Keys) For(repository repo.Repo, given []Credential) Access {
+	candidates := append(append([]Credential(nil), given...), keys.stored...)
 	var chosen *Credential
-	for index, credential := range given {
+	for index, credential := range candidates {
 		if !credential.carries() || !credential.opens(repository) {
 			continue
 		}
 		if chosen == nil || len(credential.Prefix) > len(chosen.Prefix) {
-			chosen = &given[index]
+			chosen = &candidates[index]
 		}
 	}
 	if chosen == nil {
@@ -101,7 +104,7 @@ func (keys *Keys) access(repository repo.Repo, credential Credential) Access {
 				"GIT_CONFIG_VALUE_0=Authorization: Basic " + basic,
 			},
 			Offered: true,
-			Via:     "token for " + credential.Prefix,
+			Via:     credential.kept() + "token for " + credential.Prefix,
 		}
 	}
 	ssh := []string{
@@ -116,7 +119,7 @@ func (keys *Keys) access(repository repo.Repo, credential Credential) Access {
 		URL:     keys.hosts.SSH(repository),
 		Env:     []string{"GIT_SSH_COMMAND=" + strings.Join(ssh, " ")},
 		Offered: true,
-		Via:     "key " + credential.Key,
+		Via:     credential.kept() + "key " + credential.Key,
 	}
 }
 

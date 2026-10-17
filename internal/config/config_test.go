@@ -41,3 +41,22 @@ func TestAMissingFileIsTheDefaults(t *testing.T) {
 		t.Fatalf("Load = %+v, %v", settings, err)
 	}
 }
+
+func TestACredentialNamesExactlyOneSecret(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "gitd.toml")
+	for text, valid := range map[string]bool{
+		"[[credentials]]\nprefix = \"https://github.com/acme\"\ntoken_env = \"T\"\n":   true,
+		"[[credentials]]\nprefix = \"\"\nssh_key = \"/k\"\n":                           true,
+		"[[credentials]]\nprefix = \"x\"\n":                                            false,
+		"[[credentials]]\nprefix = \"x\"\ntoken_env = \"T\"\nssh_key = \"/k\"\n":       false,
+		"[[credentials]]\nprefix = \"x\"\nssh_key = \"/k\"\ntoken_user = \"oauth2\"\n": false,
+	} {
+		if err := os.WriteFile(path, []byte(text), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := Load(path); (err == nil) != valid {
+			t.Errorf("Load(%q) = %v; valid %v", text, err, valid)
+		}
+	}
+}

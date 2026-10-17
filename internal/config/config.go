@@ -25,16 +25,30 @@ import (
 // host whose SSH is on another port has its key in a known_hosts file as
 // `[git.example.com]:2222 ssh-ed25519 …`.
 type Config struct {
-	Socket     string     `toml:"socket"`
-	State      string     `toml:"state"`
-	Roots      []string   `toml:"roots"`
-	Git        string     `toml:"git"`
-	Metrics    string     `toml:"metrics"`
-	KnownHosts []string   `toml:"known_hosts"`
-	Hosts      repo.Hosts `toml:"hosts"`
+	Socket      string       `toml:"socket"`
+	State       string       `toml:"state"`
+	Roots       []string     `toml:"roots"`
+	Git         string       `toml:"git"`
+	Metrics     string       `toml:"metrics"`
+	KnownHosts  []string     `toml:"known_hosts"`
+	Hosts       repo.Hosts   `toml:"hosts"`
+	Credentials []Credential `toml:"credentials"`
 
 	Limits       Limits       `toml:"limits"`
 	Housekeeping Housekeeping `toml:"housekeeping"`
+}
+
+// Credential is one credential gitd keeps for the repositories under Prefix (empty for
+// any), so that a caller need not send it: a token read from TokenFile or from the
+// environment variable TokenEnv, sent as TokenUser, or the SSH key at SSHKey. The
+// configuration names where the secret is, never the secret: a TokenFile is best a
+// systemd credential (`LoadCredential=`), which lives in memory.
+type Credential struct {
+	Prefix    string `toml:"prefix"`
+	TokenFile string `toml:"token_file"`
+	TokenEnv  string `toml:"token_env"`
+	TokenUser string `toml:"token_user"`
+	SSHKey    string `toml:"ssh_key"`
 }
 
 // Limits bound how much gitd does at once and for how long: fetches and writes running,
@@ -123,6 +137,20 @@ func (settings *Config) normalize() error {
 		hosts[lowered] = host
 	}
 	settings.Hosts = hosts
+	for index, credential := range settings.Credentials {
+		set := 0
+		for _, source := range []string{credential.TokenFile, credential.TokenEnv, credential.SSHKey} {
+			if source != "" {
+				set++
+			}
+		}
+		if set != 1 {
+			return fmt.Errorf("credentials[%d] (%q): give exactly one of token_file, token_env and ssh_key", index, credential.Prefix)
+		}
+		if credential.TokenUser != "" && credential.SSHKey != "" {
+			return fmt.Errorf("credentials[%d] (%q): token_user goes with a token, not with ssh_key", index, credential.Prefix)
+		}
+	}
 	return nil
 }
 

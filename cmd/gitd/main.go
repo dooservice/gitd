@@ -54,7 +54,11 @@ func run(path, socket string) error {
 	if _, err := runner.Version(ctx); err != nil {
 		return fmt.Errorf("running %s: %w", settings.Git, err)
 	}
-	keys, err := credentials.NewKeys(settings.State, settings.KnownHosts, settings.Hosts)
+	stored, err := credentials.Stored(settings.Credentials)
+	if err != nil {
+		return err
+	}
+	keys, err := credentials.NewKeys(settings.State, settings.KnownHosts, settings.Hosts, stored)
 	if err != nil {
 		return err
 	}

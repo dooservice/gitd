@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/dooservice/gitd/internal/config"
 	"github.com/dooservice/gitd/internal/repo"
 )
 
@@ -91,7 +92,7 @@ func TestTheConfiguredHostKeysAreTrustedBesidesTheBuiltInOnes(t *testing.T) {
 	if err := os.WriteFile(extra, []byte("git.example.com ssh-ed25519 AAAAexample\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	keys, err := NewKeys(filepath.Join(dir, "state"), []string{extra}, nil)
+	keys, err := NewKeys(filepath.Join(dir, "state"), []string{extra}, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -101,7 +102,7 @@ func TestTheConfiguredHostKeysAreTrustedBesidesTheBuiltInOnes(t *testing.T) {
 			t.Errorf("no key for %s", host)
 		}
 	}
-	if _, err := NewKeys(filepath.Join(dir, "state"), []string{filepath.Join(dir, "missing")}, nil); err == nil {
+	if _, err := NewKeys(filepath.Join(dir, "state"), []string{filepath.Join(dir, "missing")}, nil, nil); err == nil {
 		t.Error("a missing known hosts file was not refused")
 	}
 }
@@ -110,7 +111,7 @@ func TestARepositoryIsReadOnThePortsAndAsTheUserOfItsHost(t *testing.T) {
 	keys, err := NewKeys(t.TempDir(), nil, repo.Hosts{
 		"git.example.com":   {HTTPSPort: 3000, SSHPort: 2222},
 		"forge.example.com": {SSHUser: "forgejo"},
-	})
+	}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -129,7 +130,7 @@ func TestARepositoryIsReadOnThePortsAndAsTheUserOfItsHost(t *testing.T) {
 }
 
 func TestATokenIsSentToTheAddressOnTheHostsPort(t *testing.T) {
-	keys, err := NewKeys(t.TempDir(), nil, repo.Hosts{"git.example.com": {HTTPSPort: 3000}})
+	keys, err := NewKeys(t.TempDir(), nil, repo.Hosts{"git.example.com": {HTTPSPort: 3000}}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -141,5 +142,56 @@ func TestATokenIsSentToTheAddressOnTheHostsPort(t *testing.T) {
 	}
 	if !strings.Contains(strings.Join(access.Env, "\n"), "http.https://git.example.com:3000/acme/web.extraHeader") {
 		t.Errorf("the header is not scoped to the address read: %v", access.Env)
+	}
+}
+
+func TestACredentialGitdKeepsOpensWhatTheRequestGivesNoneFor(t *testing.T) {
+	dir := t.TempDir()
+	tokenFile := filepath.Join(dir, "github")
+	if err := os.WriteFile(tokenFile, []byte("kept-secret\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("GITD_TEST_TOKEN", "env-secret")
+	stored, err := Stored([]config.Credential{
+		{Prefix: "https://github.com/acme", TokenFile: tokenFile},
+		{Prefix: "git@gitlab.com:acme/", TokenEnv: "GITD_TEST_TOKEN", TokenUser: "oauth2"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	keys, err := NewKeys(filepath.Join(dir, "state"), nil, nil, stored)
+	if err != nil {
+		t.Fatal(err)
+	}
+	header := func(access Access) string { return strings.Join(access.Env, "\n") }
+
+	github, _ := repo.Of("https://github.com/acme/web")
+	if access := keys.For(github, nil); !access.Offered || !strings.Contains(header(access), base64.StdEncoding.EncodeToString([]byte("x-access-token:kept-secret"))) {
+		t.Errorf("the kept token was not used: %+v", access)
+	}
+	gitlab, _ := repo.Of("https://gitlab.com/acme/tools/web")
+	if access := keys.For(gitlab, nil); !strings.Contains(header(access), base64.StdEncoding.EncodeToString([]byte("oauth2:env-secret"))) {
+		t.Errorf("the token from the environment was not used: %+v", access)
+	}
+	given := []Credential{{Prefix: "https://github.com/acme", Token: "request-secret"}}
+	if access := keys.For(github, given); !strings.Contains(header(access), base64.StdEncoding.EncodeToString([]byte("x-access-token:request-secret"))) {
+		t.Errorf("the request's credential did not win over the kept one: %+v", access)
+	}
+	other, _ := repo.Of("https://github.com/other/web")
+	if access := keys.For(other, nil); access.Offered {
+		t.Errorf("a kept credential opened a repository outside its prefix: %+v", access)
+	}
+}
+
+func TestACredentialWhoseSecretCannotBeReadStopsTheStart(t *testing.T) {
+	t.Setenv("GITD_EMPTY", "")
+	for _, setting := range []config.Credential{
+		{Prefix: "https://github.com/acme", TokenFile: "/nonexistent/token"},
+		{Prefix: "https://github.com/acme", TokenEnv: "GITD_EMPTY"},
+		{Prefix: "https://github.com/acme", SSHKey: "/nonexistent/key"},
+	} {
+		if _, err := Stored([]config.Credential{setting}); err == nil {
+			t.Errorf("accepted %+v", setting)
+		}
 	}
 }

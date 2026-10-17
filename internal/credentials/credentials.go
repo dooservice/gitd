@@ -11,10 +11,13 @@
 package credentials
 
 import (
+	"fmt"
 	"net/url"
+	"os"
 	"strings"
 
 	gitdv1 "github.com/dooservice/gitd/gen/go/gitd/v1"
+	"github.com/dooservice/gitd/internal/config"
 	"github.com/dooservice/gitd/internal/repo"
 )
 
@@ -26,6 +29,7 @@ type Credential struct {
 	Token  string
 	User   string
 	Key    string
+	stored bool
 }
 
 // FromProto reads the credentials of a request, each prefix in canonical form.
@@ -40,6 +44,36 @@ func FromProto(given []*gitdv1.Credential) []Credential {
 		})
 	}
 	return read
+}
+
+// Stored reads the credentials the configuration keeps, each secret from where it says:
+// a token from its file or its environment variable, a key by its path, which ssh reads.
+// A secret that cannot be read stops the start, rather than leaving its repositories to
+// fail one by one.
+func Stored(settings []config.Credential) ([]Credential, error) {
+	stored := make([]Credential, 0, len(settings))
+	for _, setting := range settings {
+		credential := Credential{Prefix: canonicalPrefix(setting.Prefix), User: setting.TokenUser, Key: setting.SSHKey, stored: true}
+		switch {
+		case setting.TokenFile != "":
+			read, err := os.ReadFile(setting.TokenFile)
+			if err != nil {
+				return nil, fmt.Errorf("the token for %q: %w", setting.Prefix, err)
+			}
+			credential.Token = strings.TrimSpace(string(read))
+		case setting.TokenEnv != "":
+			credential.Token = strings.TrimSpace(os.Getenv(setting.TokenEnv))
+			if credential.Token == "" {
+				return nil, fmt.Errorf("the token for %q: $%s is empty", setting.Prefix, setting.TokenEnv)
+			}
+		default:
+			if _, err := os.Stat(setting.SSHKey); err != nil {
+				return nil, fmt.Errorf("the key for %q: %w", setting.Prefix, err)
+			}
+		}
+		stored = append(stored, credential)
+	}
+	return stored, nil
 }
 
 // canonicalPrefix writes a prefix the way a canonical address starts, without a port, so
@@ -79,4 +113,12 @@ func tokenUser(host string) string {
 
 func (credential Credential) carries() bool {
 	return credential.Token != "" || credential.Key != ""
+}
+
+// kept says, in the logs, that a credential is one gitd keeps rather than the request's.
+func (credential Credential) kept() string {
+	if credential.stored {
+		return "kept "
+	}
+	return ""
 }
