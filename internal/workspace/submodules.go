@@ -32,8 +32,8 @@ func (workspaces *Workspaces) SyncSubmodules(
 
 // submodules brings each submodule of the job's workspace in from its own pool, at the
 // commit the superproject pinned. One that cannot be brought in is returned as pending
-// and the rest go on: a partner-only repository should not keep a customer's own addons
-// out. Nested submodules are not brought in.
+// and the rest go on: a submodule nothing opens should not keep the others out. Nested
+// submodules are not brought in.
 func (workspaces *Workspaces) submodules(
 	ctx context.Context, work job, onlyURL string,
 ) ([]*gitdv1.PendingSubmodule, []repo.Repo, error) {

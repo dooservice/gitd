@@ -7,17 +7,20 @@ import (
 	"strings"
 
 	"github.com/dooservice/gitd/internal/pool"
+	"github.com/dooservice/gitd/internal/repo"
 )
 
 // Sweep removes what a gitd that died left half built: the temporary directories and
 // files it builds pools and workspaces in before moving them into place.
 func (keeper *Keeper) Sweep() {
-	for _, top := range append([]string{keeper.pools.Dir}, keeper.roots...) {
-		keeper.sweep(top, 0)
+	// A pool is `<host>/<path>.git`, and a path has at most repo.MaxDepth segments.
+	keeper.sweep(keeper.pools.Dir, 0, repo.MaxDepth)
+	for _, root := range keeper.roots {
+		keeper.sweep(root, 0, keeper.settings.SweepDepth)
 	}
 }
 
-func (keeper *Keeper) sweep(dir string, depth int) {
+func (keeper *Keeper) sweep(dir string, depth, limit int) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		return
@@ -30,8 +33,8 @@ func (keeper *Keeper) sweep(dir string, depth int) {
 			}
 			continue
 		}
-		if entry.IsDir() && depth < keeper.sweepDepth && !strings.HasSuffix(entry.Name(), ".git") {
-			keeper.sweep(path, depth+1)
+		if entry.IsDir() && depth < limit && !strings.HasSuffix(entry.Name(), ".git") {
+			keeper.sweep(path, depth+1, limit)
 		}
 	}
 }

@@ -18,7 +18,8 @@ import (
 
 // Keeper maintains the pools of one gitd, and sweeps the roots its workspaces are made in.
 // A pool is repacked once it holds looseLimit loose objects or packLimit packs; temporary
-// directories are looked for down to sweepDepth, where the deepest workspace is.
+// directories are looked for down to the configured sweep depth under the roots, where the
+// deepest workspace is, and as deep as a repository's path goes under the pools.
 type Keeper struct {
 	pools      *pool.Pools
 	runner     *git.Runner
@@ -27,7 +28,6 @@ type Keeper struct {
 	metrics    *metrics.Metrics
 	looseLimit int
 	packLimit  int
-	sweepDepth int
 	poolCount  atomic.Int64
 	poolBytes  atomic.Int64
 }
@@ -49,12 +49,11 @@ func New(
 		metrics:    measured,
 		looseLimit: 1024,
 		packLimit:  8,
-		sweepDepth: 4,
 	}
 }
 
 // Run maintains every pool a minute after starting, so that it does not compete with the
-// agent's first calls, and then every so often, until ctx ends.
+// first calls after a start, and then every so often, until ctx ends.
 func (keeper *Keeper) Run(ctx context.Context) {
 	next := time.NewTimer(time.Minute)
 	defer next.Stop()

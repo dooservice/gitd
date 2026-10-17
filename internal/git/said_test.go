@@ -42,3 +42,18 @@ func TestAHintIsNeverTheLastWord(t *testing.T) {
 		t.Errorf("lastWords = %q", got)
 	}
 }
+
+func TestEveryForgeSaysItsRefusalsItsOwnWay(t *testing.T) {
+	for said, want := range map[string]Reason{
+		"remote: The project you were looking for could not be found or you don't have permission to view it.":             NotFound,
+		"remote: HTTP Basic: Access denied. If a password was provided for Git authentication, the password was incorrect": AuthRequired,
+		"conq: repository does not exist.":                                    NotFound,
+		"Repository access denied. Access via a deployment key is read-only.": AuthRequired,
+		"remote: Unauthorized":                                                AuthRequired,
+		"Gitea: Unauthorized":                                                 AuthRequired,
+	} {
+		if got := classify([]string{said}); got != want {
+			t.Errorf("classify(%q) = %v; want %v", said, got, want)
+		}
+	}
+}

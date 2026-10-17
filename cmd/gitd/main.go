@@ -24,7 +24,8 @@ import (
 var version = "dev"
 
 func main() {
-	path := flag.String("config", "/etc/dooservice/gitd.toml", "configuration file")
+	path := flag.String("config", config.DefaultPath, "configuration file")
+	socket := flag.String("socket", "", "Unix socket to answer on, over the configuration's")
 	showVersion := flag.Bool("version", false, "print the version and exit")
 	flag.Parse()
 	if *showVersion {
@@ -32,16 +33,19 @@ func main() {
 		return
 	}
 	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, nil)))
-	if err := run(*path); err != nil {
+	if err := run(*path, *socket); err != nil {
 		slog.Error("gitd stopped", "error", err)
 		os.Exit(1)
 	}
 }
 
-func run(path string) error {
+func run(path, socket string) error {
 	settings, err := config.Load(path)
 	if err != nil {
 		return fmt.Errorf("reading %s: %w", path, err)
+	}
+	if socket != "" {
+		settings.Socket = socket
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
@@ -50,7 +54,7 @@ func run(path string) error {
 	if _, err := runner.Version(ctx); err != nil {
 		return fmt.Errorf("running %s: %w", settings.Git, err)
 	}
-	keys, err := credentials.NewKeys(settings.State)
+	keys, err := credentials.NewKeys(settings.State, settings.KnownHosts, settings.SSH)
 	if err != nil {
 		return err
 	}

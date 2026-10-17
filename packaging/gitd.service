@@ -1,0 +1,27 @@
+[Unit]
+Description=gitd, the local copies of git repositories
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# The user that owns the workspaces: what gitd checks out is theirs, and the socket is
+# theirs alone. Create it first (`useradd --system --home /var/lib/gitd gitd`).
+User=gitd
+ExecStart=/usr/local/bin/gitd -config /etc/gitd/gitd.toml
+Restart=always
+RestartSec=5
+RuntimeDirectory=gitd
+RuntimeDirectoryPreserve=yes
+StateDirectory=gitd
+ProtectSystem=strict
+ReadWritePaths=/var/lib/gitd
+# Roots outside /var/lib/gitd go in a drop-in: ReadWritePaths=/srv/workspaces
+PrivateTmp=yes
+NoNewPrivileges=yes
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=gitd
+
+[Install]
+WantedBy=multi-user.target

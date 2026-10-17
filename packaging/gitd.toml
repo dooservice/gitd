@@ -1,8 +1,25 @@
-socket = "/run/dooservice/gitd.sock"
-state = "/var/lib/dooservice/gitd"
-roots = ["/var/lib/dooservice/projects"]
+# Every key shows its default; a missing file is the defaults.
+
+# The Unix socket gitd answers on. Only the user that runs gitd should reach it.
+# `-socket` on the command line wins over it.
+socket = "/run/gitd/gitd.sock"
+# Pools, lock files and the host keys ssh is handed.
+state = "/var/lib/gitd"
+# The only directories a workspace may be made in.
+roots = ["/var/lib/gitd/workspaces"]
 git = "git"
+# Where Prometheus metrics are served (e.g. "127.0.0.1:9419"); empty serves none.
 metrics = ""
+# SSH host keys trusted besides the built-in ones (github.com, gitlab.com, bitbucket.org,
+# codeberg.org): one file per self-hosted GitLab, Gitea, Forgejo… in known_hosts format,
+# e.g. the output of `ssh-keyscan git.example.com`, checked against what its admin publishes.
+known_hosts = []
+
+# Hosts that take SSH on another port or as another user than `git` on 22, e.g. a Gitea
+# behind :2222 (its key goes in a known_hosts file as `[git.example.com]:2222 ssh-ed25519 …`):
+# [ssh."git.example.com"]
+# port = 2222
+# user = "git"
 
 [limits]
 fetches = 4
@@ -15,3 +32,5 @@ operation = "30m"
 every = "6h"
 retire_after = "720h"
 stale_lock = "1h"
+# How many directories below a root the deepest workspace sits.
+sweep_depth = 4

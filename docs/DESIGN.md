@@ -2,10 +2,13 @@
 
 `gitd` manages the **local copies of git repositories** on one server: a cache of each
 repository, the workspaces checked out from it, keeping them current, their submodules,
-and the credentials they are read with. Repositories live on GitHub; `gitd` hosts none.
+and the credentials they are read with. Repositories live on any git host — GitHub,
+GitLab (with its nested groups), Bitbucket, Gitea, Forgejo, Codeberg or a self-hosted one;
+`gitd` hosts none.
 
-It runs on each customer's server, called only by the agent on that server, over a local
-Unix socket.
+It runs on one server, called by one local program over a Unix socket. Whatever is
+particular to that program — paths, user, which credential opens what — is configuration
+and requests, never code.
 
 ---
 
@@ -20,7 +23,7 @@ Unix socket.
    place with a `rename` once complete. A power cut leaves, at most, a temporary directory
    that the next start removes.
 4. **Nothing is ever deleted from the shared cache.** Some workspace, or a rollback to an
-   old commit, may still need an object after a force push on GitHub dropped it.
+   old commit, may still need an object after a force push on the host dropped it.
 5. **Refuse rather than sink.** Every repository and every kind of operation has a
    concurrency limit with a queue; what does not fit waits, or is refused.
 
@@ -29,24 +32,27 @@ Unix socket.
 ## 2. Concepts
 
 ### Repository
-Identified by its **canonical HTTPS address** (`https://github.com/owner/name`), lowercased
+Identified by its **canonical HTTPS address** (`https://<host>/<owner>/<name>`), lowercased
 and without `.git`, however it was written (`git@github.com:Owner/Name.git` is the same
-one). The same rule as `dooservice_git.Repo`: an address that does not name a host, an
-owner and a name is not a repository, which is also where `file://` and `ext::` stop.
+one). Between the owner and the name may sit the groups of a host that nests them
+(`https://gitlab.com/acme/tools/web`), up to twenty. An address that does not name a host,
+an owner and a name is not a repository, which is also where `file://` and `ext::` stop. `ssh://git@git.example.com:2222/acme/web.git` is
+the repository `https://git.example.com/acme/web`: the SSH user and port are the host's,
+not the repository's. A port in an HTTPS address is kept
+(`https://git.example.com:3000/acme/web`) and is the HTTPS one, never used for SSH.
 
 ### Pool (cache)
 One **bare** repository per remote repository and per server, holding its objects:
 
 ```
-<state>/pools/<host>/<owner>/<name>.git
+<state>/pools/<host>/<owner>/[<group>/…]<name>.git
 ```
 
 - Created with `init --bare` and filled with `fetch --no-prune`, bringing **only what is
   wanted**: the tip of a branch or one pinned commit with `--depth 1`, or the whole
-  history when a request asks for it. A submodule is its pinned commit and an added
-  addon is the tip of its branch, as a server always fetched them; a project's own
-  repository keeps its whole history, so `git log` and `git blame` in a console go back
-  as far as they did. A rollback to a commit the pool lacks brings that one commit.
+  history when a request asks for it (`full_history`), so that `git log` and `git blame`
+  in the workspace go back as far as in a clone. A submodule is always its pinned commit
+  only. A rollback to a commit the pool lacks brings that one commit.
   git's own gc is switched off in it.
 - After each fetch its `HEAD` follows the remote's, so a repository whose main branch
   changed hands the new one to new workspaces.
@@ -56,47 +62,48 @@ One **bare** repository per remote repository and per server, holding its object
 - Objects nothing points at any more are kept in *cruft packs* and never pruned (§6).
 
 ### Workspace
-A working tree for one environment, at the path its creator
-asks for, always inside one of the roots allowed by the configuration:
+A working tree, at the path its creator asks for, always inside one of the roots allowed
+by the configuration (`roots`), for instance:
 
 ```
-/var/lib/dooservice/projects/<project>/<env>/addons            (the project's repository)
-/var/lib/dooservice/projects/<project>/<env>/extra-addons/<x>  (the addons added to it)
+/var/lib/gitd/workspaces/<project>/<env>/app
 ```
 
 - A **non-bare** repository whose `objects/info/alternates` points at the pool, with the
   pool's `shallow` file copied in: it holds no objects of its own and is created in
   seconds. It is built with `init` rather than `clone --shared`, because git ignores
   `--shared` for a shallow pool and copies every object.
-- Its `origin` is the repository's real address, so `git status` or a console see what
+- Its `origin` is the repository's real address, so `git status` or a person see what
   they always saw. But it **never fetches from the network**: `gitd` syncs the pool and
   then fetches the workspace from the pool, on this disk.
 - Submodules are treated the same way: each has its own pool, and its git directory under
   `.git/modules/<name>` borrows from it, with its `.git` file and `core.worktree` written
   as relative paths so the workspace can be renamed into place. They are mounted by hand
   because `submodule update --reference` refuses a shallow pool. `submodule.<name>.url`
-  points at the pool in `.git/config` only; the customer's `.gitmodules` is never touched.
+  points at the pool in `.git/config` only; the repository's `.gitmodules` is never touched.
 - `gitd.url`, `gitd.pool` and `gitd.branch` in its `.git/config` say it is gitd's, of
   which repository, and which branch it follows while a rollback has it detached.
 
 ### Credential
 What opens a repository. It arrives with each request, bound to a **URL prefix**
-(`https://github.com/apiservicesac/odoo-pos`, or empty for "any repository"). Which one a
-repository gets is decided by whoever sends the request, from what GitHub says about it:
+(`https://github.com/acme/web`, or empty for "any repository"). Which one a repository
+gets is decided by whoever sends the request, from what its host says about it: a deploy
+key for one repository, an account's token for the rest of its owner's, a key with an
+empty prefix for anything public.
 
-| Repository | Credential | Transport |
-|---|---|---|
-| Public | The project's key (empty prefix) | SSH |
-| Private, administered by the account | Its own deploy key | SSH |
-| Private, the account is only a collaborator | The account's token | HTTPS |
-
-- **SSH key**: the path of a key already on the server (the deploy keys the agent
-  generates). Used through `GIT_SSH_COMMAND` with `IdentitiesOnly=yes`, and the host
-  checked against GitHub's published keys, which are built into the binary.
-- **HTTPS token** (the OAuth token of the connected account): handed to git as an
-  `Authorization` header through `GIT_CONFIG_*`, scoped to that one repository. A
-  repository it opens is read over HTTPS even when written as `git@`, so a `.gitmodules`
-  line with `git@` is read without editing anything.
+- **SSH key**: the path of a key already on the server. Used through `GIT_SSH_COMMAND` with `IdentitiesOnly=yes`, and the host
+  checked against the keys GitHub, GitLab, Bitbucket and Codeberg publish, which are built
+  into the binary, plus those of the `known_hosts` files the configuration names, for a
+  self-hosted GitLab, Gitea or Forgejo. Nothing is trusted on first use. A host is read
+  as `git` on port 22 unless `[ssh."<host>"]` in the configuration gives another `port`
+  or `user`; then the address is `ssh://<user>@<host>:<port>/<path>.git`, and its key is
+  looked up as `[<host>]:<port>`.
+- **HTTPS token** (an OAuth or access token): handed to git as an `Authorization: Basic`
+  header through `GIT_CONFIG_*`, scoped to that one repository. A repository it opens is
+  read over HTTPS even when written as `git@`, so a `.gitmodules` line with `git@` is read
+  without editing anything. The user name sent with it is the request's `https_user`, or
+  when empty the one the host expects: `oauth2` on gitlab.com, `x-token-auth` on
+  bitbucket.org, `x-access-token` anywhere else (GitHub; Gitea and Forgejo take any).
 
 A repository is read with **the most specific credential that opens it, and with that one
 only** — or with nothing when none does. Nothing is tried in turn: a refusal is the
@@ -123,27 +130,25 @@ proto/gitd/v1/            the contract
 gen/go/                   generated code
 ```
 
-It follows `dooprint`'s layout (`cmd/` + `internal/`). Logs are structured (`log/slog`) on
-standard output, which systemd's journal collects. The agent installs and updates the
-binary (§10), so `gitd` never updates itself.
+The layout is Go's usual `cmd/` + `internal/`. Logs are structured (`log/slog`) on
+standard output, which systemd's journal collects. Whoever deploys it installs and updates
+the binary (§10); `gitd` never updates itself.
 
 ### Transport
-**ConnectRPC** on a **Unix socket** (`/run/dooservice/gitd.sock`, reachable only by the
-agent's user). It speaks gRPC, gRPC-Web and Connect (HTTP/JSON) from the same `.proto`, so
-it can be tried with `buf curl` or `curl`.
+**ConnectRPC** on a **Unix socket** (`/run/gitd/gitd.sock` unless `socket` in the
+configuration or `-socket` says otherwise; reachable only by the user that runs gitd). It
+speaks gRPC, gRPC-Web and Connect (HTTP/JSON) from the same `.proto`, so it can be tried
+with `buf curl` or `curl`, and any language with a Connect or gRPC client can call it.
 
 Long operations (preparing a 2 GB workspace) are **server-streaming**: they send progress
 messages and end with their result. Cancelling the call cancels the git in flight. Every
 call carries a **deadline**; one that brings none gets the configured one.
 
-`ServerService.Info` gives the version of `gitd` and of git, so the agent knows whether it
+`ServerService.Info` gives the version of `gitd` and of git, so a client knows whether it
 may use it.
 
-### The agent's client
-The agent speaks the Connect protocol in JSON over `httpx`, which it already ships and
-which talks to Unix sockets natively: a unary call is one POST, a server stream is a POST
-whose answer is a sequence of length-prefixed JSON messages. That keeps the agent's binary
-free of a gRPC stack, and the messages are plain `msgspec` structs mirroring the `.proto`.
+A client needs no gRPC stack: in the Connect protocol a unary call is one POST of JSON,
+and a server stream is a POST whose answer is a sequence of length-prefixed JSON messages.
 
 ---
 
@@ -199,7 +204,7 @@ the one the workspace follows (also after a rollback, which leaves it detached).
 ### Go back to a commit (`Checkout`)
 When the commit is in the pool, `checkout --force --detach` and submodules; otherwise the
 pool is synced first. This is what a rollback uses: since the pool never prunes, the commit
-from before a deployment is still there even after the history was rewritten on GitHub.
+from before a deployment is still there even after the history was rewritten on the host.
 
 ### Submodules (`SyncSubmodules`)
 All of them, or one. Reads the workspace's `.gitmodules` and brings each in from its pool.
@@ -210,29 +215,26 @@ disk without the network.
 
 ### Probe a repository (`Probe`)
 `ls-remote --symref` with nothing, then with each credential: whether it can be read, its
-branches and its default branch. What the agent's `repo.probe` answers with.
+branches and its default branch.
 
 ### Publish (`Publish`)
-What a console committed in a development environment, pushed to a **new branch** with
-the account's token so a pull request can be opened from it. A submodule whose commit is
+What was committed in a workspace, pushed to a **new branch** with a token so a pull (or
+merge) request can be opened from it. A submodule whose commit is
 not in its pool was committed to there, so it goes first, to a branch of the same name in
 its own repository. The commit is fetched into the pool and pushed **from the pool**: the
-token is used where gitd owns the configuration, never in the copy a console could write,
-so an `http.proxy` or an `insteadOf` left there cannot see where the token goes. Only a
+token is used where gitd owns the configuration, never in the copy somebody else could
+write, so an `http.proxy` or an `insteadOf` left there cannot see where the token goes. Only a
 token publishes — deploy keys are read only — and the push is never forced, and nothing
 is pushed when the workspace's own repository brings no new commit. What comes back
-carries each repository's new commit subjects. The agent then opens the pull requests,
-with titles an AI agent in the console wrote or, when nobody did, made from those
-subjects; `dooservice publish` in the console and the panel's button go the same way. The
-orchestrator only decides who may, and only for development environments; nothing
-reaches an environment until a pull request is merged.
+carries each repository's new commit subjects, for the client to title the requests it
+opens; gitd opens none.
 
 ### Remove (`Remove`)
 Deletes a workspace. Its pool stays; when no workspace borrows from it for a configurable
 time, maintenance retires it.
 
 ### Adopt (`Adopt`)
-For the clones that already exist on servers: seeds the repository's pool from the clone
+For clones that already exist: seeds the repository's pool from the clone
 when there is none (a local copy with hard links, no network), links the clone to it with
 `alternates` and repacks it so it stops holding what the pool holds. Before anything is
 removed, `git fsck --connectivity-only`; if it fails, the link is undone and the clone is
@@ -287,8 +289,7 @@ Connect codes with a typed detail (`GitFailure`) saying what happened and what g
 | `CORRUPT` | `fsck` found missing objects | `DATA_LOSS` |
 | `GIT_FAILED` | Any other git failure | `INTERNAL` |
 
-The agent turns the reason into a code the panel already knows how to say in the user's
-language.
+A client tells its users what happened from the reason, never by parsing the message.
 
 ---
 
@@ -301,29 +302,19 @@ language.
 
 ---
 
-## 10. Deployment on customers' servers
+## 10. Deployment
 
-- The binary is released from this repository (a GitHub release per tag). The agent's
-  release pins a `gitd` version, publishes that binary next to its own and names it, with
-  its hash, in the **same signed manifest**. The agent's root updater installs it when its
-  hash changes and restarts the service.
-- systemd service `dooservice-gitd`, with the same user as the environments' files
-  (uid 1500), `ProtectSystem=strict`, `PrivateTmp` and write access only to its state and
-  its roots. Its configuration is written by the agent's `agent install`, from the agent's
-  own data directory.
-- **Transition:** the agent uses `gitd` when it answers and its version is compatible, and
-  otherwise does what it does today. An agent setting forces one or the other. Existing
-  clones are adopted (`Adopt`) the first time they are touched.
-- **Consoles:** an operator console mounts the working copy read-write and runs git in it,
-  so it also mounts the pools directory read-only at the same path. When the console is
-  closed, the agent's working-copy guard removes the copy's link to its pool and writes it
-  again from what the agent knows — the repository it says the copy is of, that
-  repository's pool, and the pool's own `shallow` — never from what the console left. A
-  submodule's link is kept only when it names a real pool, which the console could only
-  read.
-- **Health:** every heartbeat says whether gitd is installed, which version answers and
-  the disk its pools take, and the server's page in the panel shows it. A gitd that does
-  not answer is shown, not alarmed about: the server does its git itself meanwhile.
+- The binary is released from this repository: `gitd-linux-amd64` and its checksum, a
+  GitHub release per tag.
+- `packaging/gitd.service`: user `gitd`, socket `/run/gitd/gitd.sock`, configuration
+  `/etc/gitd/gitd.toml`, `ProtectSystem=strict`, `PrivateTmp` and write access only to its
+  state. Write access to roots outside `/var/lib/gitd` is added with `ReadWritePaths=` in
+  a drop-in, and the user should own the workspaces, as whoever reads them does.
+- `packaging/gitd.toml` shows every key with its default.
+- A program that ships gitd with it pins a version, installs the binary, writes its own
+  service and configuration, and restarts it on an update.
+- A workspace mounted somewhere else where git runs (a container) also needs the pools
+  directory mounted, read only, at the same path, since its `alternates` name it.
 
 ---
 
@@ -331,15 +322,16 @@ language.
 
 - **Embedded git** in the binary (as Gitaly), so as not to depend on the server's.
 - **`sparse-checkout`** of only the modules each environment loads.
-- **Nested submodules**, and SSH host keys of hosts other than GitHub.
+- **Nested submodules**.
 
 ---
 
 ## 12. Open decisions
 
 1. **Credentials in shared pools:** a private repository's pool is synced with the
-   credential of the request in flight. A server serves one customer, so a pool never mixes
-   customers' credentials.
+   credential of the request in flight, and any workspace on the server borrows from it.
+   One gitd is meant for one tenant; tenants who must not read each other's repositories
+   get a gitd each.
 2. **Partial clone** (`blob:none`) in the pool was tried and set aside: a workspace linked
    through `alternates` cannot fetch from the network the objects its pool lacks, and its
    checkout fails. Shallow pools that bring only what is checked out give the same saving

@@ -12,10 +12,10 @@ import (
 // branch tips and some commits, each without the history behind it. A want with neither
 // branches nor commits is the repository's default branch.
 //
-// Only what is checked out, by default, because that is what a server always fetched:
-// `odoo/enterprise` as a submodule is its pinned commit, a few hundred megabytes, and not
-// its history, which is several gigabytes. A project's own repository asks for its whole
-// history, so that `git log` and `git blame` in a console go back as far as they did.
+// Only what is checked out, by default: a large repository as a submodule is its pinned
+// commit, a few hundred megabytes, and not its history, which may be several gigabytes. A
+// workspace that wants `git log` and `git blame` to go back as far as in a clone asks for
+// the whole history.
 type Want struct {
 	Full     bool
 	Branches []string

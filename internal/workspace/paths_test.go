@@ -14,15 +14,15 @@ func TestOnlyWhatLiesUnderARootIsAllowed(t *testing.T) {
 	}
 	workspaces := &Workspaces{roots: []string{root}}
 
-	if _, err := workspaces.allowed(filepath.Join(root, "acme", "prod", "addons")); err != nil {
+	if _, err := workspaces.allowed(filepath.Join(root, "acme", "prod", "app")); err != nil {
 		t.Errorf("inside the root: %v", err)
 	}
 	for _, path := range []string{
 		root,
 		filepath.Join(root, "..", "elsewhere"),
-		filepath.Join(root, "escape", "addons"),
-		"relative/addons",
-		"/etc/addons",
+		filepath.Join(root, "escape", "app"),
+		"relative/app",
+		"/etc/app",
 	} {
 		if _, err := workspaces.allowed(path); err == nil {
 			t.Errorf("allowed %q", path)

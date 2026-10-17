@@ -35,7 +35,7 @@ func aPool(t *testing.T, pools string, name string, lastUsed time.Time, borrowed
 func TestRetiringOnRequestTakesOnlyWhatNobodyUsedForThatLong(t *testing.T) {
 	state := t.TempDir()
 	pools := filepath.Join(state, "pools")
-	workspace := filepath.Join(state, "projects", "acme", "prod", "addons")
+	workspace := filepath.Join(state, "projects", "acme", "prod", "app")
 	borrowedPool := aPool(t, pools, "borrowed", time.Now().Add(-60*24*time.Hour), workspace)
 	if err := os.MkdirAll(filepath.Join(workspace, ".git", "objects", "info"), 0o755); err != nil {
 		t.Fatal(err)

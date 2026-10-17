@@ -3,9 +3,9 @@ package pool
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"io/fs"
 	"os"
 	"path/filepath"
-	"slices"
 	"strings"
 )
 
@@ -43,8 +43,22 @@ func exists(path string) bool {
 	return err == nil
 }
 
-// All are the directories of every pool, found on disk.
+// All are the directories of every pool, found on disk: `<host>/<path>.git`, however many
+// groups the path has. Nothing below a pool is looked into, nor anything half built.
 func (pools *Pools) All() []string {
-	found, _ := filepath.Glob(filepath.Join(pools.Dir, "*", "*", "*.git"))
-	return slices.DeleteFunc(found, func(dir string) bool { return IsTemp(filepath.Base(dir)) })
+	var found []string
+	_ = filepath.WalkDir(pools.Dir, func(path string, entry fs.DirEntry, err error) error {
+		if err != nil || !entry.IsDir() || path == pools.Dir {
+			return nil
+		}
+		if IsTemp(entry.Name()) {
+			return filepath.SkipDir
+		}
+		if strings.HasSuffix(entry.Name(), ".git") {
+			found = append(found, path)
+			return filepath.SkipDir
+		}
+		return nil
+	})
+	return found
 }

@@ -23,11 +23,11 @@ jobs:
           make build VERSION="${GITHUB_REF_NAME}"
           [ "$(bin/gitd -version)" = "${GITHUB_REF_NAME}" ]
           mkdir -p dist
-          cp bin/gitd dist/dooservice-gitd-linux-amd64
-          sha256sum dist/dooservice-gitd-linux-amd64 | cut -d' ' -f1 > dist/dooservice-gitd-linux-amd64.sha256
+          cp bin/gitd dist/gitd-linux-amd64
+          sha256sum dist/gitd-linux-amd64 | cut -d' ' -f1 > dist/gitd-linux-amd64.sha256
       - uses: softprops/action-gh-release@v3
         with:
           name: "${{ github.ref_name }}"
           files: |
-            dist/dooservice-gitd-linux-amd64
-            dist/dooservice-gitd-linux-amd64.sha256
+            dist/gitd-linux-amd64
+            dist/gitd-linux-amd64.sha256

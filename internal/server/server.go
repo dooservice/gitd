@@ -1,7 +1,7 @@
 // Package server answers the contract in proto/gitd/v1 over ConnectRPC, on a Unix socket.
 //
 // Connect speaks gRPC, gRPC-Web and its own HTTP protocol with the same handlers, so the
-// agent calls it with a generated client and a person can call it with `buf curl`.
+// client calls it with a generated client and a person can call it with `buf curl`.
 package server
 
 import (

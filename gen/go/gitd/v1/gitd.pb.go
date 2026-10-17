@@ -149,8 +149,8 @@ func (ProbeResponse_Access) EnumDescriptor() ([]byte, []int) {
 	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{27, 0}
 }
 
-// What opens repositories whose address starts with `url_prefix`,
-// e.g. `https://github.com/apiservicesac/`.
+// What opens repositories whose address starts with `url_prefix`, on any host:
+// e.g. `https://github.com/apiservicesac/` or `https://gitlab.example.com/acme/tools/`.
 type Credential struct {
 	state     protoimpl.MessageState `protogen:"open.v1"`
 	UrlPrefix string                 `protobuf:"bytes,1,opt,name=url_prefix,json=urlPrefix,proto3" json:"url_prefix,omitempty"`
@@ -158,7 +158,12 @@ type Credential struct {
 	//
 	//	*Credential_HttpsToken
 	//	*Credential_SshKeyPath
-	Secret        isCredential_Secret `protobuf_oneof:"secret"`
+	Secret isCredential_Secret `protobuf_oneof:"secret"`
+	// The user name that goes with `https_token`. Empty is the one the host expects for a
+	// token: `oauth2` on gitlab.com, `x-token-auth` on bitbucket.org and `x-access-token`
+	// anywhere else (GitHub, and Gitea and Forgejo, which take any name). A self-hosted
+	// GitLab wants `oauth2`, and a Bitbucket app password the account's own name.
+	HttpsUser     string `protobuf:"bytes,4,opt,name=https_user,json=httpsUser,proto3" json:"https_user,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -225,12 +230,19 @@ func (x *Credential) GetSshKeyPath() string {
 	return ""
 }
 
+func (x *Credential) GetHttpsUser() string {
+	if x != nil {
+		return x.HttpsUser
+	}
+	return ""
+}
+
 type isCredential_Secret interface {
 	isCredential_Secret()
 }
 
 type Credential_HttpsToken struct {
-	// Sent as `Authorization: Basic x-access-token:<token>`. A repository this opens is
+	// Sent as `Authorization: Basic <https_user>:<token>`. A repository this opens is
 	// read over HTTPS even when it was written as `git@`.
 	HttpsToken string `protobuf:"bytes,2,opt,name=https_token,json=httpsToken,proto3,oneof"`
 }
@@ -2209,7 +2221,7 @@ var File_gitd_v1_gitd_proto protoreflect.FileDescriptor
 
 const file_gitd_v1_gitd_proto_rawDesc = "" +
 	"\n" +
-	"\x12gitd/v1/gitd.proto\x12\agitd.v1\"|\n" +
+	"\x12gitd/v1/gitd.proto\x12\agitd.v1\"\x9b\x01\n" +
 	"\n" +
 	"Credential\x12\x1d\n" +
 	"\n" +
@@ -2217,7 +2229,9 @@ const file_gitd_v1_gitd_proto_rawDesc = "" +
 	"\vhttps_token\x18\x02 \x01(\tH\x00R\n" +
 	"httpsToken\x12\"\n" +
 	"\fssh_key_path\x18\x03 \x01(\tH\x00R\n" +
-	"sshKeyPathB\b\n" +
+	"sshKeyPath\x12\x1d\n" +
+	"\n" +
+	"https_user\x18\x04 \x01(\tR\thttpsUserB\b\n" +
 	"\x06secret\"H\n" +
 	"\bRevision\x12\x18\n" +
 	"\x06branch\x18\x01 \x01(\tH\x00R\x06branch\x12\x18\n" +

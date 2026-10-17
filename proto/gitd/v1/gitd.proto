@@ -45,17 +45,22 @@ service ServerService {
   rpc Retire(RetireRequest) returns (RetireResponse);
 }
 
-// What opens repositories whose address starts with `url_prefix`,
-// e.g. `https://github.com/apiservicesac/`.
+// What opens repositories whose address starts with `url_prefix`, on any host:
+// e.g. `https://github.com/acme/` or `https://gitlab.example.com/acme/tools/`.
 message Credential {
   string url_prefix = 1;
   oneof secret {
-    // Sent as `Authorization: Basic x-access-token:<token>`. A repository this opens is
+    // Sent as `Authorization: Basic <https_user>:<token>`. A repository this opens is
     // read over HTTPS even when it was written as `git@`.
     string https_token = 2;
     // A private key that is already on this server.
     string ssh_key_path = 3;
   }
+  // The user name that goes with `https_token`. Empty is the one the host expects for a
+  // token: `oauth2` on gitlab.com, `x-token-auth` on bitbucket.org and `x-access-token`
+  // anywhere else (GitHub, and Gitea and Forgejo, which take any name). A self-hosted
+  // GitLab wants `oauth2`, and a Bitbucket app password the account's own name.
+  string https_user = 4;
 }
 
 // Where a workspace points: a branch, or a commit, or the repository's default branch.
@@ -67,7 +72,7 @@ message Revision {
 }
 
 message Progress {
-  // What git is doing: "Receiving objects", "Resolving deltas", "Submodule addons/web".
+  // What git is doing: "Receiving objects", "Resolving deltas", "Submodule vendor/web".
   string phase = 1;
   // 0 to 100, or -1 when git does not say.
   int32 percent = 2;

@@ -1,10 +1,13 @@
 # gitd
 
-The service that keeps the local copies of git repositories on a
-[dooservice](https://dooservice.sh) server: one **pool** per repository, which is the only
-copy that talks to the network, and the **workspaces** of each environment, which borrow
-their objects from the pool. Ten environments of the same repository take the disk of one
-clone, and a repository is fetched once however many of them use it.
+The service that keeps the local copies of git repositories on a server: one **pool** per
+repository, which is the only copy that talks to the network, and the **workspaces** of
+each environment, which borrow their objects from the pool. Ten environments of the same
+repository take the disk of one clone, and a repository is fetched once however many of
+them use it.
+
+It reads from any git host: GitHub, GitLab (nested groups included), Bitbucket, Gitea,
+Forgejo, Codeberg or a self-hosted one.
 
 It clones, updates, checks out branches and commits, handles submodules, adopts clones
 that already exist, and pushes what an environment committed, each with the one
@@ -32,21 +35,26 @@ bin/gitd -config packaging/gitd.toml
 ```
 
 Every configuration key has a default ([`packaging/gitd.toml`](packaging/gitd.toml) shows
-them all). On servers it runs as `dooservice-gitd`
-([`packaging/dooservice-gitd.service`](packaging/dooservice-gitd.service)), installed and
-updated by the agent.
+them all). `-socket` sets the socket over the configuration. As a service, use
+[`packaging/gitd.service`](packaging/gitd.service) (user `gitd`, socket
+`/run/gitd/gitd.sock`).
+
+SSH host keys of github.com, gitlab.com, bitbucket.org and codeberg.org are built in. For a
+self-hosted GitLab, Gitea or Forgejo, list its keys' file under `known_hosts`, and when it
+takes SSH on another port or user, say so under `[ssh."<host>"]` (`port = 2222`). A token is
+sent with the user name its host expects (`oauth2` on gitlab.com, `x-token-auth` on
+bitbucket.org, `x-access-token` elsewhere) unless the request's `https_user` names one.
 
 ## Release
 
 Push a tag such as `0.2.0`: the release workflow tests, builds and attaches
-`dooservice-gitd-linux-amd64` and its checksum to the GitHub release. The agent's release
-picks the version it pins from there.
+`gitd-linux-amd64` and its checksum to the GitHub release.
 
 ## Try it by hand
 
 ```sh
-buf curl --http2-prior-knowledge --unix-socket /run/dooservice/gitd.sock --schema . \
-  -d '{"url": "https://github.com/OCA/web"}' \
+buf curl --http2-prior-knowledge --unix-socket /run/gitd/gitd.sock --schema . \
+  -d '{"url": "https://gitlab.com/gitlab-org/cloud-native/gitlab-operator"}' \
   http://localhost/gitd.v1.RepositoryService/Probe
 ```
 

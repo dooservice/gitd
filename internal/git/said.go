@@ -7,8 +7,8 @@ import (
 
 // lastWords is the line of git's stderr that says what went wrong.
 //
-// GitHub explains itself in `remote:` lines and git then adds a `fatal:` that repeats the
-// address, so a `remote:` line wins when there is one.
+// A forge explains itself in `remote:` lines (GitHub, GitLab, Gitea) and git then adds a
+// `fatal:` that repeats the address, so a `remote:` line wins when there is one.
 func lastWords(lines []string) string {
 	for _, line := range slices.Backward(lines) {
 		if said, ok := strings.CutPrefix(line, "remote: "); ok && strings.TrimSpace(said) != "" {
@@ -23,8 +23,8 @@ func lastWords(lines []string) string {
 	return ""
 }
 
-// classify reads what git said into a reason. A credential refused reads the same as no
-// credential at all; whoever offered one tells them apart.
+// classify reads what git said into a reason, whichever forge said it. A credential
+// refused reads the same as no credential at all; whoever offered one tells them apart.
 func classify(lines []string) Reason {
 	said := strings.ToLower(strings.Join(lines, "\n"))
 	switch {
@@ -36,10 +36,14 @@ func classify(lines []string) Reason {
 		"invalid username or password",
 		"requested url returned error: 401",
 		"requested url returned error: 403",
+		"access denied",
+		"unauthorized",
 	):
 		return AuthRequired
 	case mentions(said,
 		"not found",
+		"could not be found",
+		"repository does not exist",
 		"couldn't find remote ref",
 		"did not match any",
 		"unknown revision",

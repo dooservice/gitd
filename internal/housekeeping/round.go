@@ -3,7 +3,6 @@ package housekeeping
 import (
 	"context"
 	"path/filepath"
-	"strings"
 
 	"github.com/dooservice/gitd/internal/repo"
 )
@@ -41,9 +40,7 @@ func (keeper *Keeper) repositoryOf(dir string) (repo.Repo, bool) {
 	if err != nil {
 		return repo.Repo{}, false
 	}
-	parts := strings.Split(relative, string(filepath.Separator))
-	if len(parts) != 3 {
-		return repo.Repo{}, false
-	}
-	return repo.Of("https://" + strings.Join(parts, "/"))
+	repository, ok := repo.Of("https://" + filepath.ToSlash(relative))
+	// Only a pool that sits exactly where its repository's goes is that repository's.
+	return repository, ok && repository.Dir(keeper.pools.Dir) == dir
 }

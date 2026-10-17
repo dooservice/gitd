@@ -1,7 +1,7 @@
 # Security policy
 
-gitd holds the credentials that read customers' repositories and writes the code their
-Odoo environments run, so we treat every report seriously.
+gitd holds the credentials that read private repositories and writes the code that runs
+from its workspaces, so we treat every report seriously.
 
 ## Reporting a vulnerability
 
@@ -23,4 +23,4 @@ before disclosing.
 In scope: this service, its socket API and how it handles credentials, URLs and repository
 contents. Out of scope: vulnerabilities in git itself; report those to the git project.
 
-Only the latest release gets fixes; servers take it with the next agent release.
+Only the latest release gets fixes.

@@ -11,6 +11,7 @@
 package credentials
 
 import (
+	"net/url"
 	"strings"
 
 	gitdv1 "github.com/dooservice/gitd/gen/go/gitd/v1"
@@ -18,10 +19,12 @@ import (
 )
 
 // Credential opens the repositories whose canonical address starts with Prefix, with a
-// token or with the path of a key, whichever it carries.
+// token or with the path of a key, whichever it carries. User goes with the token, and
+// empty is the one its host expects (see TokenUser).
 type Credential struct {
 	Prefix string
 	Token  string
+	User   string
 	Key    string
 }
 
@@ -32,6 +35,7 @@ func FromProto(given []*gitdv1.Credential) []Credential {
 		read = append(read, Credential{
 			Prefix: canonicalPrefix(credential.GetUrlPrefix()),
 			Token:  credential.GetHttpsToken(),
+			User:   credential.GetHttpsUser(),
 			Key:    credential.GetSshKeyPath(),
 		})
 	}
@@ -39,12 +43,15 @@ func FromProto(given []*gitdv1.Credential) []Credential {
 }
 
 // canonicalPrefix writes a prefix the way a canonical address starts, so that
-// `git@github.com:acme/` and `https://github.com/acme/` open the same repositories.
+// `git@github.com:acme/`, `ssh://git@github.com:22/acme/` and `https://github.com/acme/`
+// open the same repositories.
 func canonicalPrefix(prefix string) string {
 	text := strings.ToLower(strings.TrimSpace(prefix))
 	if after, ok := strings.CutPrefix(text, "git@"); ok {
 		host, path, _ := strings.Cut(after, ":")
 		text = "https://" + host + "/" + path
+	} else if parsed, err := url.Parse(text); err == nil && parsed.Scheme == "ssh" {
+		text = "https://" + parsed.Hostname() + parsed.Path
 	}
 	return strings.TrimSuffix(strings.TrimSuffix(text, "/"), ".git")
 }
@@ -52,6 +59,19 @@ func canonicalPrefix(prefix string) string {
 func (credential Credential) opens(repository repo.Repo) bool {
 	address := repository.HTTPS()
 	return credential.Prefix == "" || address == credential.Prefix || strings.HasPrefix(address, credential.Prefix+"/")
+}
+
+// TokenUser is the user name a token is sent with to a host that was given none: what
+// gitlab.com and bitbucket.org expect for theirs, and GitHub's `x-access-token` anywhere
+// else, which Gitea and Forgejo accept as they take any name.
+func TokenUser(host string) string {
+	switch strings.ToLower(host) {
+	case "gitlab.com":
+		return "oauth2"
+	case "bitbucket.org":
+		return "x-token-auth"
+	}
+	return "x-access-token"
 }
 
 func (credential Credential) carries() bool {
