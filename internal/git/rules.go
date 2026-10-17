@@ -30,8 +30,9 @@ func subcommands() map[string]bool {
 }
 
 // hardened is set on the command line, where the repository being read cannot turn any
-// of it back on: no hooks, no fsmonitor, no credential helper, no prompt, and no
-// transport but HTTPS and SSH.
+// of it back on: no hooks, no fsmonitor, no credential helper, no prompt, no transport but
+// HTTPS and SSH, and no HTTP redirect, so a token sent to a repository's host goes there
+// only: a moved repository fails with where it went, rather than being followed.
 func hardened(local bool) []string {
 	file := "protocol.file.allow=never"
 	if local {
@@ -42,6 +43,7 @@ func hardened(local bool) []string {
 		"-c", "core.hooksPath=/dev/null",
 		"-c", "core.fsmonitor=false",
 		"-c", "core.askPass=",
+		"-c", "http.followRedirects=false",
 		"-c", "protocol.allow=never",
 		"-c", "protocol.ext.allow=never",
 		"-c", "protocol.ssh.allow=always",

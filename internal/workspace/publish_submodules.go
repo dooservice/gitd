@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 
 	gitdv1 "github.com/dooservice/gitd/gen/go/gitd/v1"
+	"github.com/dooservice/gitd/internal/git"
 	"github.com/dooservice/gitd/internal/repo"
 )
 
@@ -17,6 +18,10 @@ type stagedSubmodule struct {
 
 // stageSubmodules stages every submodule that was committed to in the workspace: one whose
 // commit its repository's branches do not have. One that is as it came is left alone.
+//
+// Only a submodule gitd checked out in this workspace is published: its repository's pool
+// lists the workspace among those that borrow from it. The workspace's .gitmodules is the
+// sandbox's to write, so a repository it merely names is never pushed to.
 func (workspaces *Workspaces) stageSubmodules(
 	ctx context.Context, path string, parent repo.Repo, branch string,
 ) ([]stagedSubmodule, error) {
@@ -30,6 +35,10 @@ func (workspaces *Workspaces) stageSubmodules(
 		repository, named := repo.Of(repo.Relative(submodule.url, parent))
 		if !named || !exists(filepath.Join(workTree, ".git")) {
 			continue
+		}
+		if !workspaces.pools.Lends(repository, path) {
+			return nil, git.Fail(git.PathRefused,
+				"submodule %s names %s, which gitd never checked out in %s", submodule.path, repository.HTTPS(), path)
 		}
 		gitDir := filepath.Join(path, ".git", "modules", submodule.name)
 		commit, subjects, err := workspaces.pools.Stage(ctx, repository, gitDir, branch)

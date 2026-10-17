@@ -28,6 +28,12 @@ func (pools *Pools) Use(ctx context.Context, repository repo.Repo, path string) 
 	})
 }
 
+// Lends says whether the pool of a repository lists the workspace at path among those that
+// borrow from it: what gitd wrote when it checked that repository out there.
+func (pools *Pools) Lends(repository repo.Repo, path string) bool {
+	return slices.Contains(Workspaces(pools.Path(repository)), path)
+}
+
 // Forget notes that the workspace at path no longer borrows from the pool of a repository.
 func (pools *Pools) Forget(ctx context.Context, repository repo.Repo, path string) error {
 	return pools.editRegistry(ctx, repository, func(paths []string) []string {

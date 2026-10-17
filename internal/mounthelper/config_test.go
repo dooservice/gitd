@@ -58,3 +58,23 @@ func TestAConfigurationAnyoneButRootCouldWriteIsRefused(t *testing.T) {
 		}
 	}
 }
+
+func TestAConfigurationInADirectoryOthersCanWriteIsRefused(t *testing.T) {
+	if os.Geteuid() != 0 {
+		t.Skip("root owns the configuration; runs as root in CI")
+	}
+	dir := filepath.Join(t.TempDir(), "open")
+	if err := os.Mkdir(dir, 0o777); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(dir, 0o777); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(dir, "gitd-mount.conf")
+	if err := os.WriteFile(path, []byte("user 1500\ntemplates /t\nlayers /l\nroot /r\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Load(path); err == nil {
+		t.Error("a configuration in a directory anyone may write was accepted")
+	}
+}

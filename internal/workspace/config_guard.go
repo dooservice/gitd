@@ -2,9 +2,11 @@ package workspace
 
 import (
 	"context"
+	"errors"
 	"io/fs"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/dooservice/gitd/internal/git"
@@ -19,32 +21,48 @@ import (
 // quietly removed.
 
 // guard refuses a workspace gitd would not safely run git in: one whose `.git` is not a
-// directory of its own, or whose configuration, or a submodule's, sets a key outside
+// directory of its own, whose git directory or a submodule's leads out of the workspace
+// (gitdir_guard.go), or whose configuration, or a submodule's, sets a key outside
 // allowedKeys.
 func (workspaces *Workspaces) guard(ctx context.Context, path string) error {
 	gitDir := filepath.Join(path, ".git")
 	if info, err := os.Lstat(gitDir); err != nil || !info.IsDir() {
 		return git.Fail(git.ConfigRefused, "%s/.git is not a directory of its own", path)
 	}
+	if err := workspaces.checkGitDir(path, gitDir); err != nil {
+		return err
+	}
 	if err := workspaces.checkConfig(ctx, path, filepath.Join(gitDir, "config"), false); err != nil {
 		return err
 	}
 	modules := filepath.Join(gitDir, "modules")
-	return filepath.WalkDir(modules, func(file string, entry fs.DirEntry, err error) error {
+	return filepath.WalkDir(modules, func(dir string, entry fs.DirEntry, err error) error {
 		switch {
 		case err != nil:
-			if file == modules && os.IsNotExist(err) {
+			if dir == modules && errors.Is(err, fs.ErrNotExist) {
 				return nil
 			}
 			return err
 		case entry.Type()&fs.ModeSymlink != 0:
-			return git.Fail(git.ConfigRefused, "%s is a symbolic link inside .git/modules", file)
-		case entry.Name() == "config" && entry.Type().IsRegular():
-			return workspaces.checkConfig(ctx, path, file, true)
+			return git.Fail(git.ConfigRefused, "%s is a symbolic link inside .git/modules", dir)
+		case !entry.IsDir():
+			return nil
+		case slices.Contains(gitDirContents, entry.Name()):
+			return filepath.SkipDir
 		}
-		return nil
+		if _, err := os.Lstat(filepath.Join(dir, "HEAD")); err != nil {
+			return nil
+		}
+		if err := workspaces.checkGitDir(path, dir); err != nil {
+			return err
+		}
+		return workspaces.checkConfig(ctx, path, filepath.Join(dir, "config"), true)
 	})
 }
+
+// gitDirContents are the directories of a git directory that hold no git directory of a
+// submodule, so the walk need not look into their many files.
+var gitDirContents = []string{"objects", "refs", "logs", "hooks", "info", "lfs"}
 
 // checkConfig refuses a configuration file that is not a plain file, or that sets a key
 // outside allowedKeys; a submodule's may also point at its checkout inside the workspace.

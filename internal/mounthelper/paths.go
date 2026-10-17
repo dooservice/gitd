@@ -23,7 +23,7 @@ type pinned struct {
 func (dir pinned) Close() { _ = unix.Close(dir.fd) }
 
 // pin opens path, a directory beneath base, without following any symbolic link on the way
-// and without leaving base, and checks it is owned by uid.
+// — base included, from / — and without leaving base, and checks it is owned by uid.
 func pin(base, path string, uid int) (pinned, error) {
 	if !filepath.IsAbs(path) || filepath.Clean(path) != path {
 		return pinned{}, fmt.Errorf("%w: %q is not a clean absolute path", errRefused, path)
@@ -32,7 +32,10 @@ func pin(base, path string, uid int) (pinned, error) {
 	if err != nil || relative == "." || relative == ".." || strings.HasPrefix(relative, "../") {
 		return pinned{}, fmt.Errorf("%w: %s is not beneath %s", errRefused, path, base)
 	}
-	baseFD, err := unix.Open(base, unix.O_PATH|unix.O_DIRECTORY|unix.O_NOFOLLOW|unix.O_CLOEXEC, 0)
+	baseFD, err := unix.Openat2(unix.AT_FDCWD, base, &unix.OpenHow{
+		Flags:   unix.O_PATH | unix.O_DIRECTORY | unix.O_CLOEXEC,
+		Resolve: unix.RESOLVE_NO_SYMLINKS | unix.RESOLVE_NO_MAGICLINKS,
+	})
 	if err != nil {
 		return pinned{}, fmt.Errorf("%w: %s: %v", errRefused, base, err)
 	}

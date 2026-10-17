@@ -53,7 +53,10 @@ func (workspaces *Workspaces) hold(ctx context.Context, path string) (func(), er
 		}
 		return nil, err
 	}
-	lock.ClearStale(filepath.Join(path, ".git"), workspaces.staleLock)
+	// Only in a .git of the workspace's own: one that is a link leads somewhere else.
+	if info, err := os.Lstat(filepath.Join(path, ".git")); err == nil && info.IsDir() {
+		lock.ClearStale(filepath.Join(path, ".git"), workspaces.staleLock)
+	}
 	return func() {
 		release()
 		leave()

@@ -2,12 +2,9 @@ package workspace
 
 import (
 	"context"
-	"errors"
-	"io/fs"
 	"os"
 	"path/filepath"
 
-	"github.com/dooservice/gitd/internal/pool"
 	"github.com/dooservice/gitd/internal/repo"
 )
 
@@ -17,28 +14,28 @@ import (
 //
 // It is done before every fetch from the pool, because a sync may have moved where the
 // pool's history stops.
+//
+// Both are written through an os.Root of the git directory, so a link a sandbox left in it
+// cannot carry the writes elsewhere.
 func (workspaces *Workspaces) borrow(gitDir string, repository repo.Repo) error {
-	alternates := filepath.Join(gitDir, "objects", "info", "alternates")
-	if err := os.MkdirAll(filepath.Dir(alternates), 0o755); err != nil {
+	dir, err := openGitDir(gitDir)
+	if err != nil {
 		return err
 	}
+	defer dir.Close()
 	objects := filepath.Join(workspaces.pools.Path(repository), "objects") + "\n"
-	if err := pool.WriteAtomic(alternates, []byte(objects)); err != nil {
+	if err := writeInside(dir, filepath.Join("objects", "info", "alternates"), []byte(objects)); err != nil {
 		return err
 	}
-	shallow := filepath.Join(gitDir, "shallow")
 	from := workspaces.pools.Shallow(repository)
 	if from == "" {
-		if err := os.Remove(shallow); err != nil && !errors.Is(err, fs.ErrNotExist) {
-			return err
-		}
-		return nil
+		return removeInside(dir, "shallow")
 	}
 	data, err := os.ReadFile(from)
 	if err != nil {
 		return err
 	}
-	return pool.WriteAtomic(shallow, data)
+	return writeInside(dir, "shallow", data)
 }
 
 // keepsHistory is whether the workspace at path was made with the repository's whole

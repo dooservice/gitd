@@ -10,7 +10,6 @@ import (
 
 	gitdv1 "github.com/dooservice/gitd/gen/go/gitd/v1"
 	"github.com/dooservice/gitd/internal/git"
-	"github.com/dooservice/gitd/internal/pool"
 	"github.com/dooservice/gitd/internal/repo"
 )
 
@@ -20,8 +19,13 @@ import (
 func (workspaces *Workspaces) link(
 	ctx context.Context, workTree, gitDir string, repository repo.Repo, report Report,
 ) error {
-	alternates := filepath.Join(gitDir, "objects", "info", "alternates")
-	previous, err := os.ReadFile(alternates)
+	dir, err := openGitDir(gitDir)
+	if err != nil {
+		return err
+	}
+	defer dir.Close()
+	alternatesIn := filepath.Join("objects", "info", "alternates")
+	previous, err := dir.ReadFile(alternatesIn)
 	if err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return err
 	}
@@ -30,10 +34,7 @@ func (workspaces *Workspaces) link(
 		linked += "\n"
 	}
 	linked += filepath.Join(workspaces.pools.Path(repository), "objects") + "\n"
-	if err := os.MkdirAll(filepath.Dir(alternates), 0o755); err != nil {
-		return err
-	}
-	if err := pool.WriteAtomic(alternates, []byte(linked)); err != nil {
+	if err := writeInside(dir, alternatesIn, []byte(linked)); err != nil {
 		return err
 	}
 
@@ -45,7 +46,7 @@ func (workspaces *Workspaces) link(
 	if err == nil {
 		return nil
 	}
-	unlink(alternates, previous)
+	unlink(dir, alternatesIn, previous)
 	if failure, ok := git.AsFailure(err); ok && failure.Reason != git.Timeout {
 		failure.Reason = git.Corrupt
 		failure.Repository = repository.HTTPS()
@@ -53,12 +54,12 @@ func (workspaces *Workspaces) link(
 	return err
 }
 
-func unlink(alternates string, previous []byte) {
+func unlink(dir *os.Root, alternates string, previous []byte) {
 	if len(previous) == 0 {
-		_ = os.Remove(alternates)
+		_ = removeInside(dir, alternates)
 		return
 	}
-	_ = pool.WriteAtomic(alternates, previous)
+	_ = writeInside(dir, alternates, previous)
 }
 
 // size is what the files under dir take.

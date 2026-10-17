@@ -22,6 +22,8 @@ ReadWritePaths=/var/lib/gitd
 # Roots outside /var/lib/gitd go in a drop-in: ReadWritePaths=/srv/workspaces
 PrivateTmp=yes
 NoNewPrivileges=yes
+# gitd never makes a setuid or setgid file, nor lets git make one.
+RestrictSUIDSGID=yes
 StandardOutput=journal
 StandardError=journal
 SyslogIdentifier=gitd
