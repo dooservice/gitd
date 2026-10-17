@@ -54,6 +54,10 @@ func Stored(settings []config.Credential) ([]Credential, error) {
 	stored := make([]Credential, 0, len(settings))
 	for _, setting := range settings {
 		credential := Credential{Prefix: canonicalPrefix(setting.Prefix), User: setting.TokenUser, Key: setting.SSHKey, stored: true}
+		if setting.SSHKey == "" && !credential.namesHost() {
+			return nil, fmt.Errorf("the token for %q: give a prefix that names its host, e.g. https://github.com/your-org; "+
+				"without one it would be sent to any host a repository or its submodules name", setting.Prefix)
+		}
 		switch {
 		case setting.TokenFile != "":
 			read, err := os.ReadFile(setting.TokenFile)
@@ -111,8 +115,17 @@ func tokenUser(host string) string {
 	return "x-access-token"
 }
 
+// carries says whether the credential has something to read with. A token whose prefix
+// names no host carries nothing: it would go to any host a repository's submodules name.
+// A key needs no such prefix, as ssh checks every host against the keys it knows.
 func (credential Credential) carries() bool {
-	return credential.Token != "" || credential.Key != ""
+	return credential.Token != "" && credential.namesHost() || credential.Key != ""
+}
+
+// namesHost says whether the prefix names a host, as https://host[/path] does.
+func (credential Credential) namesHost() bool {
+	host, _, _ := strings.Cut(strings.TrimPrefix(credential.Prefix, "https://"), "/")
+	return strings.HasPrefix(credential.Prefix, "https://") && host != ""
 }
 
 // kept says, in the logs, that a credential is one gitd keeps rather than the request's.

@@ -195,3 +195,18 @@ func TestACredentialWhoseSecretCannotBeReadStopsTheStart(t *testing.T) {
 		}
 	}
 }
+
+func TestATokenIsNeverSentToAHostItsPrefixDoesNotName(t *testing.T) {
+	keys := &Keys{knownHosts: "/state/known_hosts"}
+	internal := repo.Repo{Host: "169.254.169.254", Path: "latest/meta-data"}
+	for _, prefix := range []string{"", "https://", "git@:"} {
+		given := []Credential{{Prefix: canonicalPrefix(prefix), Token: "secret"}}
+		access := keys.For(internal, given)
+		if access.Offered || strings.Contains(strings.Join(access.Env, " "), base64.StdEncoding.EncodeToString([]byte("x-access-token:secret"))) {
+			t.Errorf("a token with prefix %q is offered to %s", prefix, internal.Host)
+		}
+	}
+	if _, err := Stored([]config.Credential{{Prefix: "", TokenEnv: "HOME"}}); err == nil {
+		t.Error("a kept token with no prefix is accepted")
+	}
+}
