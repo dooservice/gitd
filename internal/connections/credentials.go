@@ -2,6 +2,7 @@ package connections
 
 import (
 	"log/slog"
+	"time"
 
 	"github.com/dooservice/gitd/internal/credentials"
 )
@@ -33,6 +34,13 @@ func (store *Store) Credentials() []credentials.Credential {
 				continue
 			}
 			kept = append(kept, credentials.KeptMinter(record.URLPrefix, app, appLabel(record)))
+		case GitHubLogin:
+			person, err := store.login(record, "", time.Time{})
+			if err != nil {
+				slog.Error("a GitHub sign-in cannot renew", "connection", record.ID, "error", err)
+				continue
+			}
+			kept = append(kept, credentials.KeptMinter(record.URLPrefix, person, loginLabel(record)))
 		}
 	}
 	return kept

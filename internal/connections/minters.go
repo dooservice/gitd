@@ -14,14 +14,14 @@ type minters struct {
 	made  map[string]credentials.Minter
 }
 
-// minter is the minter of a connection, made by make the first time.
-func (store *Store) minter(id string, make func() (credentials.Minter, error)) (credentials.Minter, error) {
+// minter is the minter of a connection, made by build the first time.
+func (store *Store) minter(id string, build func() (credentials.Minter, error)) (credentials.Minter, error) {
 	store.minters.guard.Lock()
 	defer store.minters.guard.Unlock()
 	if made, found := store.minters.made[id]; found {
 		return made, nil
 	}
-	made, err := make()
+	made, err := build()
 	if err != nil {
 		return nil, err
 	}

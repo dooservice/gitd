@@ -1,6 +1,7 @@
 package connections
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
@@ -34,6 +35,8 @@ type Store struct {
 	github    GitHub
 	minters   minters
 	creating  pending[appBeingCreated]
+	logins    pending[loginBeingFinished]
+	wait      func(context.Context, time.Duration) error
 }
 
 // UseGitHub says how the GitHub Apps of the connections reach GitHub's API.
@@ -48,7 +51,7 @@ func Open(directory string, box *secrets.Box) (*Store, error) {
 	if err := os.MkdirAll(directory, 0o700); err != nil {
 		return nil, fmt.Errorf("connections: %w", err)
 	}
-	store := &Store{directory: directory, box: box, now: time.Now,
+	store := &Store{directory: directory, box: box, now: time.Now, wait: waitFor,
 		records: map[string]Record{}, opened: map[string][]byte{}}
 	entries, err := os.ReadDir(directory)
 	if err != nil {

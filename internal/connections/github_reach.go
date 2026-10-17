@@ -8,12 +8,15 @@ import (
 // GitHub is how gitd reaches GitHub: as which User-Agent, and on which port of each host
 // that is not reached on the usual one. APIBase and WebBase, when set, are where its API
 // and its pages are reached instead of their usual addresses, for every host: a proxy, or a
-// test.
+// test. LoginClientID and LoginAppSlug are gitd's public App, which people sign in
+// through; without a client ID, signing in is not offered.
 type GitHub struct {
-	UserAgent string
-	Hosts     repo.Hosts
-	APIBase   string
-	WebBase   string
+	UserAgent     string
+	Hosts         repo.Hosts
+	APIBase       string
+	WebBase       string
+	LoginClientID string
+	LoginAppSlug  string
 }
 
 // web is where a host's pages are.
