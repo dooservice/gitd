@@ -11,6 +11,7 @@ import (
 	"context"
 	"errors"
 	"os/exec"
+	"strings"
 	"sync/atomic"
 	"syscall"
 	"time"
@@ -41,7 +42,8 @@ func (runner *Runner) Running() int64 {
 // disk, which only a pool is.
 //
 // Differences says that git ending with status 1 found differences — as diff and
-// merge-tree do — and answered, rather than failed.
+// merge-tree do — and answered, rather than failed. Input, when set, is what git reads on
+// its standard input.
 type Cmd struct {
 	Dir         string
 	Args        []string
@@ -49,6 +51,7 @@ type Cmd struct {
 	Local       bool
 	Progress    progress.Report
 	Differences bool
+	Input       string
 }
 
 // Run runs git and returns its stdout, or a failure with what git said.
@@ -69,6 +72,9 @@ func (runner *Runner) Run(ctx context.Context, command Cmd) (string, error) {
 	stderr := progress.NewWriter(command.Progress)
 	process.Stdout = &stdout
 	process.Stderr = stderr
+	if command.Input != "" {
+		process.Stdin = strings.NewReader(command.Input)
+	}
 
 	runner.running.Add(1)
 	err := process.Run()
