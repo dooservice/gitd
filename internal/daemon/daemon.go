@@ -19,6 +19,7 @@ import (
 	"github.com/dooservice/gitd/internal/mounthelper"
 	"github.com/dooservice/gitd/internal/pool"
 	"github.com/dooservice/gitd/internal/publishing"
+	"github.com/dooservice/gitd/internal/pullrequests"
 	"github.com/dooservice/gitd/internal/secrets"
 	"github.com/dooservice/gitd/internal/server"
 	"github.com/dooservice/gitd/internal/strategy"
@@ -91,7 +92,9 @@ func Run(ctx context.Context, path, socket, version string) error {
 	if err != nil {
 		return err
 	}
-	workspaces.UsePublishing(workspace.Publishing{Settings: publishingSettings, Recorder: auditLog})
+	workspaces.UsePublishing(workspace.Publishing{
+		Settings: publishingSettings, PullRequests: pullrequests.New(keys, github), Recorder: auditLog,
+	})
 
 	templates := template.New(settings.Templates(), locks, workspaces)
 	want := strategy.Name(settings.Workspaces.Strategy)
