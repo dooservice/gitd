@@ -159,3 +159,25 @@ func TestAReflinkCopyKeepsContentAndModificationTimeOrSaysItCannot(t *testing.T)
 		t.Errorf("link = %q, %v", link, err)
 	}
 }
+
+func TestTheLayersAreReachedByGitdAlone(t *testing.T) {
+	root := t.TempDir()
+	template := filepath.Join(root, "template")
+	if err := os.MkdirAll(template, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	maker := &OverlayMaker{Layers: filepath.Join(root, "layers"), Mounter: copyMounter{}}
+	dest := filepath.Join(root, "workspaces", "agent-1")
+	if err := maker.Make(context.Background(), template, dest); err != nil {
+		t.Fatal(err)
+	}
+	for _, dir := range []string{maker.Layers, maker.layer(dest)} {
+		info, err := os.Stat(dir)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if mode := info.Mode().Perm(); mode != 0o700 {
+			t.Errorf("%s is %o; want 700", dir, mode)
+		}
+	}
+}

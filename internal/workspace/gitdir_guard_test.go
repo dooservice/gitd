@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/dooservice/gitd/internal/git"
 	"github.com/dooservice/gitd/internal/repo"
@@ -63,5 +64,32 @@ func writeFile(t *testing.T, path, text string) {
 	}
 	if err := os.WriteFile(path, []byte(text), 0o644); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestLocksAreNeverClearedThroughAGitDirectoryThatIsALink(t *testing.T) {
+	repository := repo.Repo{Host: "github.com", Path: "acme/web"}
+	workspaces, roots := newTestWorkspaces(t, repository)
+	path := made(t, workspaces, roots, "agent-1", repository)
+	elsewhere := t.TempDir()
+	lock := filepath.Join(elsewhere, "index.lock")
+	writeFile(t, lock, "")
+	old := time.Now().Add(-48 * time.Hour)
+	if err := os.Chtimes(lock, old, old); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.RemoveAll(filepath.Join(path, ".git")); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(elsewhere, filepath.Join(path, ".git")); err != nil {
+		t.Fatal(err)
+	}
+	release, err := workspaces.hold(context.Background(), path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	release()
+	if _, err := os.Stat(lock); err != nil {
+		t.Fatal("a lock was cleared through a .git that is a link")
 	}
 }
