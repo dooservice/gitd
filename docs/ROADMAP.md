@@ -229,9 +229,10 @@ can answer better than anything inside the sandbox:
 - **Rules on what a publish may contain**, enforced by gitd, outside the agent: no change to
   the CI, no deleted tests, no more than so many files.
 - **What a platform needs to show agents' work and plug gitd in**: the changes and diff of
-  a workspace, the difference between two agents, a stream of what happens, a pull request
-  opened on publish, who asked for the work, workspaces that start with their dependencies
-  installed — and an integration with an agent platform people already use.
+  a workspace, the difference between two agents and whether their work merges, a stream
+  of what happens, a pull request opened on publish, who asked for the work, workspaces that
+  start with their dependencies installed — and an integration with an agent platform
+  people already use.
 
 **Done when:** gitd fetches, publishes and opens a pull request as a GitHub App, with no
 token made by hand; a publish that changes a protected path is refused and recorded; a
@@ -298,8 +299,10 @@ max_changed_files = 200
 **Pull requests on publish.** `Publish` may ask for a pull request (title, body, base,
 draft). gitd opens it through the host's API with the same credential it pushed with —
 GitHub first, GitLab's merge requests after — and returns its address, which the audit log
-records too. Its body defaults to the commits' subjects and the provenance below. A host
-whose API gitd does not know refuses plainly.
+records too. Its body defaults to the commits' subjects, the provenance below and **what
+gitd checked**: the rules the publish passed, the files and lines it changes, and any
+protected or kept path it came near — a reviewer reads in a minute what they would
+otherwise dig for. A host whose API gitd does not know refuses plainly.
 
 **Changes.** `Changes(path)` lists what an agent changed: each file added, modified,
 deleted, renamed or untracked, with lines added and removed, against the commit the
@@ -320,6 +323,12 @@ limit, and says when it cut it short — a diff of megabytes never reaches a pag
 branches: "how do agent 3 and agent 7 differ?" — what choosing between several attempts at
 one task needs. Two workspaces on the same template differ only in their layers, so gitd
 compares those, not the whole tree.
+
+**Conflicts.** `Conflicts(branches or workspaces)` says whether the work of several agents
+merges cleanly, and where it does not, before anyone merges: "agents 2 and 5 both changed
+`auth.go`". gitd runs `git merge-tree --write-tree` in the pool, which merges without a
+working tree and runs none of the repository's code. Whether the merged code passes its
+tests is for the platform's CI, never for gitd.
 
 **Watch.** `Watch` is a stream of what happens: a workspace made, changed, published or
 removed, a publish refused. A page or a platform follows it instead of asking every few
@@ -346,8 +355,8 @@ heard about worktrees.
   same guards on its `.git` — and retires it, like a template, when no workspace uses it.
 
 **Command line and MCP.** Every new call has its command (`gitd changes`, `gitd diff`,
-`gitd compare`, `gitd watch`, `gitd seal`) and, where an agent needs it, an MCP tool —
-none of which takes a credential, as today.
+`gitd compare`, `gitd conflicts`, `gitd watch`, `gitd seal`) and, where an agent needs it,
+an MCP tool — none of which takes a credential, as today.
 
 **OpenHands, as the first integration.** OpenHands (MIT, the most-starred open agent
 platform) runs each conversation in a Docker sandbox, and its SDK clones the repository
@@ -368,7 +377,7 @@ It lands first as `examples/openhands`, run in CI, and is then proposed to OpenH
 | D19 | GitHub App before any other host's equivalent | Most agent platforms publish to GitHub; it is what companies install |
 | D20 | Installation tokens scoped to one repository and the operation's permissions, kept in memory only | A token that leaks opens one repository for minutes, and the agent never holds one anyway |
 | D21 | Policies checked in the pool on the commits to push, never in the workspace | The workspace is the sandbox's to write; the pool is gitd's |
-| D22 | Changes, Diff and Compare read the agent's layer on overlay, and run git only in the template | Fast where the tree is large, and no git in a workspace a sandbox may be writing |
+| D22 | Changes, Diff and Compare read the agent's layer on overlay, and run git only in the template; Conflicts merges in the pool with `git merge-tree` | Fast where the tree is large, and no git in a workspace a sandbox may be writing |
 | D23 | Warm layers are built by the platform's sandbox and sealed by gitd; gitd never runs a setup | Running a repository's install would run its code as gitd's user |
 | D24 | Provenance is recorded as told, never verified and never written into commits | gitd cannot know who asked; rewriting commits would change what the agent made |
 | D25 | Publishing rules, pull requests and the GitHub App before the network endpoint | What companies ask first, mostly local, and the endpoint (0.9) publishes through them |
@@ -391,9 +400,9 @@ It lands first as `examples/openhands`, run in CI, and is then proposed to OpenH
 |---|---|---|
 | **0.8 · 0 GitHub App** | `github_app` credentials: JWT, installation lookup, tokens per repository and permission, kept in memory | Fetch and publish as an App, end to end against a test App; no token on disk |
 | **0.8 · 1 Publishing policies** | `[[publish.rules]]`: protected paths, kept paths, maximum files; `POLICY_REFUSED`; audit | Each rule refuses what it should and nothing else; recorded |
-| **0.8 · 2 Pull requests** | `Publish` opens one on GitHub; its address in the answer and the audit log | A publish opens a pull request as the App, end to end |
+| **0.8 · 2 Pull requests** | `Publish` opens one on GitHub, its body saying what gitd checked; its address in the answer and the audit log | A publish opens a pull request as the App, end to end |
 | **0.8 · 3 Changes and Diff** | From the layer on overlay, from git on copy; limits; CLI and MCP | Agree with `git status` and `git diff` on every strategy; measured on kubernetes |
-| **0.8 · 4 Compare and Watch** | The difference between two workspaces or branches; a stream of events | Compare agrees with `git diff` between them; Watch sees a change, a publish and a removal |
+| **0.8 · 4 Compare, Conflicts and Watch** | The difference between two workspaces or branches; whether several merge cleanly; a stream of events | Compare agrees with `git diff` between them; Conflicts agrees with a real merge and runs no repository code; Watch sees a change, a publish and a removal |
 | **0.8 · 5 Provenance** | Origin fields on `Publish`, into the audit log and the pull request | Recorded, bounded, shown; never a commit rewritten |
 | **0.8 · 6 Warm layers** | `Seal`; `Prepare` on a warm layer; retirement | A workspace starts with `node_modules` installed in milliseconds, measured; gitd ran no setup |
 | **0.8 · 7 OpenHands** | `examples/openhands`, in CI; then a proposal upstream | An OpenHands agent works and publishes on a gitd workspace with no token in its sandbox |
@@ -494,7 +503,7 @@ limits = { workspaces = 200, disk = "50GB", fetches = 2 }
 | **0.9 · 1 Tokens** | Issue, check and revoke; an RPC, a CLI command and an MCP tool | Expired and revoked tokens refused; a token opens only its repository |
 | **0.9 · 2 Sandbox repositories** | Receive into a repository per token; publish from it, with the prefix and the audit log | A push from a sandbox becomes a branch on the git host through gitd |
 | **0.9 · 3 Tenants** | `[[tenants]]`: keys, roots, credentials, limits; every call scoped; per-tenant pools, templates, workspaces, tokens and audit | Isolation tests pass; no tenants configured behaves as 0.8 |
-| **0.9 · 4 Network** | Listen address, TLS, limits | Tests with TLS and without; refused when unconfigured |
+| **0.9 · 4 Network** | Listen address, TLS, limits; gitd's API served there too (ConnectRPC over TLS, a tenant's key on every call), so a platform on another machine calls it as it calls the socket | Tests with TLS and without; refused when unconfigured; the SDKs reach a remote gitd |
 | **0.9 · 5 Examples** | E2B and Modal (or any microVM) cloning from gitd; a two-tenant setup | Each example runs end to end |
 | **0.9 · 6 Outside review** | A person outside the project reviews the endpoint, tokens, tenants and the threat model before the network service ships; sandbox repositories also retire 0.7's rule to pause a sandbox while gitd runs git in its workspace | Findings fixed or recorded; THREAT_MODEL.md updated |
 
@@ -627,7 +636,7 @@ benchmark, its docs and a release (principle 7).
 | 11 | 0.7 · 9 ✓, 10 ✓ | Threat model and security review | 5, 10 |
 | 12 | 0.7 · 11 ✓ | Benchmark "100 agents", example, docs; **release 0.7.0** ✓ and launch | 7–11 |
 | 13 | 0.8 · 0–2 | GitHub App, publishing policies, pull requests | 12 |
-| 14 | 0.8 · 3–5 | Changes, Diff, Compare, Watch, provenance | 12 |
+| 14 | 0.8 · 3–5 | Changes, Diff, Compare, Conflicts, Watch, provenance | 12 |
 | 15 | 0.8 · 6–8 | Warm layers, OpenHands, proof and docs; release 0.8.0 | 13, 14 |
 | 16 | 0.9 · 0–6 | Endpoint, tokens, sandbox repositories, tenants, network, examples, outside review; release 0.9.0 | 15 |
 | 17 | 0.10 · 0–2 | CSI node plugin, Helm chart, examples; release 0.10.0 | 16 |
