@@ -1,5 +1,8 @@
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
-LDFLAGS := -s -w -X main.version=$(VERSION)
+# The public GitHub App people sign in through, from the environment: GITD_LOGIN_CLIENT_ID and
+# GITD_LOGIN_APP (the repository's variables in CI).
+CONFIG := github.com/dooservice/gitd/internal/config
+LDFLAGS := -s -w -X main.version=$(VERSION) -X $(CONFIG).loginClientID=$(GITD_LOGIN_CLIENT_ID) -X $(CONFIG).loginApp=$(GITD_LOGIN_APP)
 
 .PHONY: build generate lint test clean
 

@@ -5,9 +5,11 @@ WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-ARG VERSION=dev TARGETOS TARGETARCH
+ARG VERSION=dev TARGETOS TARGETARCH GITD_LOGIN_CLIENT_ID GITD_LOGIN_APP
 # Cross-compiled on the build machine: no emulation for Go, whatever the image's platform.
-RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -ldflags "-s -w -X main.version=${VERSION}" -o /gitd ./cmd/gitd \
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -ldflags "-s -w -X main.version=${VERSION} \
+      -X github.com/dooservice/gitd/internal/config.loginClientID=${GITD_LOGIN_CLIENT_ID} \
+      -X github.com/dooservice/gitd/internal/config.loginApp=${GITD_LOGIN_APP}" -o /gitd ./cmd/gitd \
  && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -ldflags "-s -w -X main.version=${VERSION}" -o /gitd-mount ./cmd/gitd-mount
 
 FROM debian:12-slim

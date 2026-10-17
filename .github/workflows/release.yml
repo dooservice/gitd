@@ -18,6 +18,9 @@ jobs:
           go-version-file: go.mod
       - run: make test
       - name: Build
+        env:
+          GITD_LOGIN_CLIENT_ID: ${{ vars.GITD_LOGIN_CLIENT_ID }}
+          GITD_LOGIN_APP: ${{ vars.GITD_LOGIN_APP }}
         run: |
           make build VERSION="${GITHUB_REF_NAME}"
           [ "$(bin/gitd -version)" = "${GITHUB_REF_NAME}" ]
@@ -25,7 +28,10 @@ jobs:
           for arch in amd64 arm64; do
             for command in gitd gitd-mount; do
               CGO_ENABLED=0 GOOS=linux GOARCH="${arch}" go build -trimpath \
-                -ldflags "-s -w -X main.version=${GITHUB_REF_NAME}" -o "dist/${command}-linux-${arch}" "./cmd/${command}"
+                -ldflags "-s -w -X main.version=${GITHUB_REF_NAME} \
+                  -X github.com/dooservice/gitd/internal/config.loginClientID=${GITD_LOGIN_CLIENT_ID} \
+                  -X github.com/dooservice/gitd/internal/config.loginApp=${GITD_LOGIN_APP}" \
+                -o "dist/${command}-linux-${arch}" "./cmd/${command}"
               sha256sum "dist/${command}-linux-${arch}" | cut -d' ' -f1 > "dist/${command}-linux-${arch}.sha256"
             done
           done
@@ -54,7 +60,10 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          build-args: VERSION=${{ github.ref_name }}
+          build-args: |
+            VERSION=${{ github.ref_name }}
+            GITD_LOGIN_CLIENT_ID=${{ vars.GITD_LOGIN_CLIENT_ID }}
+            GITD_LOGIN_APP=${{ vars.GITD_LOGIN_APP }}
           tags: |
             ghcr.io/dooservice/gitd:${{ github.ref_name }}
             ghcr.io/dooservice/gitd:latest

@@ -124,7 +124,8 @@ Install it on the repositories it may reach: https://github.com/apps/acme-agents
 
 A platform does the same through `BeginGitHubApp` and `CompleteGitHubApp`, with GitHub
 sending the person back to its own page. One person can instead sign in with a code
-(`gitd connect github`, GitHub's device flow, through gitd's public App, `gitd-app`), and
+(`gitd connect github`, GitHub's device flow, through gitd's public App, `gitd-app`, which
+gitd's releases and image are built with), and
 pull requests appear as them; a platform that already has an App registers it
 (`gitd connections add-github-app`). `gitd connections list` shows them all, never a
 secret.

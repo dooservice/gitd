@@ -76,11 +76,13 @@ type GitHub struct {
 	LoginApp      string `toml:"login_app"`
 }
 
-// gitd's public App on github.com, gitd-app, by its client ID, which is not a secret, and
-// its name in addresses (github.com/apps/gitd-app).
-const (
-	DefaultGitHubLoginClientID = "Iv23liZ9GnNz5Y4Uerrs"
-	DefaultGitHubLoginApp      = "gitd-app"
+// loginClientID and loginApp are the public App people sign in through, by its client ID,
+// which is not a secret, and its name in addresses: set when gitd is built, from the
+// GITD_LOGIN_CLIENT_ID and GITD_LOGIN_APP variables (`make build`, the release, the image).
+// A gitd built without them offers no sign-in until [github] names an App.
+var (
+	loginClientID string
+	loginApp      string
 )
 
 // Workspaces is how new workspaces are made. Strategy "" (or "auto") lets gitd pick: an
@@ -174,7 +176,7 @@ func Default() Config {
 		State:  "/var/lib/gitd",
 		Roots:  []string{"/var/lib/gitd/workspaces"},
 		Git:    "git",
-		GitHub: GitHub{LoginClientID: DefaultGitHubLoginClientID, LoginApp: DefaultGitHubLoginApp},
+		GitHub: GitHub{LoginClientID: loginClientID, LoginApp: loginApp},
 		Audit: Audit{
 			RotateBytes: 16 << 20,
 			Keep:        365 * 24 * time.Hour,

@@ -54,11 +54,12 @@ known_hosts = []
 # prefix = "https://github.com/your-org"
 # github_app = { app_id = 123456, private_key_file = "/run/credentials/gitd.service/github-app.pem" }
 
-# gitd's public GitHub App, which people sign in through with `gitd connect github`. Its
-# client ID is not a secret. A GitHub Enterprise Server needs an App registered there.
+# The GitHub App people sign in through with `gitd connect github`: by default the one gitd
+# was built with (gitd's releases and image carry gitd-app); set both to use your own, as a
+# GitHub Enterprise Server needs. A client ID is not a secret.
 [github]
-login_client_id = "Iv23liZ9GnNz5Y4Uerrs"   # gitd-app, gitd's public App on github.com
-login_app = "gitd-app"
+# login_client_id = "Iv23…"
+# login_app = "your-app"
 
 [publish]
 # Every published branch must start with this; empty allows any new branch. Publishing never
