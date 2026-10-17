@@ -59,7 +59,7 @@ func (pools *Pools) build(ctx context.Context, repository repo.Repo, fill func(t
 		return err
 	}
 	if err := pools.runner.SetConfig(ctx, temp,
-		"remote.origin.url", repository.HTTPS(),
+		"remote.origin.url", pools.keys.Address(repository),
 		"gc.auto", "0",
 		"gc.pruneExpire", "never",
 		"gc.reflogExpireUnreachable", "never",

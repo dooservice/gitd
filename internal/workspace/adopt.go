@@ -27,6 +27,7 @@ func (workspaces *Workspaces) Adopt(ctx context.Context, request *gitdv1.AdoptRe
 		return 0, err
 	}
 	defer release()
+	// A workspace gitd made is adopted already: adopting it again releases nothing.
 	if held, err := workspaces.madeFor(ctx, path); err != nil || held != nil {
 		return 0, err
 	}

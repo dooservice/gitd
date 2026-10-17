@@ -11,6 +11,8 @@ import (
 	"time"
 
 	"github.com/BurntSushi/toml"
+
+	"github.com/dooservice/gitd/internal/repo"
 )
 
 // Config is how one gitd runs: the Unix socket it answers on, the State directory that
@@ -18,26 +20,21 @@ import (
 // workspace may be made in, the Git binary it runs, where Metrics are served, if
 // anywhere, and the KnownHosts files whose SSH host keys are trusted besides the ones
 // built in (GitHub, GitLab, Bitbucket and Codeberg): a self-hosted GitLab, Gitea or
-// Forgejo goes there.
+// Forgejo goes there; and the Hosts reached on other ports, or over SSH as another user,
+// than the usual ones: `[hosts."git.example.com"] https_port = 3000, ssh_port = 2222`. A
+// host whose SSH is on another port has its key in a known_hosts file as
+// `[git.example.com]:2222 ssh-ed25519 …`.
 type Config struct {
-	Socket     string             `toml:"socket"`
-	State      string             `toml:"state"`
-	Roots      []string           `toml:"roots"`
-	Git        string             `toml:"git"`
-	Metrics    string             `toml:"metrics"`
-	KnownHosts []string           `toml:"known_hosts"`
-	SSH        map[string]SSHHost `toml:"ssh"`
+	Socket     string     `toml:"socket"`
+	State      string     `toml:"state"`
+	Roots      []string   `toml:"roots"`
+	Git        string     `toml:"git"`
+	Metrics    string     `toml:"metrics"`
+	KnownHosts []string   `toml:"known_hosts"`
+	Hosts      repo.Hosts `toml:"hosts"`
 
 	Limits       Limits       `toml:"limits"`
 	Housekeeping Housekeeping `toml:"housekeeping"`
-}
-
-// SSHHost is how a host takes SSH when not as `git` on port 22 (hosts are lowercased), as a Gitea or Forgejo
-// behind `:2222`: `[ssh."git.example.com"] port = 2222`. Its host key then goes in a
-// known_hosts file as `[git.example.com]:2222 ssh-ed25519 …`.
-type SSHHost struct {
-	Port int    `toml:"port"`
-	User string `toml:"user"`
 }
 
 // Limits bound how much gitd does at once and for how long: fetches and writes running,
@@ -99,31 +96,33 @@ func Load(path string) (Config, error) {
 	return settings, settings.normalize()
 }
 
-// sshName is what an SSH host or user may be: nothing that reads as an option, or as part
+// name is what a host or an SSH user may be: nothing that reads as an option, or as part
 // of an address or of a shell word.
-var sshName = regexp.MustCompile(`^[a-z0-9][a-z0-9._-]*$`)
+var name = regexp.MustCompile(`^[a-z0-9][a-z0-9._-]*$`)
 
-// normalize lowercases the SSH hosts, as repositories name them, and refuses one that is
-// not a host name, is written twice, or has a port or user that could not be connected with.
+// normalize lowercases the hosts, as repositories name them, and refuses one that is not a
+// host name, is written twice, or has a port or user it could not be reached with.
 func (settings *Config) normalize() error {
-	hosts := make(map[string]SSHHost, len(settings.SSH))
-	for host, ssh := range settings.SSH {
-		lowered := strings.ToLower(host)
-		if !sshName.MatchString(lowered) {
-			return fmt.Errorf("ssh: %q is not a host name", host)
+	hosts := make(repo.Hosts, len(settings.Hosts))
+	for written, host := range settings.Hosts {
+		lowered := strings.ToLower(written)
+		if !name.MatchString(lowered) {
+			return fmt.Errorf("hosts: %q is not a host name", written)
 		}
 		if _, twice := hosts[lowered]; twice {
-			return fmt.Errorf("ssh: %q is written twice", lowered)
+			return fmt.Errorf("hosts: %q is written twice", lowered)
 		}
-		if ssh.Port < 0 || ssh.Port > 65535 {
-			return fmt.Errorf("ssh.%q: port %d is not one", host, ssh.Port)
+		for _, port := range []int{host.HTTPSPort, host.SSHPort} {
+			if port < 0 || port > 65535 {
+				return fmt.Errorf("hosts.%q: port %d is not one", written, port)
+			}
 		}
-		if ssh.User != "" && !sshName.MatchString(ssh.User) {
-			return fmt.Errorf("ssh.%q: %q is not a user name", host, ssh.User)
+		if host.SSHUser != "" && !name.MatchString(host.SSHUser) {
+			return fmt.Errorf("hosts.%q: %q is not a user name", written, host.SSHUser)
 		}
-		hosts[lowered] = ssh
+		hosts[lowered] = host
 	}
-	settings.SSH = hosts
+	settings.Hosts = hosts
 	return nil
 }
 

@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/dooservice/gitd/internal/config"
 	"github.com/dooservice/gitd/internal/repo"
 )
 
@@ -29,16 +28,16 @@ type Access struct {
 // host takes SSH. Nothing is trusted on first use: the keys are the ones GitHub, GitLab,
 // Bitbucket and Codeberg publish, built into the binary, and those of the files the
 // configuration names, for any other host. A host takes SSH as `git` on port 22 unless the
-// configuration says otherwise.
+// configuration says otherwise (repo.Hosts).
 type Keys struct {
 	knownHosts string
-	hosts      map[string]config.SSHHost
+	hosts      repo.Hosts
 }
 
 // NewKeys writes the host keys under dir, where every ssh gitd starts reads them: the
-// built-in ones followed by those of each file in extra. hosts are the hosts that take
-// SSH on another port or as another user, lowercased as config.Load leaves them.
-func NewKeys(dir string, extra []string, hosts map[string]config.SSHHost) (*Keys, error) {
+// built-in ones followed by those of each file in extra. hosts say how the hosts not
+// reached the usual way are, lowercased as config.Load leaves them.
+func NewKeys(dir string, extra []string, hosts repo.Hosts) (*Keys, error) {
 	keys := append([]byte(nil), builtInKnownHosts...)
 	for _, file := range extra {
 		read, err := os.ReadFile(file)
@@ -60,15 +59,10 @@ func NewKeys(dir string, extra []string, hosts map[string]config.SSHHost) (*Keys
 	return &Keys{knownHosts: path, hosts: hosts}, nil
 }
 
-// sshURL is the address a key reads the repository at, on the port and as the user its
-// host takes SSH with.
-func (keys *Keys) sshURL(repository repo.Repo) string {
-	ssh := keys.hosts[repository.SSHHost()]
-	user := ssh.User
-	if user == "" {
-		user = "git"
-	}
-	return repository.SSH(user, ssh.Port)
+// Address is where a repository is read over HTTPS, on its host's port: what a copy of it
+// names as its origin.
+func (keys *Keys) Address(repository repo.Repo) string {
+	return keys.hosts.HTTPS(repository)
 }
 
 // For is how a repository is read: with the most specific credential that opens it, or
@@ -86,7 +80,7 @@ func (keys *Keys) For(repository repo.Repo, given []Credential) Access {
 		}
 	}
 	if chosen == nil {
-		return Access{URL: repository.HTTPS(), Via: "nothing"}
+		return Access{URL: keys.Address(repository), Via: "nothing"}
 	}
 	return keys.access(repository, *chosen)
 }
@@ -98,11 +92,12 @@ func (keys *Keys) access(repository repo.Repo, credential Credential) Access {
 			user = tokenUser(repository.Host)
 		}
 		basic := base64.StdEncoding.EncodeToString([]byte(user + ":" + credential.Token))
+		address := keys.Address(repository)
 		return Access{
-			URL: repository.HTTPS(),
+			URL: address,
 			Env: []string{
 				"GIT_CONFIG_COUNT=1",
-				"GIT_CONFIG_KEY_0=http." + repository.HTTPS() + ".extraHeader",
+				"GIT_CONFIG_KEY_0=http." + address + ".extraHeader",
 				"GIT_CONFIG_VALUE_0=Authorization: Basic " + basic,
 			},
 			Offered: true,
@@ -118,7 +113,7 @@ func (keys *Keys) access(repository repo.Repo, credential Credential) Access {
 		"-i", quoted(credential.Key),
 	}
 	return Access{
-		URL:     keys.sshURL(repository),
+		URL:     keys.hosts.SSH(repository),
 		Env:     []string{"GIT_SSH_COMMAND=" + strings.Join(ssh, " ")},
 		Offered: true,
 		Via:     "key " + credential.Key,

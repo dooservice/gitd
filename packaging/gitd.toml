@@ -15,11 +15,14 @@ metrics = ""
 # e.g. the output of `ssh-keyscan git.example.com`, checked against what its admin publishes.
 known_hosts = []
 
-# Hosts that take SSH on another port or as another user than `git` on 22, e.g. a Gitea
-# behind :2222 (its key goes in a known_hosts file as `[git.example.com]:2222 ssh-ed25519 …`):
-# [ssh."git.example.com"]
-# port = 2222
-# user = "git"
+# Hosts reached on other ports than HTTPS on 443 and SSH on 22, or over SSH as another user
+# than `git`, e.g. a Gitea on :3000 and :2222 (its SSH key goes in a known_hosts file as
+# `[git.example.com]:2222 ssh-ed25519 …`). Every form of address of its repositories, with
+# or without a port, names the same repository.
+# [hosts."git.example.com"]
+# https_port = 3000
+# ssh_port = 2222
+# ssh_user = "git"
 
 [limits]
 fetches = 4

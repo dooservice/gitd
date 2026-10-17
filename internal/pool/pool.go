@@ -53,6 +53,11 @@ func New(
 	}
 }
 
+// Address is where a repository is read over HTTPS, on its host's port.
+func (pools *Pools) Address(repository repo.Repo) string {
+	return pools.keys.Address(repository)
+}
+
 // Path is where the pool of a repository is, whether it exists or not.
 func (pools *Pools) Path(repository repo.Repo) string {
 	return repository.Dir(pools.Dir)

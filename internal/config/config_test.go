@@ -4,9 +4,11 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/dooservice/gitd/internal/repo"
 )
 
-func TestAnSSHHostIsReadAndOneThatCannotBeIsRefused(t *testing.T) {
+func TestAHostIsReadAndOneThatCannotBeReachedIsRefused(t *testing.T) {
 	dir := t.TempDir()
 	write := func(text string) string {
 		path := filepath.Join(dir, "gitd.toml")
@@ -15,17 +17,17 @@ func TestAnSSHHostIsReadAndOneThatCannotBeIsRefused(t *testing.T) {
 		}
 		return path
 	}
-	settings, err := Load(write("[ssh.\"Git.Example.com\"]\nport = 2222\nuser = \"forgejo\"\n"))
-	if err != nil || settings.SSH["git.example.com"] != (SSHHost{Port: 2222, User: "forgejo"}) {
-		t.Fatalf("Load = %v, %v", settings.SSH, err)
+	settings, err := Load(write("[hosts.\"Git.Example.com\"]\nhttps_port = 3000\nssh_port = 2222\nssh_user = \"forgejo\"\n"))
+	if err != nil || settings.Hosts["git.example.com"] != (repo.Host{HTTPSPort: 3000, SSHPort: 2222, SSHUser: "forgejo"}) {
+		t.Fatalf("Load = %v, %v", settings.Hosts, err)
 	}
 	for _, text := range []string{
-		"[ssh.\"git.example.com\"]\nport = 70000\n",
-		"[ssh.\"git.example.com\"]\nuser = \"-oProxyCommand=x\"\n",
-		"[ssh.\"git.example.com\"]\nuser = \"a@b\"\n",
-		"[ssh.\"host:22\"]\nport = 2222\n",
-		"[ssh.\"host\tx\"]\nport = 2222\n",
-		"[ssh.\"Git.example.com\"]\nport = 1\n[ssh.\"git.example.com\"]\nport = 2\n",
+		"[hosts.\"git.example.com\"]\nssh_port = 70000\n",
+		"[hosts.\"git.example.com\"]\nssh_user = \"-oProxyCommand=x\"\n",
+		"[hosts.\"git.example.com\"]\nssh_user = \"a@b\"\n",
+		"[hosts.\"host:22\"]\nssh_port = 2222\n",
+		"[hosts.\"host\tx\"]\nssh_port = 2222\n",
+		"[hosts.\"Git.example.com\"]\nssh_port = 1\n[hosts.\"git.example.com\"]\nssh_port = 2\n",
 	} {
 		if _, err := Load(write(text)); err == nil {
 			t.Errorf("accepted %q", text)

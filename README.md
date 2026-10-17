@@ -41,7 +41,8 @@ them all). `-socket` sets the socket over the configuration. As a service, use
 
 SSH host keys of github.com, gitlab.com, bitbucket.org and codeberg.org are built in. For a
 self-hosted GitLab, Gitea or Forgejo, list its keys' file under `known_hosts`, and when it
-takes SSH on another port or user, say so under `[ssh."<host>"]` (`port = 2222`). A token is
+is reached on other ports or SSH user, say so under `[hosts."<host>"]` (`https_port = 3000`,
+`ssh_port = 2222`). A token is
 sent with the user name its host expects (`oauth2` on gitlab.com, `x-token-auth` on
 bitbucket.org, `x-access-token` elsewhere) unless the request's `https_user` names one.
 

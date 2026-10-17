@@ -7,16 +7,16 @@
 // is not a repository, which is also where `file://`, `ext::` and a pasted web page stop.
 //
 // SSH or HTTPS is transport, not identity: it follows from the credential the repository is
-// read with. So `ssh://git@git.example.com:2222/acme/web.git` is the repository
-// `https://git.example.com/acme/web`: the SSH port and user belong to the host, and the
-// configuration says them (credentials.Keys).
+// read with. Ports and users are the host's, not the repository's, so
+// `https://git.example.com:3000/acme/web` and `ssh://git@git.example.com:2222/acme/web.git`
+// are both the repository `https://git.example.com/acme/web`; Hosts says how each host is
+// reached when not on the usual ports.
 package repo
 
 import (
 	"net/url"
 	"path"
 	"path/filepath"
-	"strconv"
 	"strings"
 )
 
@@ -38,7 +38,7 @@ func Of(address string) (Repo, bool) {
 		text = text[:len(text)-len(".git")]
 	}
 	host, rest, ok := split(text)
-	if !ok || !segment(host) {
+	if !ok || !segment(host) || strings.Contains(host, ":") {
 		return Repo{}, false
 	}
 	parts := strings.Split(rest, "/")
@@ -76,10 +76,8 @@ func split(text string) (host, rest string, ok bool) {
 		return "", "", false
 	}
 	switch {
-	case parsed.Scheme == "https" && parsed.User == nil:
-		return parsed.Host, strings.TrimPrefix(parsed.Path, "/"), true
-	case parsed.Scheme == "ssh":
-		// The user and the port are the host's way of taking SSH, not part of the name.
+	// The port, and SSH's user, are how the host is reached, not part of the name.
+	case parsed.Scheme == "https" && parsed.User == nil, parsed.Scheme == "ssh":
 		return parsed.Hostname(), strings.TrimPrefix(parsed.Path, "/"), true
 	}
 	return "", "", false
@@ -94,25 +92,10 @@ func Relative(address string, parent Repo) string {
 	return "https://" + parent.Host + path.Join("/", parent.Path, address)
 }
 
-// HTTPS is the canonical address, and the one stored and compared.
+// HTTPS is the canonical address, the one stored, compared and logged. It names no port:
+// the address the repository is read at is Hosts.HTTPS.
 func (repository Repo) HTTPS() string {
 	return "https://" + repository.Host + "/" + repository.Path
-}
-
-// SSH is the address a deploy key reads the repository at, as user on port; a port of 0
-// is SSH's own, 22. A port in the host is the HTTPS one, so it is left out.
-func (repository Repo) SSH(user string, port int) string {
-	host, _, _ := strings.Cut(repository.Host, ":")
-	if port != 0 && port != 22 {
-		return "ssh://" + user + "@" + host + ":" + strconv.Itoa(port) + "/" + repository.Path + ".git"
-	}
-	return user + "@" + host + ":" + repository.Path + ".git"
-}
-
-// SSHHost is the host SSH is read from: the host without an HTTPS port.
-func (repository Repo) SSHHost() string {
-	host, _, _ := strings.Cut(repository.Host, ":")
-	return host
 }
 
 // Dir is where the repository's pool lives under the pools directory.

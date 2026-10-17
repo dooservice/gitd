@@ -42,15 +42,18 @@ func FromProto(given []*gitdv1.Credential) []Credential {
 	return read
 }
 
-// canonicalPrefix writes a prefix the way a canonical address starts, so that
-// `git@github.com:acme/`, `ssh://git@github.com:22/acme/` and `https://github.com/acme/`
-// open the same repositories.
+// canonicalPrefix writes a prefix the way a canonical address starts, without a port, so
+// that `git@host:acme/`, `ssh://git@host:2222/acme/` and `https://host:3000/acme/` open the
+// same repositories.
 func canonicalPrefix(prefix string) string {
 	text := strings.ToLower(strings.TrimSpace(prefix))
-	if after, ok := strings.CutPrefix(text, "git@"); ok {
-		host, path, _ := strings.Cut(after, ":")
-		text = "https://" + host + "/" + path
-	} else if parsed, err := url.Parse(text); err == nil && parsed.Scheme == "ssh" {
+	if !strings.Contains(text, "://") {
+		if _, after, ok := strings.Cut(text, "@"); ok {
+			host, path, _ := strings.Cut(after, ":")
+			text = "https://" + host + "/" + path
+		}
+	}
+	if parsed, err := url.Parse(text); err == nil && (parsed.Scheme == "https" || parsed.Scheme == "ssh") {
 		text = "https://" + parsed.Hostname() + parsed.Path
 	}
 	return strings.TrimSuffix(strings.TrimSuffix(text, "/"), ".git")

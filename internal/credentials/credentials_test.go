@@ -7,7 +7,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dooservice/gitd/internal/config"
 	"github.com/dooservice/gitd/internal/repo"
 )
 
@@ -17,6 +16,8 @@ func TestThePrefixOfAKeyAndOfATokenAreWrittenTheSameWay(t *testing.T) {
 		"https://github.com/acme/":             "https://github.com/acme",
 		"https://github.com/acme/x.git":        "https://github.com/acme/x",
 		"ssh://git@Git.Example.com:2222/acme/": "https://git.example.com/acme",
+		"https://Git.Example.com:3000/acme":    "https://git.example.com/acme",
+		"forgejo@git.example.com:acme":         "https://git.example.com/acme",
 	} {
 		if got := canonicalPrefix(prefix); got != want {
 			t.Errorf("canonicalPrefix(%q) = %q", prefix, got)
@@ -105,10 +106,10 @@ func TestTheConfiguredHostKeysAreTrustedBesidesTheBuiltInOnes(t *testing.T) {
 	}
 }
 
-func TestAKeyReadsOnThePortAndAsTheUserItsHostTakesSSHWith(t *testing.T) {
-	keys, err := NewKeys(t.TempDir(), nil, map[string]config.SSHHost{
-		"git.example.com":   {Port: 2222},
-		"forge.example.com": {User: "forgejo"},
+func TestARepositoryIsReadOnThePortsAndAsTheUserOfItsHost(t *testing.T) {
+	keys, err := NewKeys(t.TempDir(), nil, repo.Hosts{
+		"git.example.com":   {HTTPSPort: 3000, SSHPort: 2222},
+		"forge.example.com": {SSHUser: "forgejo"},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -124,5 +125,21 @@ func TestAKeyReadsOnThePortAndAsTheUserItsHostTakesSSHWith(t *testing.T) {
 		if access.URL != want {
 			t.Errorf("%s: URL = %q; want %q", address, access.URL, want)
 		}
+	}
+}
+
+func TestATokenIsSentToTheAddressOnTheHostsPort(t *testing.T) {
+	keys, err := NewKeys(t.TempDir(), nil, repo.Hosts{"git.example.com": {HTTPSPort: 3000}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	repository, _ := repo.Of("ssh://git@git.example.com:2222/acme/web.git")
+	given := []Credential{{Prefix: canonicalPrefix("https://git.example.com:3000/acme"), Token: "secret"}}
+	access := keys.For(repository, given)
+	if access.URL != "https://git.example.com:3000/acme/web" || !access.Offered {
+		t.Fatalf("access = %+v", access)
+	}
+	if !strings.Contains(strings.Join(access.Env, "\n"), "http.https://git.example.com:3000/acme/web.extraHeader") {
+		t.Errorf("the header is not scoped to the address read: %v", access.Env)
 	}
 }

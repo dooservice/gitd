@@ -34,7 +34,7 @@ func (workspaces *Workspaces) create(ctx context.Context, work job) (Result, err
 		history = "full"
 	}
 	if err := workspaces.runner.SetConfig(ctx, building.path,
-		"remote.origin.url", work.repository.HTTPS(),
+		"remote.origin.url", workspaces.pools.Address(work.repository),
 		"gitd.url", work.repository.HTTPS(),
 		"gitd.pool", workspaces.pools.Path(work.repository),
 		"gitd.history", history,

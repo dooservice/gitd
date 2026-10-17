@@ -18,6 +18,9 @@ func (workspaces *Workspaces) checkout(ctx context.Context, work job) (Result, e
 	branch := work.revision.GetBranch()
 	if branch == "" {
 		branch = workspaces.pools.DefaultBranch(ctx, work.repository)
+		if branch == "" {
+			return Result{}, notIn(work, "a default branch")
+		}
 	}
 	return workspaces.checkoutBranch(ctx, work, branch)
 }
@@ -41,12 +44,15 @@ func (workspaces *Workspaces) checkoutCommit(ctx context.Context, work job, comm
 }
 
 func (workspaces *Workspaces) checkoutBranch(ctx context.Context, work job, branch string) (Result, error) {
+	if strings.HasPrefix(branch, "-") {
+		return Result{}, git.Fail(git.BadAddress, "%q is not a branch name", branch)
+	}
 	upstream := "refs/remotes/origin/" + branch
 	sha, present, err := workspaces.runner.Resolve(ctx, work.path, upstream)
 	if err != nil {
 		return Result{}, err
 	}
-	if !present || branch == "" || strings.HasPrefix(branch, "-") {
+	if !present {
 		return Result{}, notIn(work, "branch "+branch)
 	}
 	if _, err := workspaces.runner.Run(ctx, git.Cmd{

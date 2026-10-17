@@ -36,12 +36,20 @@ Identified by its **canonical HTTPS address** (`https://<host>/<owner>/<name>`),
 and without `.git`, however it was written (`git@github.com:Owner/Name.git` is the same
 one). Between the owner and the name may sit the groups of a host that nests them
 (`https://gitlab.com/acme/tools/web`), up to twenty. An address that does not name a host,
-an owner and a name is not a repository, which is also where `file://` and `ext::` stop. `ssh://git@git.example.com:2222/acme/web.git` is
-the repository `https://git.example.com/acme/web`: the SSH user and port are the host's,
-not the repository's. A port in an HTTPS address is kept
-(`https://git.example.com:3000/acme/web`) and is the HTTPS one, never used for SSH. Such a
-host is therefore a different one from its SSH form, which names no HTTPS port: write a
-repository and its submodules the same way, both HTTPS or both SSH.
+an owner and a name is not a repository, which is also where `file://` and `ext::` stop.
+
+Ports and SSH users are the host's, not the repository's: `https://git.example.com:3000/acme/web`,
+`ssh://git@git.example.com:2222/acme/web.git` and `git@git.example.com:acme/web` are all
+`https://git.example.com/acme/web`, one pool and one set of credentials, however a project
+and its submodules write it. How a host is reached when not over HTTPS on 443 and SSH as
+`git` on 22 is configuration:
+
+```toml
+[hosts."git.example.com"]
+https_port = 3000
+ssh_port = 2222
+ssh_user = "git"
+```
 
 ### Pool (cache)
 One **bare** repository per remote repository and per server, holding its objects:
@@ -96,12 +104,13 @@ empty prefix for anything public.
 - **SSH key**: the path of a key already on the server. Used through `GIT_SSH_COMMAND` with `IdentitiesOnly=yes`, and the host
   checked against the keys GitHub, GitLab, Bitbucket and Codeberg publish, which are built
   into the binary, plus those of the `known_hosts` files the configuration names, for a
-  self-hosted GitLab, Gitea or Forgejo. Nothing is trusted on first use. A host is read
-  as `git` on port 22 unless `[ssh."<host>"]` in the configuration gives another `port`
-  or `user`; then the address is `ssh://<user>@<host>:<port>/<path>.git`, and its key is
-  looked up as `[<host>]:<port>`.
+  self-hosted GitLab, Gitea or Forgejo. Nothing is trusted on first use. The address is
+  `git@<host>:<path>.git`, or `ssh://<user>@<host>:<port>/<path>.git` for a host whose
+  `[hosts."<host>"]` gives another `ssh_port` or `ssh_user`; its key is then looked up as
+  `[<host>]:<port>`.
 - **HTTPS token** (an OAuth or access token): handed to git as an `Authorization: Basic`
-  header through `GIT_CONFIG_*`, scoped to that one repository. A repository it opens is
+  header through `GIT_CONFIG_*`, scoped to that one repository's address (on its host's
+  `https_port`). A repository it opens is
   read over HTTPS even when written as `git@`, so a `.gitmodules` line with `git@` is read
   without editing anything. The user name sent with it is the request's `https_user`, or
   when empty the one the host expects: `oauth2` on gitlab.com, `x-token-auth` on

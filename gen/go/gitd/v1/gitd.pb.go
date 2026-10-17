@@ -150,7 +150,8 @@ func (ProbeResponse_Access) EnumDescriptor() ([]byte, []int) {
 }
 
 // What opens repositories whose address starts with `url_prefix`, on any host:
-// e.g. `https://github.com/acme/` or `https://gitlab.example.com/acme/tools/`.
+// e.g. `https://github.com/acme/` or `https://gitlab.example.com/acme/tools/`. A port in
+// it is ignored, as it is in a repository's address: ports are the host's (gitd.toml).
 type Credential struct {
 	state     protoimpl.MessageState `protogen:"open.v1"`
 	UrlPrefix string                 `protobuf:"bytes,1,opt,name=url_prefix,json=urlPrefix,proto3" json:"url_prefix,omitempty"`

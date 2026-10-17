@@ -8,16 +8,23 @@ import (
 	"github.com/dooservice/gitd/internal/repo"
 )
 
+// stagedSubmodule is a submodule staged to be pushed: its repository, and what the answer
+// says of it.
+type stagedSubmodule struct {
+	repository repo.Repo
+	published  *gitdv1.PublishedRepository
+}
+
 // stageSubmodules stages every submodule that was committed to in the workspace: one whose
 // commit its repository's branches do not have. One that is as it came is left alone.
 func (workspaces *Workspaces) stageSubmodules(
 	ctx context.Context, path string, parent repo.Repo, branch string,
-) ([]*gitdv1.PublishedRepository, error) {
+) ([]stagedSubmodule, error) {
 	declared, _, err := workspaces.declaredIn(ctx, path)
 	if err != nil {
 		return nil, err
 	}
-	var changed []*gitdv1.PublishedRepository
+	var changed []stagedSubmodule
 	for _, submodule := range declared {
 		workTree := filepath.Join(path, submodule.path)
 		repository, named := repo.Of(repo.Relative(submodule.url, parent))
@@ -30,9 +37,9 @@ func (workspaces *Workspaces) stageSubmodules(
 			return nil, err
 		}
 		if len(subjects) > 0 {
-			changed = append(changed, &gitdv1.PublishedRepository{
+			changed = append(changed, stagedSubmodule{repository: repository, published: &gitdv1.PublishedRepository{
 				Url: repository.HTTPS(), Path: submodule.path, Commit: commit, Subjects: subjects,
-			})
+			}})
 		}
 	}
 	return changed, nil

@@ -66,7 +66,7 @@ func Fail(reason Reason, format string, arguments ...any) *Failure {
 
 // Unnamed is the failure for an address that names no repository.
 func Unnamed(address string) *Failure {
-	return Fail(BadAddress, "%q names no repository: write it as https://host/owner/[group/…]name, "+
+	return Fail(BadAddress, "%q names no repository: write it as https://host[:port]/owner/[group/…]name, "+
 		"git@host:owner/name or ssh://git@host[:port]/owner/name", Redacted(address))
 }
 

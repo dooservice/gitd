@@ -6,7 +6,6 @@ import (
 	gitdv1 "github.com/dooservice/gitd/gen/go/gitd/v1"
 	"github.com/dooservice/gitd/internal/credentials"
 	"github.com/dooservice/gitd/internal/git"
-	"github.com/dooservice/gitd/internal/repo"
 )
 
 // Publish pushes what was committed in a workspace to a new branch of its repository.
@@ -46,11 +45,10 @@ func (workspaces *Workspaces) Publish(
 	given := credentials.FromProto(request.GetCredentials())
 	answer := &gitdv1.PublishResponse{Branch: branch}
 	for _, submodule := range changed {
-		named, _ := repo.Of(submodule.GetUrl())
-		if err := workspaces.pools.Push(ctx, named, branch, given); err != nil {
+		if err := workspaces.pools.Push(ctx, submodule.repository, branch, given); err != nil {
 			return nil, err
 		}
-		answer.Submodules = append(answer.Submodules, submodule)
+		answer.Submodules = append(answer.Submodules, submodule.published)
 	}
 	if err := workspaces.pools.Push(ctx, repository, branch, given); err != nil {
 		return nil, err
