@@ -1,11 +1,13 @@
 # gitd — roadmap and work plan
 
 **The aim:** any AI agent, in any sandbox, gets its own checkout of any repository in
-milliseconds, takes almost no disk, and never sees a credential.
+milliseconds, takes almost no disk, and never sees a credential — on a server that may host
+the agents of many customers at once.
 
 This document says where gitd is, what each version brings, how and why it is built that
-way, what could go wrong and how it is handled, and the order the work is done in. It is
-kept up to date as versions ship.
+way, what could go wrong and how it is handled, the order the work is done in, and how
+gitd reaches the people it is for. It is kept up to date as versions ship and as
+measurements correct it.
 
 ---
 
@@ -22,16 +24,19 @@ kept up to date as versions ship.
    its own. The default always works; configuration only narrows the choice.
 4. **Only measured claims.** Every number in the README comes from a benchmark anyone can
    run again (`benchmarks/`, and the workflows that run them on GitHub's runners). When a
-   measurement contradicts a claim, the claim changes — as "half a second whatever the
-   repository" did once kubernetes measured 2.8 s.
+   measurement contradicts a claim or a plan, the claim or the plan changes — as "half a
+   second whatever the repository" did when kubernetes measured 2.8 s, and as the strategy
+   order of 0.7 did when the spike measured reflink and fuse-overlayfs.
 5. **Run the official git.** gitd never reimplements git; what git does not do, gitd does
    not do.
 6. **Small, tested, one change at a time.** One responsibility per file and package, tests
    with every change, one signed-off commit per change.
+7. **Finish before opening.** A version is closed — benchmarked, documented, released —
+   before the next one starts. Three half-done fronts are worth less than one done.
 
 ---
 
-## Where gitd is: 0.6
+## Where gitd is: 0.6 (released)
 
 | Capability | State |
 |---|---|
@@ -40,30 +45,36 @@ kept up to date as versions ship.
 | Credentials kept by gitd (`[[credentials]]`: token file, environment variable, SSH key) | Done |
 | Command line (`gitd prepare`, `publish`, …), on spf13/cobra | Done |
 | MCP tools (`gitd mcp`), none of which takes a credential, enforced by a test | Done |
-| Docker image for amd64 and arm64, and an example of sandboxes with no token | Done |
+| Binaries and Docker image for amd64 and arm64; an example of sandboxes with no token | Done |
 | Benchmark workflow | Done |
 | Apache License 2.0 | Done |
 
-**Measured** (kubernetes, ten agents, tip only, on a GitHub runner): ten clones take 119.5 s
-and ten fetches; ten gitd workspaces take 37.7 s and one fetch — the first 12.3 s, each
-after it 2.8 s. Disk: 4,190 MB against 3,786 MB.
+**Measured** (kubernetes, ten agents, on a GitHub runner):
 
-**What that shows:** the network is solved (one fetch), and gitd is 3.2× faster. But every
-workspace still writes all its files — 2.8 s and some 370 MB per agent on kubernetes — and
-the disk saving with tip-only pools is small. Removing that cost is the next version.
+| History | 10 × git clone | 10 × gitd | |
+|---|---|---|---|
+| Tip only | 119.5 s, 4,190 MB, 10 fetches | 37.7 s, 3,786 MB, 1 fetch | 3.2× faster |
+| Whole | 1,093 s, 17,103 MB, 10 fetches | 128.6 s, 5,132 MB, 1 fetch | 8.5× faster, a third of the disk |
+
+**What that shows:** the network is solved — one fetch however many agents. But every
+workspace still writes all its files: 2.8 s and some 370 MB per agent on kubernetes. That
+is the cost the next version removes.
 
 ---
 
-## 0.7 — copy-on-write workspaces
+## 0.7 — copy-on-write workspaces, and what platforms need first
 
 ### Goal
 
-A workspace of kubernetes in **milliseconds** and **a few megabytes** per agent, instead of
-2.8 s and 370 MB, on any Linux machine, with git behaving exactly as in a normal checkout.
+A workspace of kubernetes in **milliseconds** and **about a megabyte** per agent, instead
+of 2.8 s and 370 MB, with git behaving exactly as in a normal checkout; plus the first
+things an agent platform asks for — clients in its own language, a record of what agents
+published, and a rule on what they may name their branches.
 
-**Done when:** the benchmark shows 100 agents on kubernetes in about a second in total with
-kernel overlay, the conformance suite passes on every strategy gitd picks automatically,
-and dooservice-style callers notice nothing.
+**Done when:** the benchmark shows 100 agents on kubernetes in about a second in total, the
+conformance suite passes on every strategy gitd picks automatically, the Python and
+TypeScript clients are published, the security review of 0.7's new surface is done, and
+callers written for 0.6 notice nothing.
 
 ### The idea, simply
 
@@ -73,6 +84,32 @@ own on top** that holds only what that agent changes. Think of transparent sheet
 table: the table is the template, shared by everyone and never touched; each agent writes
 on its own sheet. The agent sees both together as an ordinary directory.
 
+### What the spike measured (0.7.0, done)
+
+kubernetes (31,441 files, 369 MB checked out), 100 workspaces from one template, on a
+GitHub runner (4 CPUs, git 2.55):
+
+| Strategy | New workspace | Disk per workspace | First `git status` (default / tuned) | git behaves |
+|---|---|---|---|---|
+| copy (today) | 2.31 s | 374 MB | – | yes |
+| **overlay (kernel)** | **0.004 s** (100 in 0.43 s) | **1.12 MB** | 0.62 s / 0.59 s | **yes** |
+| fuse-overlayfs, unprivileged | 0.005 s | 1.00 MB | 7.27 s | **no**: writes inside `.git` refused |
+| reflink (XFS) | 3.32 s | 16.33 MB | 3.96 s / 0.74 s | yes |
+
+**What it decided:**
+
+- **Kernel overlay is the strategy.** A thousand times faster and over three hundred times
+  less disk than today, with status, diff, stash, commit and checkout behaving and the
+  template untouched.
+- **reflink is not a speed strategy.** Cloning file by file is slower than writing the files
+  (3.3 s against 2.3 s); it only saves disk. It stays as an option for machines short of
+  disk and without overlay, never chosen for speed.
+- **fuse-overlayfs, as tried, does not work:** run unprivileged outside a user namespace, it
+  refuses writes inside `.git`, and git breaks. It is kept out of the automatic choice until
+  a run inside a user namespace (how rootless Podman uses it) proves it, in 0.7.6.
+- **The `git status` tuning (D4) matters for reflink** (3.96 s to 0.74 s) and is a small gain
+  on overlay; it is applied to both.
+
 ### How it is built
 
 **Templates.** For each repository and commit asked for, gitd builds once a full checkout,
@@ -80,155 +117,184 @@ with its `.git` borrowing from the pool and its index, exactly as a workspace is
 today. A template never changes. gitd records which workspaces use it and retires it, like
 a pool, once none does.
 
-**Strategies.** From a template, a workspace is made by the best of these the machine
-allows. gitd picks; nobody has to:
+**How a workspace is made, in the order gitd tries:**
 
-| Strategy | How | New workspace | Disk per agent | Needs |
-|---|---|---|---|---|
-| **overlay** | Kernel overlayfs: template below, read only; an empty layer per agent above | milliseconds | only what the agent changes | someone allowed to mount (below) |
-| **reflink** | The template copied with block cloning: files share disk blocks until written | about 1 s on kubernetes | almost none | Btrfs, XFS, bcachefs or ZFS ≥ 2.2 |
-| **fuse-overlayfs** | The same layering as overlay, done without privilege | milliseconds | only what the agent changes | FUSE; reads are slower than the kernel's |
-| **copy** | The files written, as today | 2.8 s on kubernetes | the whole checkout | nothing: always works |
-
-The order gitd tries them in — overlay, reflink, fuse-overlayfs, copy — is the expected one;
-the spike (0.7.0) decides it with measurements, especially between reflink and
-fuse-overlayfs, which trade creation time against read speed.
+| Strategy | When | New workspace (kubernetes) | Disk per agent |
+|---|---|---|---|
+| **overlay** | Someone may mount it (below) and the layers are on a real disk | milliseconds | what the agent changes |
+| **copy** | Otherwise; always works | 2.3 s | the whole checkout |
+| **reflink** | Only when configured (`strategy = "reflink"`) to save disk, on Btrfs, XFS, bcachefs or ZFS ≥ 2.2 | 3.3 s | almost none |
 
 **Who mounts an overlay.** Linux lets only privileged processes mount one, and gitd runs
-unprivileged on purpose. This is not a choice anyone makes: gitd uses the first that
-exists.
+unprivileged on purpose. Nobody chooses this: gitd uses the first that exists.
 
 1. **The sandbox's own runtime, when it is already allowed to.** Docker (a volume of
    `type=overlay`), Kubernetes (the CSI driver of 0.9), rootless Podman or bubblewrap inside
-   a user namespace (kernel ≥ 5.11). gitd only hands over the layers' paths; the runtime
-   mounts them where the sandbox sees them.
+   a user namespace. gitd hands over the layers' paths; the runtime mounts them where the
+   sandbox sees them.
 2. **`gitd-mount`**, a tiny helper that holds the one permission to mount and unmount, and
-   only layers inside gitd's roots — like `fusermount` for FUSE. gitd itself stays
+   only layers inside gitd's roots — as `fusermount` does for FUSE. gitd itself stays
    unprivileged.
-3. **fuse-overlayfs**, which needs no permission at all.
-4. **copy**, when none of the above exists.
+3. **copy**, when neither exists.
 
 **Where layers live.** On a real disk — a host directory or a volume — never inside a
-container's own filesystem, because an overlay cannot be stacked on another overlay, and a
+container's own filesystem: an overlay cannot be stacked on another overlay, and a
 container's filesystem is one. gitd checks at start, says so plainly, and falls back.
 
-**git notices nothing.** With overlay or reflink the files are identical, but their inode
-numbers and change times differ from what the template's index recorded, so git would
-re-read the whole tree on its first `status` (seconds on kubernetes). Every copy-on-write
+**git notices nothing.** With overlay or reflink the files are identical but their inode
+numbers and change times differ from what the template's index recorded. Every such
 workspace is configured with `core.checkStat=minimal` and `core.trustctime=false`, which
-compare size and modification time only, and both are kept. The spike measures the first
-`status` with and without this.
+compare size and modification time only, and both are kept.
 
 **What does not change.** The agent works with plain git; changes and commits land in its
 own layer. `publish` fetches from the workspace's `.git` into the pool and pushes from
 there, as today. `update` and `checkout` run plain git inside the workspace, which is
-always correct (the layer grows by the difference); moving a clean workspace onto another
-template is a later optimisation. `remove` unmounts and deletes the layer.
+always correct; moving a clean workspace onto another template is a later optimisation.
+`remove` unmounts and deletes the layer.
 
-### What the spike measured (0.7.0)
+**Clients for platforms.** Python and TypeScript clients generated from the contract with
+buf, published to PyPI and npm, so an agent platform — most are written in one of the two —
+calls gitd in a few lines instead of writing a client.
 
-kubernetes (31,441 files, 369 MB checked out), 100 workspaces from one template, on a
-GitHub runner (4 CPUs, git 2.55):
+**Publishing under rules, on record.**
 
-| Strategy | New workspace | Disk per workspace | First `git status` (default / tuned) | git behaves |
-|---|---|---|---|---|
-| copy (today) | 2.24 s | 374 MB | – | yes |
-| overlay (kernel) | **0.002 s** (100 in 0.23 s) | **1.12 MB** | 0.77 s / 0.62 s | yes |
-| reflink (XFS) | being measured | | | |
-| fuse-overlayfs | being measured | | | |
-
-Kernel overlay meets the goal: a thousand times faster and over three hundred times less
-disk than today, with git's status, diff, stash, commit and checkout behaving and the
-template untouched. The first `git status` costs well under a second even untuned, so D4 is
-a small gain on overlay rather than a necessity; it stays for reflink, where inode numbers
-change for every file.
+- **A branch prefix** (`[publish] branch_prefix = "agents/"`): an agent may publish only to
+  branches under it. With publishing already limited to new branches and never forced,
+  that keeps agents away from every branch people use.
+- **An audit log**: every publish recorded — when, which workspace, which repository,
+  branch and commit, the new commits' subjects, and, from 0.8, which tenant and token — in
+  an append-only file and readable through the API, the command line and MCP. "Which agent
+  published what, when, from where" is governance a company asks for.
 
 ### Decisions
 
 | # | Decision | Why |
 |---|---|---|
-| D1 | A template per repository, commit and submodule choice, immutable | A layer's lower directory must never change under it; immutability makes sharing safe |
-| D2 | Strategies chosen automatically, falling back down to copy | Principle 3: it always works, at the best speed the machine allows |
-| D3 | The runtime mounts when it can; `gitd-mount` otherwise; never gitd itself | gitd stays unprivileged; the privilege is confined to one tiny, audited program |
-| D4 | `core.checkStat=minimal` and `core.trustctime=false` in copy-on-write workspaces | Without them, the first `git status` re-reads the whole tree |
-| D5 | A strategy is chosen automatically only if the conformance suite passes on it | git correctness is not negotiable |
-| D6 | `update` and `checkout` stay plain git inside the workspace | Correct in every case; faster paths come later and only when safe |
-| D7 | New contract fields only: `strategy` on `Prepare`, `strategy` and `layers` in the answer, `[workspaces] strategy` in the configuration | Principle 2 |
+| D1 | A template per repository, commit and submodule choice, immutable | A layer's lower directory must never change under it |
+| D2 | overlay, then copy, automatically; reflink only when configured to save disk | Principle 3, and the spike: reflink is slower than copy, fuse-overlayfs broke git |
+| D3 | The runtime mounts when it can; `gitd-mount` otherwise; never gitd itself | gitd stays unprivileged; the privilege is confined to one tiny program |
+| D4 | `core.checkStat=minimal` and `core.trustctime=false` in copy-on-write workspaces | The first `git status` stays fast (3.96 s to 0.74 s with reflink) |
+| D5 | A strategy is chosen automatically only if the conformance suite passes on it | git correctness is not negotiable — it is what kept fuse-overlayfs out |
+| D6 | `update` and `checkout` stay plain git inside the workspace | Correct in every case |
+| D7 | New contract fields only | Principle 2 |
+| D8 | SDKs in 0.7, not 1.0 | Platforms are the users; a client in their language is the first thing they need, and generating it is cheap |
+| D9 | Branch prefix and audit log in 0.7 | Small, and what makes a company trust agents to publish |
 
 ### Risks and how they are handled
 
 | Risk | Handling |
 |---|---|
-| Overlay needs permission to mount | The runtime mounts (Docker, Kubernetes, rootless Podman, bubblewrap); else `gitd-mount`; else fuse-overlayfs; else copy |
-| `gitd-mount` becomes an attack surface | It mounts and unmounts only overlays whose every path resolves inside gitd's roots (no symlinks followed), only for gitd's user, and nothing else; its own tests and a fuzzer on its input |
-| Overlay on overlay is refused by the kernel | Layers and templates live on a real disk; gitd checks the filesystem at start (overlayfs's magic number) and warns and falls back |
-| The filesystem has no reflink (ext4) | gitd detects it and uses overlay, fuse-overlayfs or copy; the docs recommend XFS or Btrfs for `/var/lib/gitd` for the best results |
-| git is confused by inodes or change times | D4, and the conformance suite (D5) on every strategy in CI |
-| A template retired while a workspace still uses it | Workspaces are registered on their template; it is retired only when none is, after a grace period |
-| Mounts do not survive a reboot | gitd remounts, at start, every overlay workspace its registry lists |
-| A crash between creating a layer and mounting it | Built aside and moved into place, as everything gitd builds; the start-up sweep removes what is half built |
-| fuse-overlayfs is slow to read | Chosen only after the faster strategies; its cost is measured and documented |
+| Overlay needs permission to mount | The runtime mounts (Docker, Kubernetes, rootless Podman, bubblewrap); else `gitd-mount`; else copy |
+| `gitd-mount` becomes an attack surface | It mounts and unmounts only overlays whose every path resolves inside gitd's roots, follows no symlink, serves only gitd's user, and does nothing else; tests, a fuzz target, and the security review (0.7.10) |
+| Overlay on overlay is refused by the kernel | Layers and templates on a real disk; checked at start (overlayfs's magic number), with a warning and a fallback |
+| git is confused by inodes or change times | D4, and the conformance suite gating every strategy (D5) |
+| A template retired while a workspace uses it | Workspaces are registered on their template; it is retired only when none is, after a grace period |
+| Mounts do not survive a reboot | gitd remounts at start every overlay workspace its registry lists |
+| A crash between making a layer and mounting it | Built aside and moved into place, as everything gitd builds; the start-up sweep removes what is half built |
+| The audit log grows without end | Rotated by size and age, configurable |
 
 ### Tasks
 
 | Task | What | Done when |
 |---|---|---|
-| **0.7.0 Spike** | `benchmarks/cow-spike.sh` and its workflow: 100 workspaces of kubernetes by kernel overlay, fuse-overlayfs, reflink on XFS, and copy | The table gives creation time, disk per agent and first `git status` for each, and git status, diff, stash, commit and checkout behave on each with the template untouched |
-| **0.7.1 Templates** | `internal/template`: build, register users, retire; housekeeping retires the unused | Unit tests: built once and shared, never changed, retired only when unused |
-| **0.7.2 Strategies** | One interface; copy (today's code moved behind it), reflink (`FICLONE`, falling back per file), overlay (external, helper, fuse-overlayfs); detection at start | Each strategy has its tests; detection is right on ext4, XFS and inside a container |
-| **0.7.3 `gitd-mount`** | The helper: a separate small binary, setcap or setuid, with a systemd example | Refuses any path outside the roots or through a symlink; tests and a fuzz target |
-| **0.7.4 Contract** | `[workspaces] strategy`; `strategy` on `Prepare`; `strategy` and `layers` in `WorkspaceResult` and `Describe`; CLI flags and MCP output | buf lint and breaking-change check pass; an old client still works |
+| **0.7.0 Spike** ✓ | Overlay, fuse-overlayfs, reflink and copy on kubernetes, 100 agents | Done: the table above |
+| **0.7.1 Templates** | `internal/template`: build, register users, retire; housekeeping retires the unused | Unit tests: built once, shared, never changed, retired only when unused |
+| **0.7.2 Strategies** | One interface; copy (today's code moved behind it), overlay (external and helper), reflink (`FICLONE`); detection at start | Each strategy tested; detection right on ext4, XFS and inside a container |
+| **0.7.3 `gitd-mount`** | The helper: a separate small binary with `CAP_SYS_ADMIN` only, and a systemd example | Refuses any path outside the roots or through a symlink; tests and a fuzz target |
+| **0.7.4 Contract** | `[workspaces] strategy`; `strategy` on `Prepare`; `strategy` and `layers` in `WorkspaceResult` and `Describe`; CLI flags and MCP output | buf lint and breaking-change check pass; a 0.6 client still works |
 | **0.7.5 Lifecycle** | Unmount on remove; remount at start; templates and layers in the start-up sweep and in `Info` | A restarted gitd serves every overlay workspace it had |
-| **0.7.6 Conformance** | A suite of what agents do — status, diff, add, commit, stash, rebase, checkout, submodules, publish — run on every strategy in CI | It gates D5 |
-| **0.7.7 Proof and docs** | Benchmark "100 agents on kubernetes"; the sandboxes example with overlay volumes; README and DESIGN | The README's numbers are the benchmark's |
+| **0.7.6 Conformance** | What agents do — status, diff, add, commit, stash, rebase, checkout, submodules, publish — on every strategy in CI; fuse-overlayfs retried inside a user namespace | It gates D5; fuse-overlayfs either passes and joins, or stays out, recorded here |
+| **0.7.7 SDKs** | Python and TypeScript clients from the contract with buf; published; one example each | `pip install` / `npm install`, then prepare, describe and publish in a few lines |
+| **0.7.8 Publishing rules** | `[publish] branch_prefix`; the audit log with its API, CLI and MCP reads, and rotation | A branch outside the prefix is refused; every publish is in the log |
+| **0.7.9 Threat model** | `docs/THREAT_MODEL.md`: what gitd protects, from whom, and how — credentials, roots, `gitd-mount`, MCP | Reviewed against the code |
+| **0.7.10 Security review** | An outside review, even informal, of the threat model, `gitd-mount` and credential handling, before 0.8 opens a network service | Findings fixed or recorded |
+| **0.7.11 Proof and docs** | Benchmark "100 agents on kubernetes"; the sandboxes example with overlay volumes; README and DESIGN | The README's numbers are the benchmark's |
 
 ---
 
-## 0.8 — any sandbox with a network: a local git endpoint
+## 0.8 — any sandbox with a network, and many tenants on one gitd
 
 ### Goal
 
-MicroVMs (Firecracker: E2B, Fly and others), managed remote sandboxes (Modal, Daytona,
-Runloop, Codespaces) and CI runners on other machines cannot mount gitd's directories, but
-they can reach it over the network. They get the same promise: a fast checkout, and no
-credential of the git host.
+Two things that grow from the same root, gitd's own tokens:
 
-**Done when:** a sandbox on another machine clones from gitd at local-network speed with a
-token of gitd's that only opens one repository, pushes to its own branch, and gitd
-publishes that branch to the git host — and the token is useless once expired.
+- **Any sandbox with a network.** MicroVMs (Firecracker: E2B, Fly and others), managed
+  remote sandboxes (Modal, Daytona, Runloop, Codespaces) and CI runners elsewhere cannot
+  mount gitd's directories, but can reach it over the network. They get the same promise:
+  a fast checkout, and no credential of the git host.
+- **Many tenants on one gitd.** A platform that hosts the agents of many customers runs one
+  gitd for all of them, each customer isolated from the others — not one gitd per customer.
 
-### How it is built
+**Done when:** a sandbox on another machine clones from gitd with a token that opens one
+repository of one tenant, pushes to its own branch, and gitd publishes that branch with
+that tenant's credential; two tenants on one gitd cannot see each other's repositories,
+workspaces, logs or tokens; and a gitd with no tenants configured behaves exactly as 0.7.
+
+### How it is built: the endpoint
 
 - **gitd serves its pools over git's smart HTTP**, by running the official `git
-  http-backend` (principle 5), read from the pool, on a listening address of the
-  configuration.
+  http-backend` (principle 5), on a listening address of the configuration.
 - **Tokens of gitd's own.** A short-lived token (default an hour, at most a day) is issued
   per sandbox through the API, the command line and an MCP tool. It opens one repository
   for reading and one **sandbox repository** for writing; it is never the git host's
   credential. Kept hashed, in memory; revoked on expiry or when its workspace goes.
 - **Writes go to a sandbox repository, not the pool.** Each token has a bare repository of
-  its own, borrowing the pool's objects, where the sandbox may push any branch. Publishing
-  takes a branch from there to the git host with gitd's credential, through the same code
-  as `publish` from a workspace. The pool is never written by a sandbox.
+  its own, borrowing the pool's objects, where the sandbox may push. Publishing takes a
+  branch from there to the git host with gitd's credential, through the same code — and
+  the same branch prefix and audit log — as `publish` from a workspace.
 - **Fast clones of large repositories.** The endpoint allows partial clones
   (`--filter=blob:none`): files arrive as they are read.
+
+### How it is built: tenants
+
+A **tenant** is one customer of the platform. In gitd's configuration each has:
+
+```toml
+[[tenants]]
+name = "acme"
+api_key_file = "/run/credentials/gitd.service/acme"   # the key the platform calls with for acme
+roots = ["/var/lib/gitd/tenants/acme"]                 # where acme's workspaces may be made
+limits = { workspaces = 200, disk = "50GB", fetches = 2 }
+
+  [[tenants.credentials]]
+  prefix = "https://github.com/acme"
+  token_file = "/run/credentials/gitd.service/acme-github"
+```
+
+- **Every call names its tenant** with that tenant's API key — a header on the socket, a
+  flag or variable on the command line and MCP, or the endpoint token, which belongs to one
+  tenant. A call without a valid key is refused; a key opens only its own tenant.
+- **Nothing is shared between tenants.** Pools, templates, workspaces, credentials, tokens
+  and audit entries are kept per tenant, under its own directory. A repository fetched with
+  acme's credential is never readable by another tenant — not even public repositories share
+  a pool at first: separate is simple and safe, and copy-on-write already keeps the disk
+  small.
+- **Limits per tenant**: workspaces, disk and concurrent fetches, so one customer cannot
+  starve the others.
+- **No tenants, no change.** Without `[[tenants]]`, gitd is one implicit tenant and behaves
+  exactly as before — the configuration and the calls of 0.7 stay valid.
 
 ### Decisions
 
 | # | Decision | Why |
 |---|---|---|
-| D8 | The official `git http-backend`, not a reimplementation | Principle 5; correctness of the protocol for free |
-| D9 | A sandbox repository per token for writes | No ref rules to get wrong on a shared pool; publishing reuses `publish` |
-| D10 | Tokens short-lived, scoped to one repository, hashed, revocable | A leaked token opens little, for little time |
-| D11 | This way before Kubernetes' CSI driver | It covers more sandboxes (every microVM and remote one, CI) with less code |
+| D10 | The official `git http-backend`, not a reimplementation | Principle 5 |
+| D11 | A sandbox repository per token for writes | No ref rules to get wrong on a shared pool; publishing reuses `publish` |
+| D12 | Tokens short-lived, scoped to one repository of one tenant, hashed, revocable | A leaked token opens little, for little time |
+| D13 | Tenants in 0.8, on the same tokens | A multi-customer platform asks first; the tokens are half of it |
+| D14 | Nothing shared between tenants, public pools included, at first | Isolation that cannot be got wrong; sharing public pools can come later, measured |
+| D15 | No tenants configured means one implicit tenant | Principle 2: nothing changes for anyone who does not need tenants |
+| D16 | The endpoint (0.8) before Kubernetes' CSI driver (0.9) | It covers more sandboxes — every microVM and remote one, CI — with less code |
 
 ### Risks and how they are handled
 
 | Risk | Handling |
 |---|---|
-| A network service is exposed | Off unless configured; TLS with a given certificate, or a private network only; every request needs a token |
-| A token leaks | Short life, one repository, read plus its own sandbox repository only; revocable; never the git host's credential |
-| Abuse and load | The same queues and limits as the rest of gitd; a token can be rate limited |
+| A network service is exposed | Off unless configured; TLS with a given certificate, or a private network only; every request needs a token; reviewed (0.7.10) before it ships |
+| A token or an API key leaks | Tokens: short life, one repository, revocable. Keys: per tenant, read from a credential file, hashed in memory, replaced without restart |
+| One tenant starves the others | Limits per tenant on workspaces, disk and fetches; the queues already in gitd |
+| A tenant reads another's objects | Pools, templates and workspaces per tenant; a conformance test tries every cross-tenant read and expects a refusal |
+| Disk duplicated across tenants | Accepted at first; copy-on-write keeps workspaces small; shared public pools only if measured worth it |
 | Pools are shallow by default | A sandbox gets the history its pool has; full-history pools serve full clones |
 
 ### Tasks
@@ -237,9 +303,10 @@ publishes that branch to the git host — and the token is useless once expired.
 |---|---|---|
 | **0.8.0 Endpoint** | Smart HTTP over the pools with `git http-backend`; upload only | `git clone http://gitd/…` works with a token, fails without one |
 | **0.8.1 Tokens** | Issue, check and revoke; an RPC, a CLI command and an MCP tool | Expired and revoked tokens refused; a token opens only its repository |
-| **0.8.2 Sandbox repositories** | Receive into a repository per token; publish from it | A push from a sandbox becomes a branch on the git host through gitd |
-| **0.8.3 Network** | Listen address, TLS, limits | Tests with TLS and without; refused when unconfigured |
-| **0.8.4 Examples** | E2B and Modal (or any microVM) cloning from gitd | Each example runs end to end |
+| **0.8.2 Sandbox repositories** | Receive into a repository per token; publish from it, with the prefix and the audit log | A push from a sandbox becomes a branch on the git host through gitd |
+| **0.8.3 Tenants** | `[[tenants]]`: keys, roots, credentials, limits; every call scoped; per-tenant pools, templates, workspaces, tokens and audit | Isolation tests pass; no tenants configured behaves as 0.7 |
+| **0.8.4 Network** | Listen address, TLS, limits | Tests with TLS and without; refused when unconfigured |
+| **0.8.5 Examples** | E2B and Modal (or any microVM) cloning from gitd; a two-tenant setup | Each example runs end to end |
 
 ---
 
@@ -255,7 +322,7 @@ volumes:
   - name: repo
     csi:
       driver: gitd.dev
-      volumeAttributes: { repository: https://github.com/acme/web, branch: main }
+      volumeAttributes: { repository: https://github.com/acme/web, branch: main, tenant: acme }
 ```
 
 **Done when:** on a kind cluster in CI, a pod gets its workspace, an agent Job commits and
@@ -264,7 +331,7 @@ publishes, and the pod never holds a credential.
 ### How it is built
 
 - **gitd runs on every node** (a DaemonSet), its pools and templates on the node's disk,
-  its credentials from a Kubernetes Secret mounted into gitd only.
+  its credentials and tenant keys from Kubernetes Secrets mounted into gitd only.
 - **A CSI node plugin** (a DaemonSet too) implements ephemeral inline volumes: when a pod
   starts, it asks the gitd on its node for a workspace in external mode and mounts the
   overlay layers into the pod — CSI drivers are privileged by design, which is where the
@@ -275,8 +342,8 @@ publishes, and the pod never holds a credential.
 
 | # | Decision | Why |
 |---|---|---|
-| D12 | Ephemeral inline CSI volumes, node plugin only | A workspace lives as long as its pod; no controller or volume claims to run |
-| D13 | Credentials only in gitd's Secret | Pods, and the agents in them, never hold one |
+| D17 | Ephemeral inline CSI volumes, node plugin only | A workspace lives as long as its pod; no controller or claims to run |
+| D18 | Credentials and tenant keys only in gitd's Secrets | Pods, and the agents in them, never hold one |
 
 ### Risks and how they are handled
 
@@ -292,7 +359,7 @@ publishes, and the pod never holds a credential.
 | Task | What | Done when |
 |---|---|---|
 | **0.9.0 Node plugin** | CSI NodePublish and NodeUnpublish for ephemeral volumes | A pod on kind gets a workspace |
-| **0.9.1 Helm chart** | gitd and the plugin as DaemonSets, the Secret, the configuration | `helm install` on kind and a real cluster |
+| **0.9.1 Helm chart** | gitd and the plugin as DaemonSets, Secrets, configuration | `helm install` on kind and a real cluster |
 | **0.9.2 Examples** | A pod and an agent Job that commits and publishes | Run end to end in CI |
 
 ---
@@ -301,9 +368,9 @@ publishes, and the pod never holds a credential.
 
 | Task | What | Done when |
 |---|---|---|
-| **1.0.0 SDKs** | Python and TypeScript clients generated from the contract with buf, published to PyPI and npm | An agent platform calls gitd in a few lines |
-| **1.0.1 macOS** | A darwin binary with a `clonefile` strategy (APFS's reflink), for laptops | Workspaces on a Mac in milliseconds with almost no disk |
-| **1.0.2 Guides** | One per sandbox: Docker, Kubernetes, E2B, Modal, Claude Code and Codex with bubblewrap | Each guide runs as written |
+| **1.0.0 macOS** | A darwin binary with a `clonefile` strategy (APFS's copy-on-write), for laptops | Workspaces on a Mac with almost no disk, measured |
+| **1.0.1 Guides** | One per sandbox: Docker, Kubernetes, E2B, Modal, Claude Code and Codex with bubblewrap | Each guide runs as written |
+| **1.0.2 Stability** | The contract declared stable; a deprecation policy | Documented |
 
 ---
 
@@ -317,31 +384,52 @@ publishes, and the pod never holds a credential.
 | Managed remote sandboxes (Modal, Daytona, Runloop, Codespaces) | Local git endpoint | 0.8 |
 | CI runners | Local mount on the same host; the endpoint elsewhere | 0.7 / 0.8 |
 | Kubernetes, GKE Sandbox (gVisor), Kata Containers | CSI driver | 0.9 |
-| macOS laptops | `clonefile` strategy | 1.0 |
+| macOS laptops | `clonefile` | 1.0 |
+
+---
+
+## Launch: reaching the people gitd is for
+
+The engineering is ahead of the audience: the repository has no stars yet. gitd launches
+**when 0.7 ships**, with its headline number — *100 agents on kubernetes in about a
+second, a megabyte each, and no token in any sandbox* — measured by a workflow anyone can
+run.
+
+| Where | What |
+|---|---|
+| Hacker News | A "Show HN": the problem, the benchmark, the demo |
+| Claude Code, Codex and Cursor communities | `gitd mcp` for parallel agents, with a short demo |
+| MCP directories | The official MCP registry, the awesome-mcp-servers lists, Smithery and Glama |
+| A post and a demo | The why and the numbers; a terminal recording of ten agents and a published branch |
+| Agent and sandbox platforms | Talk to two or three (E2B, Daytona, Modal, Runloop or similar): would they integrate it, what is missing — the answers shape 0.8 |
+| GitHub | Discussions open; good first issues labelled; the roadmap linked from the README |
 
 ---
 
 ## Work plan
 
 In order; each step is one or more commits, tested, and each version ends with its
-benchmark, its docs and a release.
+benchmark, its docs and a release (principle 7).
 
 | Step | Version | Work | Depends on |
 |---|---|---|---|
-| 1 | 0.6.0 | Release what is done: binaries for amd64 and arm64, the image | — |
-| 2 | 0.7.0 | Run the spike; record its table here; fix the strategy order | 1 |
+| 1 | 0.6.0 ✓ | Released: binaries for amd64 and arm64, the image | — |
+| 2 | 0.7.0 ✓ | Spike run, table recorded, strategy order decided | 1 |
 | 3 | 0.7.1 | Templates | 2 |
-| 4 | 0.7.2 | Strategies and detection (copy moved first, then reflink, overlay, fuse-overlayfs) | 3 |
+| 4 | 0.7.2 | Strategies and detection: copy moved behind the interface first, then overlay, then reflink | 3 |
 | 5 | 0.7.3 | `gitd-mount` | 4 |
 | 6 | 0.7.4 | Contract, CLI and MCP | 4 |
 | 7 | 0.7.5 | Lifecycle | 5, 6 |
-| 8 | 0.7.6 | Conformance suite gating the strategies | 4 |
-| 9 | 0.7.7 | Benchmark "100 agents", example, docs; release 0.7.0 | 7, 8 |
-| 10 | 0.8.0–0.8.4 | Endpoint, tokens, sandbox repositories, network, examples; release 0.8.0 | 9 |
-| 11 | 0.9.0–0.9.2 | CSI node plugin, Helm chart, examples; release 0.9.0 | 9 |
-| 12 | 1.0.0–1.0.2 | SDKs, macOS, guides; release 1.0.0 | 10, 11 |
+| 8 | 0.7.6 | Conformance suite gating the strategies; fuse-overlayfs in a user namespace | 4 |
+| 9 | 0.7.7 | Python and TypeScript SDKs | 6 |
+| 10 | 0.7.8 | Branch prefix and audit log | 6 |
+| 11 | 0.7.9–0.7.10 | Threat model and security review | 5, 10 |
+| 12 | 0.7.11 | Benchmark "100 agents", example, docs; **release 0.7.0 and launch** | 7–11 |
+| 13 | 0.8.0–0.8.5 | Endpoint, tokens, sandbox repositories, tenants, network, examples; release 0.8.0 | 12 |
+| 14 | 0.9.0–0.9.2 | CSI node plugin, Helm chart, examples; release 0.9.0 | 13 |
+| 15 | 1.0.0–1.0.2 | macOS, guides, stability; release 1.0.0 | 13, 14 |
 
-**How the work is done.** Heavy runs (benchmarks, the spike, kind clusters) go on GitHub's
+**How the work is done.** Heavy runs (benchmarks, spikes, kind clusters) go on GitHub's
 runners: gitd's repository is public, so they cost nothing, and anyone can run them again.
 Every change has its tests, every commit is signed off, and README numbers come only from
 those runs.
@@ -353,11 +441,16 @@ those runs.
 | Decision | Why |
 |---|---|
 | gitd is general and carries nothing of any one platform | Anyone can use it; a platform's paths and policies are its configuration |
-| Focus: instant, secretless checkouts for agent sandboxes | Where gitd is different from `git worktree`, clones and agent tools |
+| Focus: instant, secretless checkouts for agent sandboxes | Where gitd differs from `git worktree`, clones and agent tools |
 | Credentials kept by gitd, by URL prefix, naming where the secret is | Callers, agents and sandboxes never hold one |
 | MCP tools never take a credential, enforced by a test | The agent deals in paths, commits and branches only |
 | The command line on spf13/cobra, one file per command | Maintained for over a decade; single responsibility |
 | Apache License 2.0 instead of the AGPL-3.0 | Platforms can build on gitd; patents granted |
 | The name stays `gitd` | Renaming moves the repository and buys nothing now |
-| The README states only measured numbers | Credibility; "half a second whatever the repository" was corrected by measurement |
+| The README states only measured numbers | Credibility; corrected twice already by measurement |
+| Kernel overlay is the copy-on-write strategy; reflink only to save disk; fuse-overlayfs out until proven | The spike: 2 ms and 1.1 MB, git behaving; reflink slower than copy; fuse-overlayfs broke git |
+| SDKs, branch prefix and audit log move into 0.7 | What platforms need first, and cheap |
+| Multi-tenancy in 0.8, isolated per tenant, nothing shared at first | A multi-customer platform asks first; isolation must not be gettable wrong |
+| A security review before 0.8's network service | The more surface gitd exposes, the more "secretless" must be proved |
+| Launch with 0.7, not before | The headline number is what gets attention |
 | The local git endpoint (0.8) before the CSI driver (0.9) | It reaches more sandboxes with less code |

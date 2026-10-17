@@ -399,8 +399,9 @@ A client tells its users what happened from the reason, never by parsing the mes
 
 1. **Credentials in shared pools:** a private repository's pool is synced with the
    credential that opens it, kept or sent, and any workspace on the server borrows from it.
-   One gitd is meant for one tenant; tenants who must not read each other's repositories
-   get a gitd each. Likewise, whoever can reach the socket can ask for any repository gitd
+   Until 0.8, one gitd is meant for one tenant; tenants who must not read each other's
+   repositories get a gitd each. 0.8 brings tenants to one gitd, each with its own pools,
+   templates, workspaces, credentials and limits ([ROADMAP](ROADMAP.md)). Likewise, whoever can reach the socket can ask for any repository gitd
    holds a credential for, so the socket is reachable only by gitd's own user and the
    programs acting for that tenant.
 2. **Partial clone** (`blob:none`) in the pool was tried and set aside: a workspace linked
