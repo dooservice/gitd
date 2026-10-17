@@ -46,6 +46,10 @@ second from anything, until 0.8 gives callers tokens and tenants.
 - **One credential, the most specific.** A repository is read with the longest prefix that
   opens it, once; gitd never tries credentials in turn
   (`TestARepositoryIsReadWithTheMostSpecificCredentialAndNoOther`).
+- **No redirects.** git runs with `http.followRedirects=false`, so a request is answered by
+  the host it went to or fails. (Before, with git's default, a test with a redirecting
+  server showed the header not carried to the other host by git 2.39.5 and libcurl 7.88.1;
+  turning redirects off removes the question for every later request too.)
 - **Never to a host its prefix does not name.** A token kept with an empty prefix stops gitd
   at start, and one given without a host carries nothing, so a `.gitmodules` naming an
   arbitrary host gets no token (`TestATokenIsNeverSentToAHostItsPrefixDoesNotName`). A key
@@ -62,7 +66,10 @@ second from anything, until 0.8 gives callers tokens and tenants.
 ### A workspace cannot make gitd run, write or publish for it
 
 A sandbox writes its workspace's `.git`, and gitd runs git there. Without care that is a
-way in: a filter in `.git/config` runs as gitd's user on the next checkout. So:
+way in: a filter in `.git/config` runs as gitd's user on the next checkout. The checks below
+hold for what is on disk when gitd looks, which is why **the operations that run git in a
+workspace — update, checkout, submodules, publish and describe — are made while its sandbox
+is stopped or paused** (§4, first rows). So:
 
 - **Only listed configuration keys.** Before gitd runs git in a workspace it lists every key
   of its configuration, and of each submodule's, without following includes, and refuses
@@ -75,6 +82,13 @@ way in: a filter in `.git/config` runs as gitd's user on the next checkout. So:
 - **`.git` is the workspace's own.** A `.git` that is a link, or a link inside
   `.git/modules`, is refused; a submodule's `core.worktree` must name a directory of the
   workspace outside `.git` (`TestASubmoduleMayPointOnlyAtItsCheckoutInsideTheWorkspace`).
+- **Nothing in a git directory leads elsewhere.** In the workspace's git directory and each
+  submodule's, a `commondir` is refused, `objects`, `objects/info`, `refs` and `HEAD` must be
+  plain directories and files, and `alternates` may name only the objects of pools that
+  list the workspace as borrowing from them
+  ([`gitdir_guard.go`](../internal/workspace/gitdir_guard.go),
+  `TestAGitDirectoryLeadingOutOfTheWorkspaceIsRefused`). The alternates and `shallow` gitd
+  writes go through an `os.Root` of the git directory.
 - **No hooks, no fsmonitor, HTTPS and SSH only** — set on git's command line, where a
   repository's configuration cannot turn them back on. The file protocol is allowed only
   for the fetches gitd itself makes between a workspace and its pool.
@@ -83,6 +97,9 @@ way in: a filter in `.git/config` runs as gitd's user on the next checkout. So:
   repository's pool lists the workspace among its own (`gitd-owned`), a list only gitd
   writes. A workspace naming a repository it merely borrows for a submodule is not one of
   its own (`TestAWorkspaceThatRenamesItsRepositoryIsNotOneGitdMade`, and end to end).
+  A submodule is published only when gitd checked it out in that workspace — its
+  repository's pool lists the workspace — never because `.gitmodules` names it
+  (`TestASubmoduleGitdNeverCheckedOutIsNotPublished`).
 - **gitd's writes stay in the workspace.** A submodule's directories and `.git` file, whose
   path the repository chooses and where the sandbox may have left a link, are made through
   an `os.Root` of the workspace, which refuses to follow a link out of it
@@ -122,17 +139,20 @@ Overlay workspaces are mounted by gitd-mount, a separate root service
 
 - Socket-activated, `0600`, owned by gitd's user; the caller is identified by the kernel
   (`SO_PEERCRED`) and anyone else refused.
-- Its configuration is root's and writable by root only; it fixes the only directories
-  that may be layers and the only roots a workspace may be mounted in. gitd cannot widen it.
-- Every directory is opened with `openat2(RESOLVE_NO_SYMLINKS | RESOLVE_BENEATH)` and must be
-  owned by gitd's user; the mount goes through that descriptor, so a directory swapped for a
+- Its configuration is root's and writable by root only, and so is every directory above
+  it; it is opened once, without following a link. It fixes the only directories that may be
+  layers and the only roots a workspace may be mounted in. gitd cannot widen it.
+- Every directory is opened with `openat2(RESOLVE_NO_SYMLINKS | RESOLVE_BENEATH)`, its base
+  too, from `/`, and must be owned by gitd's user; the mount goes through that descriptor, so a directory swapped for a
   link after the check changes nothing. Mounts are `nosuid,nodev`.
 - It unmounts only what is an overlay at its own mount point, through the pinned descriptor.
 - Its unit keeps `CAP_SYS_ADMIN` only. Its checks are fuzzed
   (`FuzzAMountIsNeverCheckedOutsideItsDirectories`) and its root tests run in CI.
 
 A compromised gitd can therefore mount only overlays of its own directories inside its own
-roots: nothing it could not already read or write.
+roots. `nosuid,nodev` holds for the mounted view; the layers below it are `0700`, reached by
+gitd and gitd-mount only, and the filesystem holding them should itself be `nosuid,nodev`
+(§5).
 
 ### MCP tools say what they do
 
@@ -151,12 +171,13 @@ Known, and left to the deployment or to a later version:
 | **Pools are readable by local users** | Pools and their files are `0755`/`0644`, so sandboxes running as other users can read them | On a shared host, give the state directory to a group (`StateDirectoryMode=0750`) and put sandboxes' users in it |
 | **Tokens are visible to gitd's user and root** | A token is in the environment of the git processes gitd starts, which `/proc/<pid>/environ` shows to the same user and to root | Run gitd as its own user, and no sandbox as that user |
 | **gitd fetches what repositories name** | A caller's URL, or a submodule URL in a repository, is fetched from gitd's network position — internal hosts included — and its contents end up in a workspace | Limit gitd's outbound network to the git hosts it serves |
-| **A sandbox racing a submodule checkout** | gitd checks a submodule's directories and makes them through `os.Root`, but git itself then runs in them by name; a sandbox changing them at that instant could redirect git's writes within what gitd's user may write | Update submodules while the workspace's sandbox is stopped. 0.8's sandbox repositories keep gitd out of trees a sandbox writes |
+| **A sandbox running while gitd runs git in its workspace** | gitd checks `.git` — configuration, links, alternates — and then runs git, which reads it again; a sandbox changing it in between undoes the checks. No check made before git runs can close that | **Run update, checkout, submodules, publish and describe while the workspace's sandbox is stopped or paused** (`docker pause` is instant); prepare needs no pause, as a new workspace has no sandbox yet. An agent calling an MCP tool waits for its answer: let no process of its sandbox run in the background meanwhile. 0.8's sandbox repositories end this: the sandbox pushes to gitd, which no longer reads its `.git` |
+| **Submodules choose what a kept token reads** | A repository's `.gitmodules` names its submodules, and gitd reads each with the most specific kept credential that opens it: anything under a token's prefix, private repositories included | Give tokens prefixes as narrow as the repositories agents work on (`https://github.com/acme/web`, not the whole organization) |
 | **Adopting trusts the clone** | `Adopt` takes a clone's `origin` as its repository | Adopt only clones a sandbox has not had |
 | **The audit log is gitd's to write** | It records honestly but is not tamper-proof against gitd's own user, and a publish is not undone if its entry cannot be written (that is logged as an error) | Ship the file to a log store the gitd user cannot change |
+| **Container root on the host's disk** | A sandbox that is root in its container, without a user namespace, can leave setuid files or device nodes in its workspace on the host | Run sandboxes with user namespaces, and keep gitd's state and roots on a `nosuid,nodev` filesystem |
 | **Disk and CPU** | `[limits]` bounds concurrent fetches, writes and queued calls, but not how much a sandbox writes into its workspace | Quotas on the roots' filesystem. 0.8 adds per-tenant limits |
 | **git LFS** | gitd neither fetches LFS objects into pools nor allows `filter.lfs.*` in a workspace; a workspace gets LFS pointer files, and gitd says which (`lfs_patterns`) | Not supported; considered after 1.0, on demand |
-| **Redirects** | git follows an HTTP redirect on the first request (`http.followRedirects=initial`); that the token header is not carried to another host relies on libcurl (7.58+) | To be confirmed in the security review (0.7 · 10) |
 
 ## 5. Deploying it safely
 
@@ -167,11 +188,13 @@ Known, and left to the deployment or to a later version:
 4. Set `[publish] branch_prefix`, and protect that prefix on the git host as you would any
    branch an outsider proposes.
 5. Mount into each sandbox its workspace, read-write, and only the pools it borrows from,
-   read-only.
-6. Install gitd-mount for overlay workspaces, with its configuration matching gitd's state
+   read-only. Run sandboxes with user namespaces.
+6. Stop or pause a workspace's sandbox while gitd updates, checks out, publishes or
+   describes it; prepare needs no pause.
+7. Install gitd-mount for overlay workspaces, with its configuration matching gitd's state
    and roots; it is the only part that runs as root.
-7. Limit gitd's outbound network to the git hosts it serves, and ship the audit log
-   elsewhere.
+8. Keep gitd's state and roots on a `nosuid,nodev` filesystem, limit gitd's outbound
+   network to the git hosts it serves, and ship the audit log elsewhere.
 
 ## Review
 
@@ -190,5 +213,23 @@ before writing this:
 - **A token with an empty prefix went to any host:** now refused.
 
 It also made consistent, without a vulnerability behind them, how branches read from a
-workspace and branches to publish are checked. Task 0.7 · 10 is an outside review of this
-document and of the code it names.
+workspace and branches to publish are checked.
+
+**Independent review (0.7 · 10).** A second review, by a reviewer that started from this
+document and the code without the author's context — an AI agent, not a person — found,
+and these were fixed:
+
+- **A submodule was published wherever the working tree's `.gitmodules` pointed:** now only
+  submodules gitd checked out in the workspace.
+- **Other files in `.git` led elsewhere** (`commondir`, `alternates`, links at `objects`):
+  now refused, and alternates limited to pools lending to the workspace.
+- **gitd wrote alternates and `shallow` through links inside `.git`:** now through `os.Root`.
+- **Lock files were cleared through a `.git` that was a link:** no longer.
+- **Redirects** are now off; the layers directory is `0700`; gitd-mount checks the
+  directories above its configuration and opens the base of every path without links;
+  gitd's unit restricts setuid files.
+
+It also showed that no check before git runs can stand against a sandbox changing `.git`
+at the same time: §4 now says to pause the sandbox for those operations, until 0.8. It
+added §4's rows on what submodules let a token read and on container root. **A review by a
+person outside the project is still due before 0.8 opens a network service.**

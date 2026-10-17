@@ -334,9 +334,13 @@ as an error rather than answered as one.
 Whoever works in a workspace writes its `.git`, so gitd trusts nothing there it has not
 checked: every key of its configuration, and of each submodule's, must be on an allow-list
 (`internal/workspace/config_keys.go`), or the call is refused (`CONFIG_REFUSED`); `.git`
-must be a directory of its own; the repository it names counts only when that repository's
-pool lists it among its own (`gitd-owned`); and gitd's writes for a submodule go through an
-`os.Root` of the workspace. What this protects, and what it does not, is in
+must be a directory of its own, with no `commondir`, no links where git reads objects and
+references, and alternates naming only pools that lend to it; the repository it names
+counts only when that repository's pool lists it among its own (`gitd-owned`), and a
+submodule is published only when gitd checked it out there; and gitd's writes in it go
+through an `os.Root`. The checks hold for what is on disk when gitd looks, so the calls
+that run git in a workspace are made while its sandbox is stopped or paused, until 0.8's
+sandbox repositories. What this protects, and what it does not, is in
 [THREAT_MODEL.md](THREAT_MODEL.md).
 
 ### Remove (`Remove`)
