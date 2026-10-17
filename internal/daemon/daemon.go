@@ -14,6 +14,7 @@ import (
 	"github.com/dooservice/gitd/internal/metrics"
 	"github.com/dooservice/gitd/internal/pool"
 	"github.com/dooservice/gitd/internal/server"
+	"github.com/dooservice/gitd/internal/template"
 	"github.com/dooservice/gitd/internal/workspace"
 )
 
@@ -52,7 +53,8 @@ func Run(ctx context.Context, path, socket, version string) error {
 	pools := pool.New(settings.Pools(), runner, keys, locks, fetches, settings.Housekeeping.StaleLock)
 	workspaces := workspace.New(settings.Roots, runner, pools, locks, writes, settings.Housekeeping.StaleLock)
 
-	keeper := housekeeping.New(pools, runner, settings.Roots, settings.Housekeeping, measured)
+	templates := template.New(settings.Templates(), locks, workspaces)
+	keeper := housekeeping.New(pools, templates, runner, settings.Roots, settings.Housekeeping, measured)
 	keeper.Sweep()
 	go keeper.Run(ctx)
 

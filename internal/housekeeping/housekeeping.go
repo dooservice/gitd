@@ -14,6 +14,7 @@ import (
 	"github.com/dooservice/gitd/internal/git"
 	"github.com/dooservice/gitd/internal/metrics"
 	"github.com/dooservice/gitd/internal/pool"
+	"github.com/dooservice/gitd/internal/template"
 )
 
 // Keeper maintains the pools of one gitd, and sweeps the roots its workspaces are made in.
@@ -22,6 +23,7 @@ import (
 // deepest workspace is, and as deep as a repository's path goes under the pools.
 type Keeper struct {
 	pools      *pool.Pools
+	templates  *template.Store
 	runner     *git.Runner
 	roots      []string
 	settings   config.Housekeeping
@@ -37,12 +39,14 @@ func (keeper *Keeper) Totals() (int, int64) {
 	return int(keeper.poolCount.Load()), keeper.poolBytes.Load()
 }
 
-// New returns the keeper of pools, whose workspaces are made under roots.
+// New returns the keeper of pools and templates, whose workspaces are made under roots.
 func New(
-	pools *pool.Pools, runner *git.Runner, roots []string, settings config.Housekeeping, measured *metrics.Metrics,
+	pools *pool.Pools, templates *template.Store, runner *git.Runner, roots []string,
+	settings config.Housekeeping, measured *metrics.Metrics,
 ) *Keeper {
 	return &Keeper{
 		pools:      pools,
+		templates:  templates,
 		runner:     runner,
 		roots:      roots,
 		settings:   settings,

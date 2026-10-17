@@ -70,6 +70,9 @@ type Housekeeping struct {
 	RetireAfter time.Duration `toml:"retire_after"`
 	StaleLock   time.Duration `toml:"stale_lock"`
 	SweepDepth  int           `toml:"sweep_depth"`
+	// TemplateGrace is how long a template no workspace uses is kept, in case one is made
+	// from it again soon.
+	TemplateGrace time.Duration `toml:"template_grace"`
 }
 
 // DefaultSocket is where gitd answers when the configuration says nowhere else.
@@ -93,10 +96,11 @@ func Default() Config {
 			Operation: 30 * time.Minute,
 		},
 		Housekeeping: Housekeeping{
-			Every:       6 * time.Hour,
-			RetireAfter: 30 * 24 * time.Hour,
-			StaleLock:   time.Hour,
-			SweepDepth:  4,
+			Every:         6 * time.Hour,
+			RetireAfter:   30 * 24 * time.Hour,
+			StaleLock:     time.Hour,
+			SweepDepth:    4,
+			TemplateGrace: time.Hour,
 		},
 	}
 }
@@ -157,6 +161,11 @@ func (settings *Config) normalize() error {
 // Pools is where the pools live.
 func (settings Config) Pools() string {
 	return filepath.Join(settings.State, "pools")
+}
+
+// Templates is where the templates copy-on-write workspaces are made from live.
+func (settings Config) Templates() string {
+	return filepath.Join(settings.State, "templates")
 }
 
 // Locks is where the lock files live.

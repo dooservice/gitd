@@ -18,6 +18,9 @@ func (keeper *Keeper) Sweep() {
 	for _, root := range keeper.roots {
 		keeper.sweep(root, 0, keeper.settings.SweepDepth)
 	}
+	if keeper.templates != nil {
+		keeper.templates.Sweep()
+	}
 }
 
 func (keeper *Keeper) sweep(dir string, depth, limit int) {

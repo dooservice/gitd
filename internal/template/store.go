@@ -190,3 +190,30 @@ func exists(path string) bool {
 	_, err := os.Stat(path)
 	return err == nil
 }
+
+// Sweep removes what a gitd that died left half built under the templates directory: the
+// temporary directories templates are built in, and the users files left half written. It
+// does not look inside a template, which has nothing of the sort and many files.
+func (store *Store) Sweep() int {
+	removed := 0
+	_ = filepath.WalkDir(store.Dir, func(path string, entry fs.DirEntry, err error) error {
+		if err != nil || path == store.Dir {
+			return nil
+		}
+		if pool.IsTemp(entry.Name()) {
+			if os.RemoveAll(path) == nil {
+				slog.Warn("half-built template removed", "path", path)
+				removed++
+			}
+			if entry.IsDir() {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		if _, isTemplate := store.keyOf(path); isTemplate && entry.IsDir() {
+			return filepath.SkipDir
+		}
+		return nil
+	})
+	return removed
+}

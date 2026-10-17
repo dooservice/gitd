@@ -10,6 +10,10 @@ import (
 // round retires the pools nobody borrows from and maintains the rest, adding up what they
 // take for Totals.
 func (keeper *Keeper) round(ctx context.Context) {
+	// Templates first: one retired lets go of its pools, which may then retire this round.
+	if keeper.templates != nil {
+		keeper.templates.Retire(ctx, keeper.settings.TemplateGrace)
+	}
 	var count, bytes int64
 	defer func() {
 		keeper.poolCount.Store(count)

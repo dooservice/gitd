@@ -185,3 +185,30 @@ func TestEveryTemplateIsReadBackFromDisk(t *testing.T) {
 		t.Errorf("All = %v", store.All())
 	}
 }
+
+func TestWhatACrashLeftAmongTheTemplatesIsSweptAndTheTemplatesKept(t *testing.T) {
+	store := newStore(t, &fakeBuilder{})
+	dir, err := store.Take(context.Background(), web(), "/agents/a")
+	if err != nil {
+		t.Fatal(err)
+	}
+	halfBuilt := dir + ".gitd-tmp-abc"
+	halfWritten := usersOf(dir) + ".gitd-tmp-def"
+	inside := filepath.Join(dir, "kept.gitd-tmp-ghi") // a template's own file, never looked at
+	for _, path := range []string{halfBuilt} {
+		if err := os.MkdirAll(path, 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, path := range []string{halfWritten, inside} {
+		if err := os.WriteFile(path, nil, 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if removed := store.Sweep(); removed != 2 {
+		t.Errorf("swept %d; want 2", removed)
+	}
+	if exists(halfBuilt) || exists(halfWritten) || !exists(dir) || !exists(usersOf(dir)) || !exists(inside) {
+		t.Error("the sweep removed the wrong things")
+	}
+}
