@@ -35,9 +35,16 @@ jobs:
               sha256sum "dist/${command}-linux-${arch}" | cut -d' ' -f1 > "dist/${command}-linux-${arch}.sha256"
             done
           done
+      # The notes are docs/releases/<version>.md, written with the release.
+      - name: Release notes
+        run: |
+          notes="docs/releases/${GITHUB_REF_NAME}.md"
+          [ -f "$notes" ] || printf 'gitd %s\n' "${GITHUB_REF_NAME}" > "$notes"
+          echo "NOTES=$notes" >> "$GITHUB_ENV"
       - uses: softprops/action-gh-release@v3
         with:
           name: "${{ github.ref_name }}"
+          body_path: ${{ env.NOTES }}
           files: dist/*
 
   # ghcr.io/dooservice/gitd:<version> and :latest, for amd64 and arm64.
