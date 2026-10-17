@@ -57,7 +57,7 @@ func (workspaces *Workspaces) copyAside(ctx context.Context, set changeSet, file
 			}
 		}
 		if file.kind != gitdv1.ChangedFile_KIND_DELETED {
-			if err := copied.fromWorkspace(root, file.path); err != nil {
+			if err := copied.fromWorkspace(root, "b", file.path); err != nil {
 				copied.remove()
 				return nil, err
 			}
@@ -66,8 +66,9 @@ func (workspaces *Workspaces) copyAside(ctx context.Context, set changeSet, file
 	return copied, nil
 }
 
-// fromWorkspace copies a workspace's file under b/: a link as the path it names.
-func (copied *aside) fromWorkspace(root *os.Root, path string) error {
+// fromWorkspace copies a workspace's file under side (a/ or b/): a link as the path it
+// names, a file too large to count as one byte that makes it binary.
+func (copied *aside) fromWorkspace(root *os.Root, side, path string) error {
 	native := filepath.FromSlash(path)
 	info, err := root.Lstat(native)
 	if errors.Is(err, fs.ErrNotExist) {
@@ -81,18 +82,18 @@ func (copied *aside) fromWorkspace(root *os.Root, path string) error {
 		if err != nil {
 			return err
 		}
-		return copied.write("b", path, strings.NewReader(target))
+		return copied.write(side, path, strings.NewReader(target))
 	}
 	if info.Size() > largestCopied {
 		copied.large[path] = true
-		return copied.write("b", path, strings.NewReader("\x00"))
+		return copied.write(side, path, strings.NewReader("\x00"))
 	}
 	file, err := root.Open(native)
 	if err != nil {
 		return err
 	}
 	defer file.Close()
-	return copied.write("b", path, file)
+	return copied.write(side, path, file)
 }
 
 func (copied *aside) write(side, path string, content io.Reader) error {
@@ -126,15 +127,20 @@ func (copied *aside) remove() {
 // countLines counts each changed file's lines with git, in one call over the files copied
 // aside.
 func (workspaces *Workspaces) countLines(ctx context.Context, set changeSet) (map[string]lineCount, error) {
-	counted := map[string]lineCount{}
 	if len(set.files) == 0 {
-		return counted, nil
+		return map[string]lineCount{}, nil
 	}
 	copied, err := workspaces.copyAside(ctx, set, set.files)
 	if err != nil {
 		return nil, err
 	}
 	defer copied.remove()
+	return workspaces.numstat(ctx, copied)
+}
+
+// numstat counts the lines of every file copied aside, with git, in one call.
+func (workspaces *Workspaces) numstat(ctx context.Context, copied *aside) (map[string]lineCount, error) {
+	counted := map[string]lineCount{}
 	out, err := workspaces.runner.Run(ctx, git.Cmd{Dir: copied.directory, Differences: true, Args: []string{
 		"diff", "--no-index", "--no-renames", "--no-ext-diff", "--no-textconv", "--numstat", "-z", "--", "a", "b",
 	}})

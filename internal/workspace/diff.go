@@ -22,11 +22,7 @@ func (workspaces *Workspaces) Diff(ctx context.Context, request *gitdv1.DiffRequ
 	if err != nil {
 		return nil, err
 	}
-	limit := request.GetMaxBytes()
-	if limit <= 0 {
-		limit = diffBytes
-	}
-	limit = min(limit, diffBytesMax)
+	limit := diffLimit(request.GetMaxBytes())
 	files := set.files
 	if asked := request.GetFiles(); len(asked) > 0 {
 		files = slices.DeleteFunc(slices.Clone(files), func(file changed) bool { return !slices.Contains(asked, file.path) })
@@ -40,25 +36,42 @@ func (workspaces *Workspaces) Diff(ctx context.Context, request *gitdv1.DiffRequ
 		return nil, err
 	}
 	defer copied.remove()
+	paths := make([]string, len(files))
+	for index, file := range files {
+		paths[index] = file.path
+	}
+	answer.Diff, answer.Truncated, err = workspaces.diffAside(ctx, copied, paths, limit)
+	return answer, err
+}
+
+// diffLimit is how many bytes of diff a call asked for, within the bounds.
+func diffLimit(asked int64) int64 {
+	if asked <= 0 {
+		asked = diffBytes
+	}
+	return min(asked, diffBytesMax)
+}
+
+// diffAside writes the diff of each file copied aside, as git writes it in a repository,
+// until limit bytes, and says whether it stopped short.
+func (workspaces *Workspaces) diffAside(ctx context.Context, copied *aside, paths []string, limit int64) (string, bool, error) {
 	var written strings.Builder
-	for _, file := range files {
+	for _, path := range paths {
 		out, err := workspaces.runner.Run(ctx, git.Cmd{Dir: copied.directory, Differences: true, Args: []string{
 			"diff", "--no-index", "--no-renames", "--no-ext-diff", "--no-textconv", "--no-prefix", "--",
-			copied.side("a", file.path), copied.side("b", file.path),
+			copied.side("a", path), copied.side("b", path),
 		}})
 		if err != nil {
-			return nil, err
+			return "", false, err
 		}
-		piece := withGitsHeader(out, file.path)
+		piece := withGitsHeader(out, path)
 		if int64(written.Len()+len(piece)) > limit {
 			written.WriteString(piece[:max(0, int(limit)-written.Len())])
-			answer.Truncated = true
-			break
+			return written.String(), true, nil
 		}
 		written.WriteString(piece)
 	}
-	answer.Diff = written.String()
-	return answer, nil
+	return written.String(), false, nil
 }
 
 // withGitsHeader writes a file's diff, made between copies aside, with the header git
