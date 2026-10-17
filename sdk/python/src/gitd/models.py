@@ -9,7 +9,7 @@ from enum import StrEnum
 from typing import Any
 
 from . import messages
-from .publishing_settings import OpenedPullRequest
+from .publishing_settings import OpenedPullRequest, Provenance
 from .timestamps import Timestamp
 
 STRATEGY_PREFIX = "STRATEGY_"
@@ -307,6 +307,7 @@ class AuditEntry:
     pull_request: OpenedPullRequest | None = None
     pull_request_refused: Refusal | None = None
     change: ConfigurationChange | None = None
+    provenance: Provenance | None = None
 
     @classmethod
     def from_message(cls, entry: Any) -> AuditEntry:
@@ -328,4 +329,5 @@ class AuditEntry:
                 else None
             ),
             change=ConfigurationChange.from_message(entry.change) if entry.HasField("change") else None,
+            provenance=Provenance.from_message(entry.provenance) if entry.HasField("provenance") else None,
         )

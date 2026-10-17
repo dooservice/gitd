@@ -55,10 +55,20 @@ export interface PullRequestOptions {
   draft?: boolean;
 }
 
+/** Where a publish's work came from, as the platform says; gitd records it as told. */
+export interface Provenance {
+  agent?: string;
+  model?: string;
+  session?: string;
+  /** An https address: an issue, a ticket. */
+  taskUrl?: string;
+}
+
 export interface PublishOptions {
   /** Who asked for the work, as their account on the host. */
   requestedBy?: string;
   pullRequest?: PullRequestOptions;
+  provenance?: Provenance;
 }
 
 /** A pull request gitd opened. */

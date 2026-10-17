@@ -129,6 +129,12 @@ export function toAuditEntry(entry: AuditEntryMessage): AuditEntry {
     requestedBy: entry.requestedBy,
     pullRequest: openedOf(entry.pullRequest),
     pullRequestRefused: refusalOf(entry.pullRequestFailure),
+    provenance: entry.provenance && {
+      agent: entry.provenance.agent,
+      model: entry.provenance.model,
+      session: entry.provenance.session,
+      taskUrl: entry.provenance.taskUrl,
+    },
     change: change && {
       action: (ConfigurationChange_Action[change.action] ?? "").replace("ACTION_", "").toLowerCase(),
       subject: change.subject,

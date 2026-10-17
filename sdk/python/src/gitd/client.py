@@ -13,7 +13,7 @@ from .connection import Connection, OnProgress
 from .credentials_calls import Credentials
 from .models import AuditEntry, Description, Info, Probe, Published, Strategy, Workspace
 from .publishing_calls import Publishing
-from .publishing_settings import PullRequestOptions
+from .publishing_settings import Provenance, PullRequestOptions
 from .timestamps import Timestamp
 
 
@@ -115,6 +115,7 @@ class Gitd:
         *,
         requested_by: str = "",
         pull_request: PullRequestOptions | None = None,
+        provenance: Provenance | None = None,
     ) -> Published:
         """Pushes what was committed in a workspace to a new branch, with the credential gitd
         keeps, and opens its pull request when the publishing settings or pull_request say
@@ -122,6 +123,8 @@ class Gitd:
         request: Any = messages.PublishRequest(path=path, branch=branch, requested_by=requested_by)
         if pull_request is not None:
             request.pull_request.CopyFrom(pull_request.to_message())
+        if provenance is not None:
+            request.provenance.CopyFrom(provenance.to_message())
         return Published.from_message(self.connection.call(methods.PUBLISH, request))
 
     def changes(self, path: str, *, include_ignored: bool = False) -> Changes:

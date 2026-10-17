@@ -174,6 +174,32 @@ class PullRequestOptions:
 
 
 @dataclass(frozen=True)
+class Provenance:
+    """Where a publish's work came from, as the platform says: gitd records it as told and
+    never writes it into a commit. Each field is one line of at most 200 characters;
+    task_url is an https address."""
+
+    agent: str = ""
+    model: str = ""
+    session: str = ""
+    task_url: str = ""
+
+    @classmethod
+    def from_message(cls, provenance: Any) -> Provenance:
+        return cls(
+            agent=provenance.agent,
+            model=provenance.model,
+            session=provenance.session,
+            task_url=provenance.task_url,
+        )
+
+    def to_message(self) -> Any:
+        return messages.Provenance(
+            agent=self.agent, model=self.model, session=self.session, task_url=self.task_url
+        )
+
+
+@dataclass(frozen=True)
 class OpenedPullRequest:
     """A pull request gitd opened."""
 

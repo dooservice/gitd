@@ -164,6 +164,12 @@ export class Gitd {
         branch,
         requestedBy: options.requestedBy ?? "",
         pullRequest: pullRequestOptionsProto(options.pullRequest),
+        provenance: options.provenance && {
+          agent: options.provenance.agent ?? "",
+          model: options.provenance.model ?? "",
+          session: options.provenance.session ?? "",
+          taskUrl: options.provenance.taskUrl ?? "",
+        },
       }),
     );
     return publishedOf(answer);

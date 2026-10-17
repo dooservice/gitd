@@ -1,5 +1,5 @@
 import type { Progress } from "./gen/gitd/v1/gitd_pb.js";
-import type { OpenedPullRequest } from "./publishing-types.js";
+import type { OpenedPullRequest, Provenance } from "./publishing-types.js";
 
 /** How a workspace was made: a layer on a shared template, a block clone, or every file written. */
 export type StrategyName = "overlay" | "reflink" | "copy";
@@ -195,6 +195,7 @@ export interface AuditEntry {
   pullRequest?: OpenedPullRequest;
   pullRequestRefused?: Refusal;
   change?: ConfigurationChange;
+  provenance?: Provenance;
 }
 
 export interface AuditOptions {
