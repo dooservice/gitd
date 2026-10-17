@@ -12,6 +12,10 @@ concurrency:
   group: github-e2e
   cancel-in-progress: false
 
+# The workflow's own token only reads; anything that writes uses its own credential.
+permissions:
+  contents: read
+
 jobs:
   github:
     runs-on: ubuntu-latest

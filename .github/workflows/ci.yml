@@ -5,6 +5,10 @@ on:
     branches: [main]
   pull_request:
 
+# The workflow's own token only reads; anything that writes uses its own credential.
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest

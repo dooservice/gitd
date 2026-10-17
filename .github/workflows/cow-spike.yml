@@ -15,6 +15,10 @@ on:
         description: "Its branch"
         default: "master"
 
+# The workflow's own token only reads; anything that writes uses its own credential.
+permissions:
+  contents: read
+
 jobs:
   spike:
     runs-on: ubuntu-24.04
@@ -23,9 +27,13 @@ jobs:
       - name: Tools
         run: sudo apt-get update -qq && sudo apt-get install -qq -y xfsprogs fuse-overlayfs >/dev/null
       - name: Run
+        env:
+          REPOSITORY: ${{ inputs.repository }}
+          AGENTS: ${{ inputs.agents }}
+          BRANCH: ${{ inputs.branch }}
         run: |
           set -o pipefail
-          sudo benchmarks/cow-spike.sh "${{ inputs.repository }}" "${{ inputs.agents }}" "${{ inputs.branch }}" | tee results.md
+          sudo benchmarks/cow-spike.sh "$REPOSITORY" "$AGENTS" "$BRANCH" | tee results.md
       - name: Summary
         if: always()
         run: cat results.md >> "$GITHUB_STEP_SUMMARY"

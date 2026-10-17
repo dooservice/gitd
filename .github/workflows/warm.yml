@@ -16,6 +16,10 @@ on:
         description: "The command that installs the dependencies"
         default: "npm ci --ignore-scripts --no-audit --no-fund"
 
+# The workflow's own token only reads; anything that writes uses its own credential.
+permissions:
+  contents: read
+
 jobs:
   warm:
     runs-on: ubuntu-24.04

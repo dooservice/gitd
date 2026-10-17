@@ -12,6 +12,10 @@ on:
         description: "How many agents"
         default: "10"
 
+# The workflow's own token only reads; anything that writes uses its own credential.
+permissions:
+  contents: read
+
 jobs:
   benchmark:
     runs-on: ubuntu-24.04
@@ -26,9 +30,12 @@ jobs:
         run: docker build -t gitd:bench .
 
       - name: Run
+        env:
+          REPOSITORY: ${{ inputs.repository }}
+          AGENTS: ${{ inputs.agents }}
         run: |
           set -o pipefail
-          benchmarks/agents.sh "${{ inputs.repository }}" "${{ inputs.agents }}" | tee results.md
+          benchmarks/agents.sh "$REPOSITORY" "$AGENTS" | tee results.md
 
       - name: Summary
         run: cat results.md >> "$GITHUB_STEP_SUMMARY"

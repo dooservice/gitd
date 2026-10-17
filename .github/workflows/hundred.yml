@@ -15,6 +15,10 @@ on:
         description: "How many clones to compare with (0 to skip)"
         default: "100"
 
+# The workflow's own token only reads; anything that writes uses its own credential.
+permissions:
+  contents: read
+
 jobs:
   hundred:
     runs-on: ubuntu-24.04
@@ -28,9 +32,13 @@ jobs:
       # gitd mounts overlays as root in its container, on the runner's disk, as gitd-mount
       # does for an unprivileged gitd on a server.
       - name: Run
+        env:
+          REPOSITORY: ${{ inputs.repository }}
+          AGENTS: ${{ inputs.agents }}
+          CLONES: ${{ inputs.clones }}
         run: |
           set -o pipefail
-          sudo benchmarks/hundred.sh "${{ inputs.repository }}" "${{ inputs.agents }}" /mnt/gitd-bench "${{ inputs.clones }}" | tee results.md
+          sudo benchmarks/hundred.sh "$REPOSITORY" "$AGENTS" /mnt/gitd-bench "$CLONES" | tee results.md
 
       - name: Summary
         run: cat results.md >> "$GITHUB_STEP_SUMMARY"
