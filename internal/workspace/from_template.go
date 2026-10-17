@@ -38,11 +38,20 @@ func (workspaces *Workspaces) createFromTemplate(ctx context.Context, work job) 
 	if err != nil {
 		return Result{}, err
 	}
+	if work.warm != "" {
+		return workspaces.createOnWarm(ctx, work, key, dir, branch)
+	}
 	if err := workspaces.maker.Make(ctx, dir, work.path); err != nil {
 		_ = workspaces.templates.Let(ctx, key, work.path)
 		slog.Warn("workspace written instead", "path", work.path, "strategy", workspaces.maker.Name(), "error", err)
 		return workspaces.create(ctx, work)
 	}
+	return workspaces.finishMade(ctx, work, commit, branch)
+}
+
+// finishMade puts a workspace a maker just made on its branch, notes how it was made, and
+// claims it; when any of it fails, the workspace is unmade.
+func (workspaces *Workspaces) finishMade(ctx context.Context, work job, commit, branch string) (Result, error) {
 	if err := workspaces.onBranch(ctx, work.path, commit, branch); err != nil {
 		_ = workspaces.unmake(ctx, work.path)
 		return Result{}, err
@@ -121,23 +130,32 @@ func (workspaces *Workspaces) onBranch(ctx context.Context, path, commit, branch
 	return workspaces.runner.SetConfig(ctx, path, "gitd.branch", branch)
 }
 
-// unmake removes a workspace a maker made, and lets go of its template.
+// unmake removes a workspace a maker made, and lets go of its template and of the warm
+// layer it stood on.
 func (workspaces *Workspaces) unmake(ctx context.Context, path string) error {
 	overlay, ok := workspaces.maker.(*strategy.OverlayMaker)
 	if !ok {
 		return workspaces.maker.Unmake(ctx, path)
 	}
-	for _, record := range overlay.Records() {
-		if record.Workspace != path {
-			continue
-		}
-		if err := overlay.Unmake(ctx, path); err != nil {
+	record, ok := overlay.RecordOf(path)
+	if !ok {
+		return nil
+	}
+	if err := overlay.Unmake(ctx, path); err != nil {
+		return err
+	}
+	return workspaces.letLayers(ctx, record)
+}
+
+// letLayers says the workspace of record no longer uses its template, nor its warm layer.
+func (workspaces *Workspaces) letLayers(ctx context.Context, record strategy.Record) error {
+	if record.Warm != "" {
+		if err := workspaces.templates.LetWarm(ctx, record.Warm, record.Workspace); err != nil {
 			return err
 		}
-		if key, ok := workspaces.templates.KeyOf(record.Template); ok {
-			return workspaces.templates.Let(ctx, key, path)
-		}
-		return nil
+	}
+	if key, ok := workspaces.templates.KeyOf(record.Template); ok {
+		return workspaces.templates.Let(ctx, key, record.Workspace)
 	}
 	return nil
 }
@@ -173,5 +191,6 @@ func (workspaces *Workspaces) made(ctx context.Context, path string) (gitdv1.Str
 	if !ok {
 		return name.Proto(), nil
 	}
-	return name.Proto(), &gitdv1.Layers{Lower: lower, Upper: upper, Work: work}
+	record, _ := overlay.RecordOf(path)
+	return name.Proto(), &gitdv1.Layers{Lower: lower, Upper: upper, Work: work, Warm: record.Warm}
 }

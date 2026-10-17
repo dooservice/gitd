@@ -55,6 +55,10 @@ func (workspaces *Workspaces) Prepare(
 		strategy:   strategy.FromProto(request.GetStrategy()),
 		given:      credentials.FromProto(request.GetCredentials()),
 		report:     report,
+		warm:       request.GetWarm(),
+	}
+	if err := workspaces.canStandOnWarm(work, held != nil); err != nil {
+		return Result{}, err
 	}
 	if err := workspaces.pools.Sync(ctx, repository, work.given, work.want(), reporter(report, repository)); err != nil {
 		return Result{}, err

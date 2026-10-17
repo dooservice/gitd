@@ -75,6 +75,11 @@ const (
 	WorkspaceServiceConflictsProcedure = "/gitd.v1.WorkspaceService/Conflicts"
 	// WorkspaceServiceWatchProcedure is the fully-qualified name of the WorkspaceService's Watch RPC.
 	WorkspaceServiceWatchProcedure = "/gitd.v1.WorkspaceService/Watch"
+	// WorkspaceServiceSealProcedure is the fully-qualified name of the WorkspaceService's Seal RPC.
+	WorkspaceServiceSealProcedure = "/gitd.v1.WorkspaceService/Seal"
+	// WorkspaceServiceListWarmProcedure is the fully-qualified name of the WorkspaceService's ListWarm
+	// RPC.
+	WorkspaceServiceListWarmProcedure = "/gitd.v1.WorkspaceService/ListWarm"
 	// RepositoryServiceProbeProcedure is the fully-qualified name of the RepositoryService's Probe RPC.
 	RepositoryServiceProbeProcedure = "/gitd.v1.RepositoryService/Probe"
 	// ServerServiceInfoProcedure is the fully-qualified name of the ServerService's Info RPC.
@@ -164,6 +169,13 @@ type WorkspaceServiceClient interface {
 	Conflicts(context.Context, *connect.Request[v1.ConflictsRequest]) (*connect.Response[v1.ConflictsResponse], error)
 	// What happens to workspaces as it happens: made, changed, published, refused, removed.
 	Watch(context.Context, *connect.Request[v1.WatchRequest]) (*connect.ServerStreamForClient[v1.WatchResponse], error)
+	// Seal an overlay workspace's own layer — what installing its dependencies wrote — as a
+	// warm layer of its repository, named, for later workspaces at the same commit to stand
+	// on (PrepareRequest.warm) instead of installing again. The workspace is removed: its
+	// layer is moved, not copied.
+	Seal(context.Context, *connect.Request[v1.SealRequest]) (*connect.Response[v1.SealResponse], error)
+	// The warm layers of a repository.
+	ListWarm(context.Context, *connect.Request[v1.ListWarmRequest]) (*connect.Response[v1.ListWarmResponse], error)
 }
 
 // NewWorkspaceServiceClient constructs a client for the gitd.v1.WorkspaceService service. By
@@ -255,6 +267,18 @@ func NewWorkspaceServiceClient(httpClient connect.HTTPClient, baseURL string, op
 			connect.WithSchema(workspaceServiceMethods.ByName("Watch")),
 			connect.WithClientOptions(opts...),
 		),
+		seal: connect.NewClient[v1.SealRequest, v1.SealResponse](
+			httpClient,
+			baseURL+WorkspaceServiceSealProcedure,
+			connect.WithSchema(workspaceServiceMethods.ByName("Seal")),
+			connect.WithClientOptions(opts...),
+		),
+		listWarm: connect.NewClient[v1.ListWarmRequest, v1.ListWarmResponse](
+			httpClient,
+			baseURL+WorkspaceServiceListWarmProcedure,
+			connect.WithSchema(workspaceServiceMethods.ByName("ListWarm")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -273,6 +297,8 @@ type workspaceServiceClient struct {
 	compare        *connect.Client[v1.CompareRequest, v1.CompareResponse]
 	conflicts      *connect.Client[v1.ConflictsRequest, v1.ConflictsResponse]
 	watch          *connect.Client[v1.WatchRequest, v1.WatchResponse]
+	seal           *connect.Client[v1.SealRequest, v1.SealResponse]
+	listWarm       *connect.Client[v1.ListWarmRequest, v1.ListWarmResponse]
 }
 
 // Prepare calls gitd.v1.WorkspaceService.Prepare.
@@ -340,6 +366,16 @@ func (c *workspaceServiceClient) Watch(ctx context.Context, req *connect.Request
 	return c.watch.CallServerStream(ctx, req)
 }
 
+// Seal calls gitd.v1.WorkspaceService.Seal.
+func (c *workspaceServiceClient) Seal(ctx context.Context, req *connect.Request[v1.SealRequest]) (*connect.Response[v1.SealResponse], error) {
+	return c.seal.CallUnary(ctx, req)
+}
+
+// ListWarm calls gitd.v1.WorkspaceService.ListWarm.
+func (c *workspaceServiceClient) ListWarm(ctx context.Context, req *connect.Request[v1.ListWarmRequest]) (*connect.Response[v1.ListWarmResponse], error) {
+	return c.listWarm.CallUnary(ctx, req)
+}
+
 // WorkspaceServiceHandler is an implementation of the gitd.v1.WorkspaceService service.
 type WorkspaceServiceHandler interface {
 	// Create a workspace at a path, from the repository's pool, at a branch or a commit.
@@ -377,6 +413,13 @@ type WorkspaceServiceHandler interface {
 	Conflicts(context.Context, *connect.Request[v1.ConflictsRequest]) (*connect.Response[v1.ConflictsResponse], error)
 	// What happens to workspaces as it happens: made, changed, published, refused, removed.
 	Watch(context.Context, *connect.Request[v1.WatchRequest], *connect.ServerStream[v1.WatchResponse]) error
+	// Seal an overlay workspace's own layer — what installing its dependencies wrote — as a
+	// warm layer of its repository, named, for later workspaces at the same commit to stand
+	// on (PrepareRequest.warm) instead of installing again. The workspace is removed: its
+	// layer is moved, not copied.
+	Seal(context.Context, *connect.Request[v1.SealRequest]) (*connect.Response[v1.SealResponse], error)
+	// The warm layers of a repository.
+	ListWarm(context.Context, *connect.Request[v1.ListWarmRequest]) (*connect.Response[v1.ListWarmResponse], error)
 }
 
 // NewWorkspaceServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -464,6 +507,18 @@ func NewWorkspaceServiceHandler(svc WorkspaceServiceHandler, opts ...connect.Han
 		connect.WithSchema(workspaceServiceMethods.ByName("Watch")),
 		connect.WithHandlerOptions(opts...),
 	)
+	workspaceServiceSealHandler := connect.NewUnaryHandler(
+		WorkspaceServiceSealProcedure,
+		svc.Seal,
+		connect.WithSchema(workspaceServiceMethods.ByName("Seal")),
+		connect.WithHandlerOptions(opts...),
+	)
+	workspaceServiceListWarmHandler := connect.NewUnaryHandler(
+		WorkspaceServiceListWarmProcedure,
+		svc.ListWarm,
+		connect.WithSchema(workspaceServiceMethods.ByName("ListWarm")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/gitd.v1.WorkspaceService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case WorkspaceServicePrepareProcedure:
@@ -492,6 +547,10 @@ func NewWorkspaceServiceHandler(svc WorkspaceServiceHandler, opts ...connect.Han
 			workspaceServiceConflictsHandler.ServeHTTP(w, r)
 		case WorkspaceServiceWatchProcedure:
 			workspaceServiceWatchHandler.ServeHTTP(w, r)
+		case WorkspaceServiceSealProcedure:
+			workspaceServiceSealHandler.ServeHTTP(w, r)
+		case WorkspaceServiceListWarmProcedure:
+			workspaceServiceListWarmHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -551,6 +610,14 @@ func (UnimplementedWorkspaceServiceHandler) Conflicts(context.Context, *connect.
 
 func (UnimplementedWorkspaceServiceHandler) Watch(context.Context, *connect.Request[v1.WatchRequest], *connect.ServerStream[v1.WatchResponse]) error {
 	return connect.NewError(connect.CodeUnimplemented, errors.New("gitd.v1.WorkspaceService.Watch is not implemented"))
+}
+
+func (UnimplementedWorkspaceServiceHandler) Seal(context.Context, *connect.Request[v1.SealRequest]) (*connect.Response[v1.SealResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("gitd.v1.WorkspaceService.Seal is not implemented"))
+}
+
+func (UnimplementedWorkspaceServiceHandler) ListWarm(context.Context, *connect.Request[v1.ListWarmRequest]) (*connect.Response[v1.ListWarmResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("gitd.v1.WorkspaceService.ListWarm is not implemented"))
 }
 
 // RepositoryServiceClient is a client for the gitd.v1.RepositoryService service.

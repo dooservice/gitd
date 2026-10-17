@@ -100,6 +100,8 @@ type job struct {
 	report     Report
 	// strategy is how the job asks for a new workspace to be made, "" for gitd's choice.
 	strategy strategy.Name
+	// warm is the warm layer a new workspace stands on, "" for none.
+	warm string
 }
 
 // want is what the job needs of its pool: the commit it goes to, the whole history, or the

@@ -49,6 +49,13 @@ service WorkspaceService {
   rpc Conflicts(ConflictsRequest) returns (ConflictsResponse);
   // What happens to workspaces as it happens: made, changed, published, refused, removed.
   rpc Watch(WatchRequest) returns (stream WatchResponse);
+  // Seal an overlay workspace's own layer — what installing its dependencies wrote — as a
+  // warm layer of its repository, named, for later workspaces at the same commit to stand
+  // on (PrepareRequest.warm) instead of installing again. The workspace is removed: its
+  // layer is moved, not copied.
+  rpc Seal(SealRequest) returns (SealResponse);
+  // The warm layers of a repository.
+  rpc ListWarm(ListWarmRequest) returns (ListWarmResponse);
 }
 
 service RepositoryService {
@@ -219,6 +226,10 @@ message PrepareRequest {
   // an overlay could be mounted. Unspecified is gitd's choice, the fastest this machine
   // allows. A strategy that cannot run here falls back to copy; the result says which ran.
   Strategy strategy = 7;
+  // A warm layer of the repository to stand on, between the template and the workspace's
+  // own layer: its dependencies are there already. The workspace must be at the commit the
+  // layer was sealed at, and be made by overlay.
+  string warm = 8;
 }
 
 // How a workspace was made.
@@ -239,6 +250,8 @@ message Layers {
   string lower = 1;
   string upper = 2;
   string work = 3;
+  // The warm layer between the template and the workspace's own, when it stands on one.
+  string warm = 4;
 }
 
 message PrepareResponse {
@@ -335,6 +348,41 @@ message RemoveRequest {
 }
 
 message RemoveResponse {}
+
+message SealRequest {
+  // An overlay workspace, not itself standing on a warm layer.
+  string path = 1;
+  // What to call the layer: lowercase letters, digits, dots, dashes and underscores, 64 at
+  // most. Sealing a name again replaces the layer, once no workspace stands on it.
+  string name = 2;
+}
+
+message SealResponse {
+  WarmLayer warm = 1;
+}
+
+// A layer sealed from a workspace, that later workspaces stand on.
+message WarmLayer {
+  string url = 1;
+  string name = 2;
+  // The commit it was sealed at: workspaces stand on it at that commit only.
+  string commit = 3;
+  // When it was sealed, in seconds since the epoch, and from which workspace.
+  int64 sealed_at = 4;
+  string sealed_from = 5;
+  // How many files it changes that git does not ignore, e.g. a lock file rewritten.
+  int32 changed_files = 6;
+  // How many workspaces stand on it now.
+  int32 users = 7;
+}
+
+message ListWarmRequest {
+  string url = 1;
+}
+
+message ListWarmResponse {
+  repeated WarmLayer warm = 1;
+}
 
 message AdoptRequest {
   string path = 1;

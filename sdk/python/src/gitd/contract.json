@@ -342,6 +342,13 @@
               "type": "TYPE_ENUM",
               "typeName": ".gitd.v1.Strategy",
               "jsonName": "strategy"
+            },
+            {
+              "name": "warm",
+              "number": 8,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "warm"
             }
           ]
         },
@@ -368,6 +375,13 @@
               "label": "LABEL_OPTIONAL",
               "type": "TYPE_STRING",
               "jsonName": "work"
+            },
+            {
+              "name": "warm",
+              "number": 4,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "warm"
             }
           ]
         },
@@ -739,6 +753,117 @@
         },
         {
           "name": "RemoveResponse"
+        },
+        {
+          "name": "SealRequest",
+          "field": [
+            {
+              "name": "path",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "path"
+            },
+            {
+              "name": "name",
+              "number": 2,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "name"
+            }
+          ]
+        },
+        {
+          "name": "SealResponse",
+          "field": [
+            {
+              "name": "warm",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".gitd.v1.WarmLayer",
+              "jsonName": "warm"
+            }
+          ]
+        },
+        {
+          "name": "WarmLayer",
+          "field": [
+            {
+              "name": "url",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "url"
+            },
+            {
+              "name": "name",
+              "number": 2,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "name"
+            },
+            {
+              "name": "commit",
+              "number": 3,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "commit"
+            },
+            {
+              "name": "sealed_at",
+              "number": 4,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_INT64",
+              "jsonName": "sealedAt"
+            },
+            {
+              "name": "sealed_from",
+              "number": 5,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "sealedFrom"
+            },
+            {
+              "name": "changed_files",
+              "number": 6,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_INT32",
+              "jsonName": "changedFiles"
+            },
+            {
+              "name": "users",
+              "number": 7,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_INT32",
+              "jsonName": "users"
+            }
+          ]
+        },
+        {
+          "name": "ListWarmRequest",
+          "field": [
+            {
+              "name": "url",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "url"
+            }
+          ]
+        },
+        {
+          "name": "ListWarmResponse",
+          "field": [
+            {
+              "name": "warm",
+              "number": 1,
+              "label": "LABEL_REPEATED",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".gitd.v1.WarmLayer",
+              "jsonName": "warm"
+            }
+          ]
         },
         {
           "name": "AdoptRequest",
@@ -2641,6 +2766,16 @@
               "inputType": ".gitd.v1.WatchRequest",
               "outputType": ".gitd.v1.WatchResponse",
               "serverStreaming": true
+            },
+            {
+              "name": "Seal",
+              "inputType": ".gitd.v1.SealRequest",
+              "outputType": ".gitd.v1.SealResponse"
+            },
+            {
+              "name": "ListWarm",
+              "inputType": ".gitd.v1.ListWarmRequest",
+              "outputType": ".gitd.v1.ListWarmResponse"
             }
           ]
         },
