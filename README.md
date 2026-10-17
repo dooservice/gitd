@@ -132,7 +132,9 @@ commit lost to a force push is still there for a rollback. A workspace is a plai
 repository whose `objects/info/alternates` points at the pool: it has its own refs, index
 and config, any branch, and can be moved or mounted elsewhere. gitd runs the official `git`
 with a closed environment, no hooks and only HTTPS and SSH, and builds everything aside
-before moving it into place. The design is in [`docs/DESIGN.md`](docs/DESIGN.md).
+before moving it into place. The design is in [`docs/DESIGN.md`](docs/DESIGN.md), and where
+gitd is going — copy-on-write workspaces, any sandbox, Kubernetes — in
+[`docs/ROADMAP.md`](docs/ROADMAP.md).
 
 Unlike `git worktree`, workspaces share no refs or config with each other, can check out
 the same branch twice, and survive being mounted into a container.
