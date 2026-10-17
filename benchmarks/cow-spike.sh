@@ -5,6 +5,7 @@
 # fuse-overlayfs, and checks git on each. Needs root (overlay, a loop XFS); the CI runner
 # has it:  sudo benchmarks/cow-spike.sh [REPO] [N]
 set -euo pipefail
+trap 'echo "spike stopped at line $LINENO: $BASH_COMMAND" >&2' ERR
 repo="${1:-https://github.com/kubernetes/kubernetes}"
 agents="${2:-100}"
 branch="${3:-master}"
