@@ -66,20 +66,24 @@ func TestTheCommitsToPublishSayWhichPathsTheyTouch(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	all, err := kept.Touched(ctx, repository, "agents/fix", nil, false)
+	all, err := kept.Touched(ctx, repository, "agents/fix", Paths{})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !slices.Equal(all, []string{"app.go", "moved.go", "tests/a_test.go"}) {
 		t.Errorf("touched = %v; the CI people changed on main must not be the agent's", all)
 	}
-	protected, _ := kept.Touched(ctx, repository, "agents/fix", []string{".github/workflows/**"}, false)
+	protected, _ := kept.Touched(ctx, repository, "agents/fix", Paths{Among: []string{".github/workflows/**"}})
 	if len(protected) != 0 {
 		t.Errorf("protected touched = %v", protected)
 	}
-	deleted, _ := kept.Touched(ctx, repository, "agents/fix", []string{"**/*_test.*"}, true)
+	deleted, _ := kept.Touched(ctx, repository, "agents/fix", Paths{Among: []string{"**/*_test.*"}, Deleted: true})
 	if !slices.Equal(deleted, []string{"tests/a_test.go"}) {
 		t.Errorf("deleted = %v; a test renamed away is deleted", deleted)
+	}
+	allowed, _ := kept.Touched(ctx, repository, "agents/fix", Paths{Among: []string{"**/*.go"}, Except: []string{"tests/**"}})
+	if !slices.Equal(allowed, []string{"app.go", "moved.go"}) {
+		t.Errorf("among Go files except tests = %v", allowed)
 	}
 	added, removed, err := kept.Lines(ctx, repository, "agents/fix")
 	if err != nil || added != 2 || removed != 2 {

@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/dooservice/gitd/internal/git"
+	"github.com/dooservice/gitd/internal/pool"
 	"github.com/dooservice/gitd/internal/publishing"
 	"github.com/dooservice/gitd/internal/repo"
 )
@@ -36,7 +37,7 @@ func (workspaces *Workspaces) checkRules(
 	}
 	which := "the publishing settings of " + strings.Join(rules.Applied, " and ")
 	if len(rules.Protected) > 0 {
-		touched, err := workspaces.pools.Touched(ctx, repository, branch, rules.Protected, false)
+		touched, err := workspaces.pools.Touched(ctx, repository, branch, pool.Paths{Among: rules.Protected})
 		if err != nil {
 			return err
 		}
@@ -45,7 +46,7 @@ func (workspaces *Workspaces) checkRules(
 		}
 	}
 	if len(rules.Kept) > 0 {
-		deleted, err := workspaces.pools.Touched(ctx, repository, branch, rules.Kept, true)
+		deleted, err := workspaces.pools.Touched(ctx, repository, branch, pool.Paths{Among: rules.Kept, Deleted: true})
 		if err != nil {
 			return err
 		}
@@ -54,7 +55,7 @@ func (workspaces *Workspaces) checkRules(
 		}
 	}
 	if rules.MaxFiles > 0 {
-		changed, err := workspaces.pools.Touched(ctx, repository, branch, nil, false)
+		changed, err := workspaces.pools.Touched(ctx, repository, branch, pool.Paths{})
 		if err != nil {
 			return err
 		}

@@ -7,6 +7,7 @@ import (
 	gitdv1 "github.com/dooservice/gitd/gen/go/gitd/v1"
 	"github.com/dooservice/gitd/internal/credentials"
 	"github.com/dooservice/gitd/internal/git"
+	"github.com/dooservice/gitd/internal/pool"
 	"github.com/dooservice/gitd/internal/publishing"
 	"github.com/dooservice/gitd/internal/pullrequests"
 	"github.com/dooservice/gitd/internal/repo"
@@ -88,7 +89,7 @@ func (workspaces *Workspaces) accountOf(
 		return account, nil
 	}
 	branch := request.GetBranch()
-	files, err := workspaces.pools.Touched(ctx, repository, branch, nil, false)
+	files, err := workspaces.pools.Touched(ctx, repository, branch, pool.Paths{})
 	if err != nil {
 		return account, err
 	}
