@@ -13,6 +13,7 @@ import (
 	"github.com/dooservice/gitd/internal/repo"
 	"github.com/dooservice/gitd/internal/strategy"
 	"github.com/dooservice/gitd/internal/template"
+	"golang.org/x/sys/unix"
 )
 
 // TestAWarmLayerCarriesWhatOneWorkspaceInstalledToTheNext seals, on the kernel's overlay,
@@ -42,6 +43,21 @@ func TestAWarmLayerCarriesWhatOneWorkspaceInstalledToTheNext(t *testing.T) {
 		t.Fatal(err)
 	}
 	run(t, installed, "checkout", "-q", "-b", "installing")
+
+	// A sandbox still binding the workspace would write into the layer after it was moved.
+	sandbox := t.TempDir()
+	if err := unix.Mount(installed, sandbox, "", unix.MS_BIND, ""); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := workspaces.Seal(ctx, &gitdv1.SealRequest{Path: installed, Name: "deps"}); !hasReason(err, git.Busy) {
+		t.Errorf("sealed a workspace a sandbox still binds: %v", err)
+	}
+	if head := run(t, installed, "symbolic-ref", "HEAD"); head != "refs/heads/installing" {
+		t.Errorf("a workspace whose sealing was refused was not put back: HEAD is %s", head)
+	}
+	if err := unix.Unmount(sandbox, 0); err != nil {
+		t.Fatal(err)
+	}
 	sealed, err := workspaces.Seal(ctx, &gitdv1.SealRequest{Path: installed, Name: "deps"})
 	if err != nil {
 		t.Fatal(err)

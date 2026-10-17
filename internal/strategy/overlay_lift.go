@@ -23,7 +23,12 @@ type Lifted struct {
 // directory is lifted.
 const gitAside = "git-aside"
 
-// Lift unmounts the overlay workspace at dest and sets its .git aside.
+// ErrHeld is why a layer is not lifted: its workspace is still mounted somewhere else, as a
+// sandbox binds it, and what the sandbox writes would land in the layer after it was moved.
+var ErrHeld = errors.New("the workspace is still mounted elsewhere, as a sandbox binds it: stop what uses it first")
+
+// Lift unmounts the overlay workspace at dest and sets its .git aside. A workspace still
+// mounted elsewhere once unmounted at dest is put back, and ErrHeld answered.
 func (maker *OverlayMaker) Lift(dest string) (Lifted, error) {
 	record, ok := maker.RecordOf(dest)
 	if !ok {
@@ -31,8 +36,12 @@ func (maker *OverlayMaker) Lift(dest string) (Lifted, error) {
 	}
 	layer := maker.layer(dest)
 	lifted := Lifted{Upper: filepath.Join(layer, "upper"), maker: maker, record: record, layer: layer}
+	dev, mounted := mountedFilesystem(dest)
 	if err := maker.Mounter.Unmount(dest); err != nil {
 		return Lifted{}, err
+	}
+	if mounted && heldElsewhere(dev) {
+		return Lifted{}, errors.Join(ErrHeld, lifted.Restore())
 	}
 	aside := filepath.Join(layer, gitAside)
 	if err := os.Rename(filepath.Join(lifted.Upper, ".git"), aside); err != nil && !errors.Is(err, fs.ErrNotExist) {

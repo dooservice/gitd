@@ -92,6 +92,10 @@ func (workspaces *Workspaces) sealedChanges(ctx context.Context, path string, re
 func (workspaces *Workspaces) moveLayer(ctx context.Context, path string, sealed template.Warm) error {
 	overlay := workspaces.maker.(*strategy.OverlayMaker)
 	lifted, err := overlay.Lift(path)
+	if errors.Is(err, strategy.ErrHeld) {
+		return git.Fail(git.Busy, "%s is still mounted elsewhere, as a sandbox binds it; stop what uses it, then seal: "+
+			"what it wrote after would land in a layer other workspaces stand on", path)
+	}
 	if err != nil {
 		return err
 	}
