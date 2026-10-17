@@ -44,6 +44,8 @@ type Warm struct {
 	// Sealed is when it was sealed, and From the workspace it was sealed from.
 	Sealed time.Time
 	From   string
+	// Users is how many workspaces stand on it now.
+	Users int
 }
 
 // warmManifest is what is kept beside a warm layer about it.
@@ -162,6 +164,16 @@ func (store *Store) Warms(repository repo.Repo) []Warm {
 	return warms
 }
 
+// WarmAt reads back the warm layer at dir, as a workspace's record names it.
+func (store *Store) WarmAt(dir string) (Warm, error) {
+	relative, err := filepath.Rel(filepath.Join(store.Dir, WarmDir), filepath.Dir(dir))
+	host, path, ok := strings.Cut(filepath.ToSlash(relative), "/")
+	if err != nil || !ok || strings.HasPrefix(relative, "..") {
+		return Warm{}, fmt.Errorf("%s is not a warm layer", dir)
+	}
+	return store.readWarm(repo.Repo{Host: host, Path: path}, filepath.Base(dir))
+}
+
 // readWarm reads back the warm layer name of repository and what is kept about it.
 func (store *Store) readWarm(repository repo.Repo, name string) (Warm, error) {
 	dir := store.warmDir(repository, name)
@@ -179,6 +191,7 @@ func (store *Store) readWarm(repository repo.Repo, name string) (Warm, error) {
 	return Warm{
 		Repository: repository, Name: name, Dir: dir,
 		Commit: manifest.Commit, Changed: manifest.Changed, Sealed: manifest.Sealed, From: manifest.From,
+		Users: len(slices.DeleteFunc(users(dir), func(path string) bool { return !exists(path) })),
 	}, nil
 }
 

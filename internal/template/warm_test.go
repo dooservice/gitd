@@ -53,6 +53,9 @@ func TestAWarmLayerIsSealedTakenAndNotReplacedUnderAWorkspace(t *testing.T) {
 	if warm.Commit != commit || len(warm.Changed) != 1 || warm.From != "/w/agent-0" {
 		t.Errorf("warm = %+v", warm)
 	}
+	if again, err := store.WarmAt(warm.Dir); err != nil || again.Name != "deps" || again.Repository != repository || again.Users != 1 {
+		t.Errorf("WarmAt = %+v, %v", again, err)
+	}
 	if data, err := os.ReadFile(filepath.Join(warm.Dir, "node_modules", "left.js")); err != nil || string(data) != "one" {
 		t.Errorf("the layer holds %q, %v", data, err)
 	}
