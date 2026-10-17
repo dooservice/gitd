@@ -5,21 +5,23 @@ copy and publish a branch; they never see your token.
 
 ![Without gitd, three clones fetch and store every object three times; with gitd, one pool fetches once and the workspaces borrow its objects](docs/gitd.svg)
 
-Give ten AI agents, CI jobs or preview environments the same repository and you usually get
-ten full clones, ten fetches over the network, and a token inside every sandbox. gitd
-fetches each repository once into a **pool** and makes **workspaces** that borrow its
-objects: a new workspace needs no download, holds no copy of the history, and holds no
-credential. When an agent is done it asks gitd to **publish** its commits as a new
-branch, and gitd pushes from the pool with the token it keeps.
+Give a hundred AI agents, CI jobs or preview environments the same repository and you
+usually get a hundred clones, a hundred fetches over the network, and a token inside every
+sandbox. gitd fetches each repository once into a **pool**, checks each commit out once
+into a **template**, and makes every **workspace** a copy-on-write layer on it: a new
+workspace needs no download, writes no files until its agent changes them, and holds no
+credential. When an agent is done it asks gitd to **publish** its commits as a new branch,
+and gitd pushes from the pool with the token it keeps.
 
 - **Secretless.** Credentials live in gitd, never in a workspace, a sandbox, an agent's
   context or a command line. Pushing happens from the pool, so a hostile `insteadOf` or
   `http.proxy` left in a workspace never sees where the token goes.
-- **Fast.** The repository is fetched once; every workspace after that only writes its
-  files: half a second for a small repository, under three seconds for kubernetes (see the
-  [benchmark](#benchmark)), against twelve for a clone.
-- **Made for sandboxes.** A workspace mounts into a container next to the pools, read only:
-  each sandbox sees its own checkout and nothing else.
+- **Fast and small.** For a hundred agents on kubernetes, each workspace after the first
+  took **23 ms and 4.3 MB**, against 9.8 s and 418 MB for a shallow clone: all hundred in
+  14.5 s and 850 MB instead of 16 minutes and 41.9 GB, with one fetch instead of a hundred
+  (see the [benchmark](#benchmark)).
+- **Made for sandboxes.** A workspace mounts into a container with its repository's pool,
+  read only: each sandbox sees its own checkout and nothing else.
 - **Any git host.** GitHub, GitLab (nested groups included), Bitbucket, Gitea, Forgejo,
   Codeberg or your own, over HTTPS or SSH, on any port, submodules included.
 - **For agents.** `gitd mcp` offers it as Model Context Protocol tools, none of which takes a
@@ -27,11 +29,12 @@ branch, and gitd pushes from the pool with the token it keeps.
 
 ## Quick start
 
-With Docker, two sandboxes sharing one repository and no token in either:
+With Docker on Linux, two sandboxes with copy-on-write workspaces of one repository, gitd
+unprivileged beside its mount helper, and no token in either sandbox:
 
 ```sh
 cd examples/sandboxes
-./demo.sh                                   # or the steps below
+./demo.sh                                   # or the steps below; ./demo.sh down removes it all
 
 docker compose up -d gitd
 docker compose exec gitd gitd prepare https://github.com/OCA/web /var/lib/gitd/workspaces/agent-1
@@ -144,23 +147,26 @@ kept for a year (`[audit] rotate_bytes`, `keep`); the API, the clients and MCP r
 
 ## Benchmark
 
-Ten agents on [kubernetes](https://github.com/kubernetes/kubernetes), each getting its own
-copy, on a GitHub runner:
+A hundred agents on [kubernetes](https://github.com/kubernetes/kubernetes), each getting
+its own copy, on a GitHub runner (4 CPUs):
 
-| History | How | Time | Disk | Network |
-|---|---|---|---|---|
-| Tip only | 10 × `git clone --depth 1` | 119.5 s | 4,190 MB | 10 fetches |
-| Tip only | 10 × `gitd prepare` | **37.7 s** (first 12.3 s, then 2.8 s each) | 3,786 MB | **1 fetch** |
-| Whole | 10 × `git clone` | 1,093 s | 17,103 MB | 10 fetches |
-| Whole | 10 × `gitd prepare --full-history` | **128.6 s** (first 99.5 s, then 3.2 s each) | **5,132 MB** | **1 fetch** |
+| How | Time | Disk | Network |
+|---|---|---|---|
+| 100 × `git clone --depth 1` | 980 s, 9.8 s each | 41,870 MB | 100 fetches |
+| 100 × `gitd prepare` | **14.5 s**: the first 12.2 s, then **23 ms** each | **850 MB**: 45 MB pool, 373 MB template, **4.3 MB** per workspace | **1 fetch** |
 
-With the whole history, gitd is 8.5× faster and takes a third of the disk; with the tip
-only, 3.2× faster, and most of the disk is each copy's own files. Those files are what the
-next version stops writing: in its first measurements, a kubernetes workspace made by
-kernel overlay takes 2 ms and 1.1 MB (see the [roadmap](docs/ROADMAP.md)).
+gitd is 67× faster and takes 49× less disk. Made 8 at a time, 99 workspaces took 2.0 s.
+git saw all hundred as clean checkouts, a first `git status` taking 0.24 s; an agent's
+commit stayed in its workspace; removing all hundred took 1.1 s. A workspace's 4.3 MB is
+mostly git's index, which each one keeps of its own.
 
-Run it yourself: `docker build -t gitd:bench . && benchmarks/agents.sh REPO N`, or the
-*benchmark* workflow of this repository.
+gitd ran as root in the benchmark, mounting the overlays itself; deployed unprivileged, it
+asks `gitd-mount` over a socket, which measured 34–36 ms a workspace. With the whole history
+(`--full-history`) a workspace is written rather than layered: ten of them took 128.6 s and
+5,132 MB, against 1,093 s and 17,103 MB for ten full clones.
+
+Run it yourself: `docker build -t gitd:bench . && sudo benchmarks/hundred.sh REPO N`, or the
+*hundred agents* workflow of this repository.
 
 ## How it works
 
@@ -219,16 +225,18 @@ Connect or gRPC client can call it, and `buf curl` can too. There are clients fo
 - **systemd:** [`packaging/gitd.service`](packaging/gitd.service).
 - **Copy-on-write workspaces:** gitd makes a workspace by mounting an overlay on a shared
   template whenever it can, and writes its files otherwise. It runs unprivileged, so the
-  mount is done by `gitd-mount`, a tiny root service on a socket only gitd's user reaches:
+  mount is done by `gitd-mount`, a tiny root service holding only the capabilities mounting
+  an overlay takes, on a socket only gitd's user reaches:
   install `gitd-mount-linux-*` as `/usr/local/bin/gitd-mount`, put
   [`packaging/gitd-mount.conf`](packaging/gitd-mount.conf) in `/etc/gitd/` (root's,
   matching gitd's state and roots), and enable
   [`gitd-mount.socket`](packaging/gitd-mount.socket). gitd says at start which way it makes
-  workspaces, and why.
+  workspaces, and why. Keep gitd's state and roots on a `nosuid,nodev` filesystem, and read
+  [the threat model](docs/THREAT_MODEL.md) before giving workspaces to sandboxes.
 - **From source:** `make build` (Go, the version in `go.mod`); `make test`, `make lint`;
   `make generate` regenerates `gen/` from the `.proto` with `buf`.
 
-Pushing a tag such as `0.6.0` releases the binaries, the image and both clients.
+Pushing a tag such as `0.7.0` releases the binaries, the image and both clients.
 
 ## Contributing and security
 

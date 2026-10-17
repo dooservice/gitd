@@ -66,7 +66,7 @@ is the cost the next version removes.
 
 ### Goal
 
-A workspace of kubernetes in **milliseconds** and **about a megabyte** per agent, instead
+A workspace of kubernetes in **milliseconds** and **a few megabytes** per agent, instead
 of 2.8 s and 370 MB, with git behaving exactly as in a normal checkout; plus the first
 things an agent platform asks for — clients in its own language, a record of what agents
 published, and a rule on what they may name their branches.
@@ -205,7 +205,7 @@ calls gitd in a few lines instead of writing a client.
 | **0.7 · 0 Spike** ✓ | Overlay, fuse-overlayfs, reflink and copy on kubernetes, 100 agents | Done: the table above |
 | **0.7 · 1 Templates** ✓ | `internal/template`: build, register users, retire; housekeeping retires the unused | Done: built once even when asked for at once, shared, never rebuilt, retired only when unused and rested, swept after a crash; built by the workspace package, detached at its commit and tuned for copies |
 | **0.7 · 2 Strategies** ✓ | One interface; copy (today's code moved behind it), overlay (external and helper), reflink (`FICLONE`); detection at start | Done: overlay and reflink makers, detection (a state on an overlay told apart), Prepare and Remove through them; end to end with the kernel's overlay, workspaces after the first in 26–32 ms. Whole-history and submodule workspaces are still written, until templates hold them |
-| **0.7 · 3 `gitd-mount`** ✓ | The helper: a small root service with `CAP_SYS_ADMIN` only, socket-activated, with systemd units | Done: refuses any path outside its directories or through a symlink, any caller but gitd's user, any unmount of what is not an overlay; tests (root ones in CI) and a fuzz target; end to end, an unprivileged gitd made workspaces in 34–36 ms through it |
+| **0.7 · 3 `gitd-mount`** ✓ | The helper: a small root service with only the capabilities mounting an overlay takes, socket-activated, with systemd units | Done: refuses any path outside its directories or through a symlink, any caller but gitd's user, any unmount of what is not an overlay; tests (root ones in CI) and a fuzz target; end to end, an unprivileged gitd made workspaces in 34–36 ms through it |
 | **0.7 · 4 Contract** ✓ | `[workspaces] strategy`; `strategy` on `Prepare`; `strategy` and `layers` in `WorkspaceResult` and `Describe`; strategy, its reason and templates in `Info`; CLI flags and MCP output | Done: buf breaking finds nothing against 0.6.0, and the 0.6.0 command line works against it |
 | **0.7 · 5 Lifecycle** ✓ | Unmount on remove; remount at start; templates and layers in the start-up sweep and in `Info` | Done: remounted at start and every round, never over files written while unmounted; half-built and orphaned layers swept, their templates let go; an agent's commit survives a reboot, end to end |
 | **0.7 · 6 Conformance** ✓ | What agents do — status, diff, add, commit, stash, rebase, checkout, publish — on every strategy in CI | Done: copy, overlay and reflink pass, the other workspace sees nothing and the template never changes; CI runs it as root with an XFS disk. fuse-overlayfs is not tested: it could not join gitd's choice whatever the result (above) |
@@ -213,7 +213,7 @@ calls gitd in a few lines instead of writing a client.
 | **0.7 · 8 Publishing rules** ✓ | `[publish] branch_prefix`; the audit log with its API, CLI and MCP reads, and rotation | Done: a branch outside the prefix is refused (`BRANCH_REFUSED`); every publish, done or refused, is a JSON line in `<state>/audit/publishes.jsonl`, synced, rotated by size and deleted by age; read by `Audit`, `gitd audit`, `read_audit_log` and both clients; tested end to end |
 | **0.7 · 9 Threat model** ✓ | `docs/THREAT_MODEL.md`: what gitd protects, from whom, and how — credentials, roots, `gitd-mount`, MCP | Done, reviewed against the code; the review found and fixed four flaws first — a workspace's configuration could run a command as gitd's user, a workspace could name another repository to publish to, gitd's writes for a submodule followed links out, a token with no prefix went to any host — and records what is left to the deployment |
 | **0.7 · 10 Security review** ✓ | An outside review, even informal, of the threat model, `gitd-mount` and credential handling, before 0.8 opens a network service | Done as an independent review by an AI reviewer without the author's context: gitd-mount and token scoping held; four flaws at the workspace boundary and five smaller ones fixed, and the rule to pause a sandbox while gitd runs git in its workspace recorded (THREAT_MODEL.md, Review). A review by a person outside the project moves to 0.8, before the endpoint ships |
-| **0.7 · 11 Proof and docs** | Benchmark "100 agents on kubernetes"; the sandboxes example with overlay volumes; README and DESIGN | The README's numbers are the benchmark's |
+| **0.7 · 11 Proof and docs** ✓ | Benchmark "100 agents on kubernetes"; the sandboxes example with overlay volumes; README and DESIGN | Done: 100 workspaces in 14.5 s (23 ms each after the first) and 850 MB, against 980 s and 41,870 MB for 100 shallow clones, all clean to git, one fetch; the sandboxes example runs unprivileged gitd beside gitd-mount, in CI on every push — where gitd-mount's real capabilities were found wanting and fixed |
 
 ---
 
@@ -402,9 +402,9 @@ Coding agents rarely need it; it waits until users ask.
 ## Launch: reaching the people gitd is for
 
 The engineering is ahead of the audience: the repository has no stars yet. gitd launches
-**when 0.7 ships**, with its headline number — *100 agents on kubernetes in about a
-second, a megabyte each, and no token in any sandbox* — measured by a workflow anyone can
-run.
+**when 0.7 ships**, with its headline number — *100 agents on kubernetes: a workspace
+each in 23 ms and 4.3 MB, one fetch, no token in any sandbox; 67× faster and 49× less disk
+than 100 clones* — measured by a workflow anyone can run (the *hundred agents* workflow).
 
 | Where | What |
 |---|---|

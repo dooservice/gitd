@@ -146,13 +146,15 @@ Overlay workspaces are mounted by gitd-mount, a separate root service
   too, from `/`, and must be owned by gitd's user; the mount goes through that descriptor, so a directory swapped for a
   link after the check changes nothing. Mounts are `nosuid,nodev`.
 - It unmounts only what is an overlay at its own mount point, through the pinned descriptor.
-- Its unit keeps `CAP_SYS_ADMIN` only. Its checks are fuzzed
+- Its unit keeps only what mounting an overlay takes: `CAP_SYS_ADMIN` to mount, and
+  `CAP_DAC_OVERRIDE`, `CAP_FOWNER` and `CAP_CHOWN`, because the kernel writes an overlay's
+  upper and work directories with its mounter's credentials. Its checks are fuzzed
   (`FuzzAMountIsNeverCheckedOutsideItsDirectories`) and its root tests run in CI.
 
 A compromised gitd can therefore mount only overlays of its own directories inside its own
-roots. `nosuid,nodev` holds for the mounted view; the layers below it are `0700`, reached by
-gitd and gitd-mount only, and the filesystem holding them should itself be `nosuid,nodev`
-(§5).
+roots. `nosuid,nodev` holds for the mounted view; the filesystem holding the layers should
+itself be `nosuid,nodev` (§5), so that a setuid file a sandbox leaves in its upper directory
+is harmless there too.
 
 ### MCP tools say what they do
 
@@ -225,9 +227,17 @@ and these were fixed:
   now refused, and alternates limited to pools lending to the workspace.
 - **gitd wrote alternates and `shallow` through links inside `.git`:** now through `os.Root`.
 - **Lock files were cleared through a `.git` that was a link:** no longer.
-- **Redirects** are now off; the layers directory is `0700`; gitd-mount checks the
-  directories above its configuration and opens the base of every path without links;
-  gitd's unit restricts setuid files.
+- **Redirects** are now off; gitd-mount checks the directories above its configuration and
+  opens the base of every path without links; gitd's unit restricts setuid files.
+
+Running the sandboxes example with gitd-mount as it is deployed — unprivileged gitd, the
+helper with its unit's capabilities — then showed what no test had: with `CAP_SYS_ADMIN`
+alone, gitd-mount could not enter the probe's directory (made private by `os.MkdirTemp`),
+and an overlay it mounted came up read-only, as the kernel writes the layers with the
+mounter's credentials. The probe's directories now have the layers' mode, the unit holds
+`CAP_DAC_OVERRIDE`, `CAP_FOWNER` and `CAP_CHOWN` besides, the review's `0700` on the layers
+was taken back (it shut gitd-mount out; the `nosuid` filesystem covers what it was for), and
+CI runs the example on every push.
 
 It also showed that no check before git runs can stand against a sandbox changing `.git`
 at the same time: §4 now says to pause the sandbox for those operations, until 0.8. It

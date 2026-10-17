@@ -125,7 +125,14 @@ mounts an overlay of a template on a layer onto an empty target in a root — al
 — or unmounts an overlay. Every directory is pinned with `openat2(RESOLVE_NO_SYMLINKS)` and
 mounted, or unmounted, through its descriptor, so nothing swapped in between can redirect
 it. It is a service rather than a setcap binary because gitd's unit keeps
-`NoNewPrivileges`, and it has no mount namespace of its own, so its mounts are seen.
+`NoNewPrivileges`, and it has no mount namespace of its own, so its mounts are seen. It holds
+`CAP_SYS_ADMIN` to mount, and `CAP_DAC_OVERRIDE`, `CAP_FOWNER` and `CAP_CHOWN` because the
+kernel writes an overlay's layers with its mounter's credentials; nothing else.
+
+**Measured**, for a hundred agents on kubernetes on a GitHub runner: the first workspace in
+12.2 s (fetch and template), each after it in 23 ms and 4.3 MB of its own (mostly git's
+index), all hundred in 14.5 s and 850 MB, against 980 s and 41,870 MB for a hundred shallow
+clones (`benchmarks/hundred.sh`).
 
 ### Credential
 What opens a repository, bound to a **URL prefix** (`https://github.com/acme/web`, or, for
