@@ -50,7 +50,7 @@ func (tools *tools) register(server *mcp.Server) {
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "publish_branch",
 		Title:       "Publish a branch",
-		Description: "Push what was committed in a workspace to a new branch of its repository, so a pull request can be opened from it. gitd pushes with the credential it keeps; the push is never forced. Commit your changes in the workspace first.",
+		Description: "Push what was committed in a workspace to a new branch of its repository, and open its pull request when gitd's settings say so or you ask. gitd pushes with the credential it keeps; the push is never forced, and gitd may refuse a publish that breaks its rules, such as changing the CI or deleting tests. Commit your changes in the workspace first.",
 		Annotations: &mcp.ToolAnnotations{DestructiveHint: no(), OpenWorldHint: yes()},
 	}, tools.publish)
 	mcp.AddTool(server, &mcp.Tool{
@@ -101,8 +101,12 @@ type pathInput struct {
 }
 
 type publishInput struct {
-	Path   string `json:"path" jsonschema:"absolute path of the workspace"`
-	Branch string `json:"branch" jsonschema:"the new branch to push to, which must not exist yet"`
+	Path        string `json:"path" jsonschema:"absolute path of the workspace"`
+	Branch      string `json:"branch" jsonschema:"the new branch to push to, which must not exist yet"`
+	PullRequest bool   `json:"pull_request,omitempty" jsonschema:"open a pull request even when gitd opens them only when asked"`
+	Title       string `json:"title,omitempty" jsonschema:"the pull request's title; default: the newest commit's subject"`
+	Body        string `json:"body,omitempty" jsonschema:"what the pull request is about, before what gitd checked"`
+	Draft       *bool  `json:"draft,omitempty" jsonschema:"open it as a draft; default: as gitd's settings say"`
 }
 
 type probeInput struct {
@@ -157,6 +161,8 @@ type published struct {
 type publishOutput struct {
 	Branch       string      `json:"branch"`
 	Repositories []published `json:"repositories" jsonschema:"the workspace's repository first, then each submodule pushed"`
+	PullRequest  string      `json:"pull_request,omitempty" jsonschema:"the pull request opened, when one was"`
+	NoPull       string      `json:"no_pull_request,omitempty" jsonschema:"why the pull request could not be opened; the branch is published all the same"`
 }
 
 type removeOutput struct {
@@ -225,11 +231,20 @@ func (tools *tools) describe(ctx context.Context, _ *mcp.CallToolRequest, in pat
 }
 
 func (tools *tools) publish(ctx context.Context, _ *mcp.CallToolRequest, in publishInput) (*mcp.CallToolResult, publishOutput, error) {
-	answer, err := tools.gitd.Publish(ctx, &gitdv1.PublishRequest{Path: in.Path, Branch: in.Branch})
+	request := &gitdv1.PublishRequest{Path: in.Path, Branch: in.Branch}
+	if in.PullRequest || in.Title != "" || in.Body != "" || in.Draft != nil {
+		request.PullRequest = &gitdv1.PullRequestOptions{Open: in.PullRequest, Title: in.Title, Body: in.Body, Draft: in.Draft}
+	}
+	answer, err := tools.gitd.Publish(ctx, request)
 	if err != nil {
 		return nil, publishOutput{}, refusal(err)
 	}
-	return nil, publishOutput{Branch: answer.GetBranch(), Repositories: publishedOf(answer.GetRepository(), answer.GetSubmodules())}, nil
+	out := publishOutput{Branch: answer.GetBranch(), Repositories: publishedOf(answer.GetRepository(), answer.GetSubmodules())}
+	out.PullRequest = answer.GetPullRequest().GetUrl()
+	if failure := answer.GetPullRequestFailure(); failure != nil {
+		out.NoPull = strings.TrimPrefix(failure.GetReason().String(), "REASON_") + ": " + failure.GetGitSaid()
+	}
+	return nil, out, nil
 }
 
 func (tools *tools) remove(ctx context.Context, _ *mcp.CallToolRequest, in pathInput) (*mcp.CallToolResult, removeOutput, error) {
@@ -266,6 +281,9 @@ func (tools *tools) audit(ctx context.Context, _ *mcp.CallToolRequest, in auditI
 	}
 	out := auditOutput{Entries: []auditEntry{}}
 	for _, entry := range answer.GetEntries() {
+		if entry.GetChange() != nil {
+			continue // changes to connections and settings are the platform's, not the agent's
+		}
 		recorded := auditEntry{
 			Time: entry.GetTime().AsTime().UTC().Format(time.RFC3339), Workspace: entry.GetWorkspace(),
 			URL: entry.GetUrl(), Branch: entry.GetBranch(),

@@ -75,3 +75,20 @@ func TestEveryToolSaysWhetherItReadsOrDestroys(t *testing.T) {
 		}
 	}
 }
+
+func TestNoToolLetsAnAgentTouchConnectionsSettingsOrWhoIsAskedToReview(t *testing.T) {
+	for _, tool := range listed(t) {
+		name := strings.ToLower(tool.Name)
+		for _, word := range []string{"connect", "connection", "setting", "rule", "login", "app"} {
+			if strings.Contains(name, word) {
+				t.Errorf("%s: an agent must never manage gitd's connections or publishing settings", tool.Name)
+			}
+		}
+		schema, _ := json.Marshal(tool.InputSchema)
+		for _, word := range []string{"requested_by", "reviewer", "label"} {
+			if strings.Contains(strings.ToLower(string(schema)), word) {
+				t.Errorf("%s takes %q: who reviews is the platform's to say, not the agent's", tool.Name, word)
+			}
+		}
+	}
+}
