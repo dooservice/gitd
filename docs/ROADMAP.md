@@ -198,7 +198,7 @@ calls gitd in a few lines instead of writing a client.
 | Task | What | Done when |
 |---|---|---|
 | **0.7.0 Spike** ✓ | Overlay, fuse-overlayfs, reflink and copy on kubernetes, 100 agents | Done: the table above |
-| **0.7.1 Templates** | `internal/template`: build, register users, retire; housekeeping retires the unused | Unit tests: built once, shared, never changed, retired only when unused |
+| **0.7.1 Templates** ✓ | `internal/template`: build, register users, retire; housekeeping retires the unused | Done: built once even when asked for at once, shared, never rebuilt, retired only when unused and rested, swept after a crash; built by the workspace package, detached at its commit and tuned for copies |
 | **0.7.2 Strategies** | One interface; copy (today's code moved behind it), overlay (external and helper), reflink (`FICLONE`); detection at start | Each strategy tested; detection right on ext4, XFS and inside a container |
 | **0.7.3 `gitd-mount`** | The helper: a separate small binary with `CAP_SYS_ADMIN` only, and a systemd example | Refuses any path outside the roots or through a symlink; tests and a fuzz target |
 | **0.7.4 Contract** | `[workspaces] strategy`; `strategy` on `Prepare`; `strategy` and `layers` in `WorkspaceResult` and `Describe`; CLI flags and MCP output | buf lint and breaking-change check pass; a 0.6 client still works |
@@ -415,7 +415,7 @@ benchmark, its docs and a release (principle 7).
 |---|---|---|---|
 | 1 | 0.6.0 ✓ | Released: binaries for amd64 and arm64, the image | — |
 | 2 | 0.7.0 ✓ | Spike run, table recorded, strategy order decided | 1 |
-| 3 | 0.7.1 | Templates | 2 |
+| 3 | 0.7.1 ✓ | Templates | 2 |
 | 4 | 0.7.2 | Strategies and detection: copy moved behind the interface first, then overlay, then reflink | 3 |
 | 5 | 0.7.3 | `gitd-mount` | 4 |
 | 6 | 0.7.4 | Contract, CLI and MCP | 4 |
