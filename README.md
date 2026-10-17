@@ -25,6 +25,13 @@ and gitd pushes from the pool with the token it keeps.
   (see the [benchmark](#benchmark)).
 - **Made for sandboxes.** A workspace mounts into a container with its repository's pool,
   read only: each sandbox sees its own checkout and nothing else.
+- **Dependencies ready.** Seal one workspace after `npm ci` as a warm layer, and the next
+  ones start with `node_modules` installed: ten workspaces of socket.io in **0.17 s** each
+  with its 561 MB of dependencies, against 28 s each installing (see
+  [warm layers](#dependencies-ready-warm-layers)).
+- **Review built in.** What each agent changed, its diff, how two attempts differ and
+  whether they conflict, read without running the agent's code; publishing checked against
+  rules, and the pull request opened from a GitHub App's bot.
 - **Any git host.** GitHub, GitLab (nested groups included), Bitbucket, Gitea, Forgejo,
   Codeberg or your own, over HTTPS or SSH, on any port, submodules included.
 - **For agents.** `gitd mcp` offers it as Model Context Protocol tools, none of which takes a
@@ -67,6 +74,8 @@ docker compose exec gitd gitd publish /var/lib/gitd/workspaces/agent-1 agent-1/n
 ```
 
 To publish, give gitd a credential in `gitd.toml` (see [Credentials](#credentials)).
+[`examples/openhands`](examples/openhands) runs an OpenHands agent the same way, and gitd
+opens its pull request from a GitHub App's bot; CI runs it on every push.
 
 On a server, without Docker:
 
@@ -96,6 +105,8 @@ instance in Claude Code's `.mcp.json` or Cursor's `mcp.json`:
 | `update_workspace` | To the tip of its branch |
 | `checkout_commit` | To a commit, as a rollback does |
 | `describe_workspace` | Its repository, commit, branch, uncommitted changes and submodules |
+| `list_changes` | Each file added, modified or deleted since gitd put it on its commit, with its lines |
+| `show_diff` | The unified diff of those changes, of some files or all, cut short at a size |
 | `publish_branch` | Its commits pushed to a new branch, for a pull request |
 | `remove_workspace` | Deleted; its pool stays |
 | `probe_repository` | Whether it can be read, its default branch and branches |
@@ -108,12 +119,16 @@ No tool takes a credential, and each says whether it only reads or destroys.
 `gitd` alone serves; every other command calls the gitd that serves.
 
 ```sh
-gitd prepare URL PATH [--branch B | --commit C] [--submodules] [--full-history]
+gitd prepare URL PATH [--branch B | --commit C] [--submodules] [--full-history] [--warm NAME]
 gitd update PATH [--branch B]        gitd checkout PATH COMMIT
 gitd describe PATH                   gitd publish PATH BRANCH
 gitd submodules PATH                 gitd remove PATH
 gitd probe URL                       gitd adopt PATH
 gitd info                            gitd retire [--unused 720h]
+gitd changes PATH [--ignored]        gitd diff PATH [FILE…] [--max-bytes N]
+gitd compare FIRST SECOND [--diff]   gitd conflicts WORK WORK…
+gitd watch [PATH…]                   gitd seal PATH NAME
+gitd warm URL
 gitd audit [--since 24h] [--repository URL] [--limit N]
 gitd publish PATH BRANCH [--requested-by LOGIN] [--pull-request] [--title T] [--draft]
 gitd connect github | github-app --name N [--org O]
@@ -236,6 +251,54 @@ $ gitd audit --since 24h
 The log is `<state>/audit/publishes.jsonl`, one JSON entry per line, rotated at 16 MiB and
 kept for a year (`[audit] rotate_bytes`, `keep`); the API, the clients and MCP read it too.
 
+## What agents changed
+
+A platform reviewing agents' work asks gitd, not the sandbox:
+
+```sh
+gitd changes /var/lib/gitd/workspaces/agent-3          # each file added, modified or deleted, with its lines
+gitd diff /var/lib/gitd/workspaces/agent-3 src/app.go  # the unified diff, cut short at a size
+gitd compare /var/lib/gitd/workspaces/agent-3 /var/lib/gitd/workspaces/agent-7 --diff
+gitd conflicts agents/fix-a agents/fix-b /var/lib/gitd/workspaces/agent-9
+gitd watch                                             # made, changed, published, refused, removed
+```
+
+On an overlay workspace the changes are read from the agent's own layer, and no git runs
+in the workspace: with one file changed in kubernetes, 0.012 s against 0.130 s for
+`git status`. Two attempts at one task compare file by file, workspaces or published
+branches alike; conflicts are read with `git merge-tree` in the pool. The clients have
+each call, and `list_changes` and `show_diff` let an agent review its own work over MCP.
+
+## Dependencies ready: warm layers
+
+Each new workspace usually starts without `node_modules` or `.venv`, and each agent
+installs them again. With gitd, the platform installs once — in its own sandbox, as gitd
+never runs a repository's code — and seals that workspace's layer:
+
+```sh
+gitd prepare https://github.com/acme/web /var/lib/gitd/workspaces/install
+# in the platform's sandbox, on that workspace: npm ci
+gitd seal /var/lib/gitd/workspaces/install deps
+gitd prepare https://github.com/acme/web /var/lib/gitd/workspaces/agent-1 --warm deps
+```
+
+Every workspace made with `--warm deps` stacks the template, the warm layer and its own
+layer: it starts with everything installed, and only what it changes is its own. A warm
+layer is of one commit and never carries the sealed workspace's `.git`; sealing is refused
+while a sandbox still mounts the workspace.
+
+Ten workspaces of [socket.io](https://github.com/socketio/socket.io), after one
+`npm ci --ignore-scripts` (37 s, 561 MB of `node_modules`), on a 4-CPU Linux machine:
+
+| How | Time | Disk | Holding `node_modules` |
+|---|---|---|---|
+| 10 × `gitd prepare --warm` | **1.7 s, 0.17 s each** | **1.9 MB**, plus the 561 MB layer once | 10 of 10 |
+| 10 × `gitd prepare` + `npm ci` | 281 s, 28 s each | 5,614 MB | 10 of 10 |
+
+All ten were clean checkouts to git, and `npm ls --all` read in them the same tree as in the
+workspace sealed. Run it yourself: `sudo benchmarks/warm.sh REPO N`, or the *warm layers*
+workflow of this repository.
+
 ## Benchmark
 
 A hundred agents on [kubernetes](https://github.com/kubernetes/kubernetes), each getting
@@ -336,7 +399,7 @@ Connect or gRPC client can call it, and `buf curl` can too. There are clients fo
 - **From source:** `make build` (Go, the version in `go.mod`); `make test`, `make lint`;
   `make generate` regenerates `gen/` from the `.proto` with `buf`.
 
-Pushing a tag such as `0.7.0` releases the binaries, the image and both clients.
+Pushing a tag such as `0.8.0` releases the binaries, the image and both clients.
 
 ## Contributing and security
 
