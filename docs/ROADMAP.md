@@ -204,7 +204,7 @@ calls gitd in a few lines instead of writing a client.
 | **0.7 · 2 Strategies** ✓ | One interface; copy (today's code moved behind it), overlay (external and helper), reflink (`FICLONE`); detection at start | Done: overlay and reflink makers, detection (a state on an overlay told apart), Prepare and Remove through them; end to end with the kernel's overlay, workspaces after the first in 26–32 ms. Whole-history and submodule workspaces are still written, until templates hold them |
 | **0.7 · 3 `gitd-mount`** ✓ | The helper: a small root service with `CAP_SYS_ADMIN` only, socket-activated, with systemd units | Done: refuses any path outside its directories or through a symlink, any caller but gitd's user, any unmount of what is not an overlay; tests (root ones in CI) and a fuzz target; end to end, an unprivileged gitd made workspaces in 34–36 ms through it |
 | **0.7 · 4 Contract** ✓ | `[workspaces] strategy`; `strategy` on `Prepare`; `strategy` and `layers` in `WorkspaceResult` and `Describe`; strategy, its reason and templates in `Info`; CLI flags and MCP output | Done: buf breaking finds nothing against 0.6.0, and the 0.6.0 command line works against it |
-| **0.7 · 5 Lifecycle** | Unmount on remove; remount at start; templates and layers in the start-up sweep and in `Info` | A restarted gitd serves every overlay workspace it had |
+| **0.7 · 5 Lifecycle** ✓ | Unmount on remove; remount at start; templates and layers in the start-up sweep and in `Info` | Done: remounted at start and every round, never over files written while unmounted; half-built and orphaned layers swept, their templates let go; an agent's commit survives a reboot, end to end |
 | **0.7 · 6 Conformance** | What agents do — status, diff, add, commit, stash, rebase, checkout, submodules, publish — on every strategy in CI; fuse-overlayfs retried inside a user namespace | It gates D5; fuse-overlayfs either passes and joins, or stays out, recorded here |
 | **0.7 · 7 SDKs** | Python and TypeScript clients from the contract with buf; published; one example each | `pip install` / `npm install`, then prepare, describe and publish in a few lines |
 | **0.7 · 8 Publishing rules** | `[publish] branch_prefix`; the audit log with its API, CLI and MCP reads, and rotation | A branch outside the prefix is refused; every publish is in the log |
@@ -425,7 +425,7 @@ benchmark, its docs and a release (principle 7).
 | 4 | 0.7 · 2 ✓ | Strategies and detection: copy moved behind the interface first, then overlay, then reflink | 3 |
 | 5 | 0.7 · 3 ✓ | `gitd-mount` | 4 |
 | 6 | 0.7 · 4 ✓ | Contract, CLI and MCP | 4 |
-| 7 | 0.7 · 5 | Lifecycle | 5, 6 |
+| 7 | 0.7 · 5 ✓ | Lifecycle | 5, 6 |
 | 8 | 0.7 · 6 | Conformance suite gating the strategies; fuse-overlayfs in a user namespace | 4 |
 | 9 | 0.7 · 7 | Python and TypeScript SDKs | 6 |
 | 10 | 0.7 · 8 | Branch prefix and audit log | 6 |
