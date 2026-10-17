@@ -35,6 +35,8 @@ DIFF = Method("WorkspaceService", "Diff", messages.DiffResponse)
 COMPARE = Method("WorkspaceService", "Compare", messages.CompareResponse)
 CONFLICTS = Method("WorkspaceService", "Conflicts", messages.ConflictsResponse)
 WATCH = Method("WorkspaceService", "Watch", messages.WatchResponse)
+SEAL = Method("WorkspaceService", "Seal", messages.SealResponse)
+LIST_WARM = Method("WorkspaceService", "ListWarm", messages.ListWarmResponse)
 
 LIST_CONNECTIONS = Method("ConnectionService", "ListConnections", messages.ListConnectionsResponse)
 REMOVE_CONNECTION = Method("ConnectionService", "RemoveConnection", messages.RemoveConnectionResponse)

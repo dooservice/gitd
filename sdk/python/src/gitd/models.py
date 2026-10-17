@@ -66,15 +66,17 @@ class Progress:
 
 @dataclass(frozen=True)
 class Layers:
-    """An overlay workspace's template (lower) and its own layer (upper, work)."""
+    """An overlay workspace's template (lower), its own layer (upper, work), and the warm
+    layer between them, when it stands on one."""
 
     lower: str
     upper: str
     work: str
+    warm: str = ""
 
     @classmethod
     def from_message(cls, layers: Any) -> Layers:
-        return cls(lower=layers.lower, upper=layers.upper, work=layers.work)
+        return cls(lower=layers.lower, upper=layers.upper, work=layers.work, warm=layers.warm)
 
 
 @dataclass(frozen=True)

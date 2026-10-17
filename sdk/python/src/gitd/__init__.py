@@ -33,6 +33,7 @@ from .publishing_settings import (
     PullRequestOptions,
     PullRequestSettings,
 )
+from .warm_layers import WarmLayer
 
 __all__ = [
     "Comparison",
@@ -76,4 +77,5 @@ __all__ = [
     "Strategy",
     "Submodule",
     "Workspace",
+    "WarmLayer",
 ]

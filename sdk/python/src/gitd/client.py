@@ -15,6 +15,7 @@ from .models import AuditEntry, Description, Info, Probe, Published, Strategy, W
 from .publishing_calls import Publishing
 from .publishing_settings import Provenance, PullRequestOptions
 from .timestamps import Timestamp
+from .warm_layers import WarmLayer
 
 
 class Gitd:
@@ -58,11 +59,14 @@ class Gitd:
         submodules: bool = False,
         full_history: bool = False,
         strategy: Strategy | None = None,
+        warm: str = "",
         on_progress: OnProgress | None = None,
     ) -> Workspace:
         """Makes a workspace of a repository at a path under gitd's roots, at a commit, a
         branch, or the default branch. strategy is a preference: gitd falls back to copy when
-        it cannot make one that way here."""
+        it cannot make one that way here. warm names a warm layer to stand on, its
+        dependencies installed already: the workspace is then made by overlay, at the commit
+        the layer was sealed at, or not at all."""
         if commit:
             revision = messages.Revision(commit=commit)
         elif branch:
@@ -76,6 +80,7 @@ class Gitd:
             with_submodules=submodules,
             full_history=full_history,
             strategy=Strategy.preference(strategy),
+            warm=warm,
         )
         return Workspace.from_message(path, self.connection.follow(methods.PREPARE, request, on_progress))
 
@@ -181,6 +186,18 @@ class Gitd:
         request = messages.WatchRequest(paths=paths or [])
         for event in self.connection.stream(methods.WATCH, request):
             yield Event.from_message(event)
+
+    def seal(self, path: str, name: str) -> WarmLayer:
+        """Seals what was installed in an overlay workspace as the warm layer name of its
+        repository, for workspaces made later at the same commit to stand on. The layer is
+        moved, not copied: the workspace is removed."""
+        response = self.connection.call(methods.SEAL, messages.SealRequest(path=path, name=name))
+        return WarmLayer.from_message(response.warm)
+
+    def warm_layers(self, url: str) -> list[WarmLayer]:
+        """The warm layers of a repository."""
+        response = self.connection.call(methods.LIST_WARM, messages.ListWarmRequest(url=url))
+        return [WarmLayer.from_message(warm) for warm in response.warm]
 
     def remove(self, path: str) -> None:
         """Deletes a workspace; its pool stays."""
