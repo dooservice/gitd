@@ -1,14 +1,17 @@
 # gitd — design
 
-`gitd` manages the **local copies of git repositories** on one server: a cache of each
-repository, the workspaces checked out from it, keeping them current, their submodules,
-and the credentials they are read with. Repositories live on any git host — GitHub,
-GitLab (with its nested groups), Bitbucket, Gitea, Forgejo, Codeberg or a self-hosted one;
-`gitd` hosts none.
+`gitd` gives **instant, secretless git checkouts to agent sandboxes**: AI agents, CI jobs
+or preview environments get a workspace of a repository in about half a second, work in it
+with plain git, and have their commits published as a branch, without ever holding the
+credential. To do so it keeps, on one server, a cache of each repository (its pool), the
+workspaces that borrow from it, their submodules, and the credentials they are read and
+published with. Repositories live on any git host — GitHub, GitLab (with its nested
+groups), Bitbucket, Gitea, Forgejo, Codeberg or a self-hosted one; `gitd` hosts none.
 
-It runs on one server, called by one local program over a Unix socket. Whatever is
-particular to that program — paths, user, which credential opens what — is configuration
-and requests, never code.
+It runs on one server and answers on a Unix socket: to a program through its API, to a
+person through its command line, and to an AI agent through MCP. Whatever is particular to
+whoever calls it — paths, user, which credential opens what — is configuration and
+requests, never code.
 
 ---
 
@@ -16,9 +19,11 @@ and requests, never code.
 
 1. **Run the official `git`.** Nothing of git is reimplemented: what the git binary does
    not do, `gitd` does not do. As in Gitaly.
-2. **Nothing secret on disk.** Credentials arrive with each request, live in memory for as
-   long as it lasts and reach git through its environment — never on a command line, never
-   in `.git/config`.
+2. **Nothing secret where the work is done.** Credentials are kept by gitd (read at start
+   from a file, best a systemd credential in memory, or the environment) or arrive with a
+   request, live in its memory and reach git through its environment — never on a command
+   line, never in `.git/config`, never in a workspace. Whoever works in a workspace, an
+   agent or a sandbox, never sees one: gitd reads and pushes for it.
 3. **Nothing half-built is ever visible.** Whatever is created is built aside and moved into
    place with a `rename` once complete. A power cut leaves, at most, a temporary directory
    that the next start removes.
@@ -99,15 +104,22 @@ by the configuration (`roots`), for instance:
   and whether it keeps the whole history.
 
 ### Credential
-What opens a repository. It arrives with each request, bound to a **URL prefix**
-(`https://github.com/acme/web`, or empty for "any repository"). Which one a repository
-gets is decided by whoever sends the request, from what its host says about it: a deploy
-key for one repository, an account's token for the rest of its owner's, a key with an
-empty prefix for anything public.
+What opens a repository, bound to a **URL prefix** (`https://github.com/acme/web`, or empty
+for "any repository"). Two kinds:
+
+- **Kept by gitd**, in `[[credentials]]` of its configuration, which names where each
+  secret is — `token_file`, `token_env` or `ssh_key` — never the secret. They are read once
+  at start, and one that cannot be read stops it. This is what lets an agent, a sandbox or
+  the command line ask for a workspace or a branch holding nothing.
+- **Sent with a request**, when its caller decides which opens what from what the host
+  says about it (a deploy key for one repository, an account's token for the rest of its
+  owner's, a key with an empty prefix for anything public).
+
+Both kinds are candidates, and a request's wins over a kept one of the same prefix.
 
 - **SSH key**: the path of a key already on the server. Used through `GIT_SSH_COMMAND`
-  with `IdentitiesOnly=yes`, and the host checked against the keys GitHub, GitLab, Bitbucket and Codeberg publish, which are built
-  into the binary, plus those of the `known_hosts` files the configuration names, for a
+  with `IdentitiesOnly=yes`, and the host checked against the keys GitHub, GitLab,
+  Bitbucket and Codeberg publish, which are built into the binary, plus those of the `known_hosts` files the configuration names, for a
   self-hosted GitLab, Gitea or Forgejo. Nothing is trusted on first use. The address is
   `git@<host>:<path>.git`, or `ssh://<user>@<host>:<port>/<path>.git` for a host whose
   `[hosts."<host>"]` gives another `ssh_port` or `ssh_user`; its key is then looked up as
@@ -115,8 +127,9 @@ empty prefix for anything public.
 - **HTTPS token** (an OAuth or access token): handed to git as an `Authorization: Basic`
   header through `GIT_CONFIG_*`, scoped to that one repository's address (on its host's
   `https_port`). A repository it opens is read over HTTPS even when written as `git@` or
-  `ssh://`, so a `.gitmodules` line written so is read without editing anything. The user name sent with it is the request's `https_user`, or
-  when empty the one the host expects: `oauth2` on gitlab.com, `x-token-auth` on
+  `ssh://`, so a `.gitmodules` line written so is read without editing anything. The user
+  name sent with it is the credential's (`https_user`, `token_user`), or when empty the one
+  the host expects: `oauth2` on gitlab.com, `x-token-auth` on
   bitbucket.org, `x-access-token` anywhere else (GitHub; Gitea and Forgejo take any).
 
 A repository is read with **the most specific credential that opens it, and with that one
@@ -130,7 +143,11 @@ credential was refused.
 
 ```
 cmd/gitd/                 start-up and signals
-internal/config/          configuration (TOML): socket, roots, limits, hosts, known hosts
+internal/cli/             the command line (spf13/cobra), one file per command
+internal/daemon/          serving: the configuration read and every part put together
+internal/client/          a client of the socket, for the command line and MCP
+internal/mcpserver/       MCP tools over stdio, none of which takes a credential
+internal/config/          configuration (TOML): socket, roots, limits, hosts, known hosts, credentials
 internal/server/          ConnectRPC services on the socket, deadlines, error codes
 internal/repo/            which repository an address names, and how its host is reached
 internal/git/             the runner of the official git
@@ -138,7 +155,7 @@ internal/pool/            pools: create, sync, seed, probe, registry
 internal/workspace/       workspaces: prepare, update, checkout, submodules, describe, adopt
 internal/lock/            per-repository locks (memory + flock), concurrency queues
 internal/housekeeping/    heuristic maintenance, retirement, start-up sweep
-internal/credentials/     a request's credentials → the address and git's environment
+internal/credentials/     kept and requested credentials → the address and git's environment
 internal/progress/        git's `--progress` → stream messages
 internal/metrics/         Prometheus metrics
 proto/gitd/v1/            the contract
@@ -151,7 +168,7 @@ the binary (§10); `gitd` never updates itself.
 
 ### Transport
 **ConnectRPC** on a **Unix socket** (`/run/gitd/gitd.sock` unless `socket` in the
-configuration or `-socket` says otherwise; reachable only by the user that runs gitd). It
+configuration or `--socket` says otherwise; reachable only by the user that runs gitd). It
 speaks gRPC, gRPC-Web and Connect (HTTP/JSON) from the same `.proto`, so it can be tried
 with `buf curl` or `curl`, and any language with a Connect or gRPC client can call it.
 
@@ -166,6 +183,20 @@ retires now the pools nobody used for a given time (at least a day).
 
 A client needs no gRPC stack: in the Connect protocol a unary call is one POST of JSON,
 and a server stream is a POST whose answer is a sequence of length-prefixed JSON messages.
+
+### Command line and MCP
+The same binary is its own client: `gitd` alone (or `gitd serve`) serves, and `gitd
+prepare`, `update`, `checkout`, `submodules`, `describe`, `publish`, `remove`, `adopt`,
+`probe`, `info` and `retire` call the gitd that serves, with progress on a terminal and
+`--json` for scripts. A command brings a credential only from an environment variable or a
+key path, never on its own command line. The single-dash flags of units written before
+the command line (`-config`, `-socket`, `-version`) still read.
+
+`gitd mcp` answers the Model Context Protocol over stdio with seven tools —
+`prepare_workspace`, `update_workspace`, `checkout_commit`, `describe_workspace`,
+`publish_branch`, `remove_workspace`, `probe_repository` — each saying whether it only
+reads or destroys. **No tool takes a credential**, and a test keeps it so: an agent deals
+in paths, commits and branches, and gitd in secrets.
 
 ---
 
@@ -334,17 +365,24 @@ A client tells its users what happened from the reason, never by parsing the mes
 
 ## 10. Deployment
 
-- The binary is released from this repository: `gitd-linux-amd64` and its checksum, a
-  GitHub release per tag.
+- The binary is released from this repository: `gitd-linux-amd64` and `gitd-linux-arm64`
+  with their checksums, a GitHub release per tag, and the image `ghcr.io/dooservice/gitd`
+  for both platforms. The image serves by default and is the command line too.
 - `packaging/gitd.service`: user `gitd`, socket `/run/gitd/gitd.sock`, configuration
   `/etc/gitd/gitd.toml`, `ProtectSystem=strict`, `PrivateTmp` and write access only to its
   state. Write access to roots outside `/var/lib/gitd` is added with `ReadWritePaths=` in
   a drop-in, and the user should own the workspaces, as whoever reads them does.
-- `packaging/gitd.toml` shows every key with its default.
+- `packaging/gitd.toml` shows every key with its default. A token gitd keeps is best handed
+  to it with `LoadCredential=`, which puts it in memory at
+  `/run/credentials/gitd.service/<name>` for `token_file` to name.
 - A program that ships gitd with it pins a version, installs the binary, writes its own
   service and configuration, and restarts it on an update.
-- A workspace mounted somewhere else where git runs (a container) also needs the pools
-  directory mounted, read only, at the same path, since its `alternates` name it.
+- A workspace mounted somewhere else where git runs (a container, a sandbox) also needs the
+  pools directory mounted, read only, at the same path, since its `alternates` name it.
+  `examples/sandboxes` does so with Docker Compose: each sandbox mounts only its own
+  workspace and the pools, and holds no credential.
+- An AI agent reaches gitd through `gitd mcp` on its side, which calls the socket; only
+  that process needs to reach the socket.
 
 ---
 
@@ -359,9 +397,11 @@ A client tells its users what happened from the reason, never by parsing the mes
 ## 12. Open decisions
 
 1. **Credentials in shared pools:** a private repository's pool is synced with the
-   credential of the request in flight, and any workspace on the server borrows from it.
+   credential that opens it, kept or sent, and any workspace on the server borrows from it.
    One gitd is meant for one tenant; tenants who must not read each other's repositories
-   get a gitd each.
+   get a gitd each. Likewise, whoever can reach the socket can ask for any repository gitd
+   holds a credential for, so the socket is reachable only by gitd's own user and the
+   programs acting for that tenant.
 2. **Partial clone** (`blob:none`) in the pool was tried and set aside: a workspace linked
    through `alternates` cannot fetch from the network the objects its pool lacks, and its
    checkout fails. Shallow pools that bring only what is checked out give the same saving
