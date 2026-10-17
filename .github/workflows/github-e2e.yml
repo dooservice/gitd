@@ -39,11 +39,11 @@ jobs:
         run: e2e/github.sh
       # The pull request and its branch are this run's to remove, with a token of the same
       # App made apart from gitd.
-      - uses: actions/create-github-app-token@v2
+      - uses: actions/create-github-app-token@v3
         if: always() && steps.secrets.outputs.set
         id: cleanup
         with:
-          app-id: ${{ secrets.GITD_E2E_APP_ID }}
+          client-id: Iv23litIqyOfliZKln8p # gitd-e2e's, which is not a secret
           private-key: ${{ secrets.GITD_E2E_APP_KEY }}
           repositories: gitd-e2e
       - name: the pull request is the bot's, a draft, and says what gitd checked
