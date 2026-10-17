@@ -35,3 +35,16 @@ func TestAPresetReadsAsItsRulesAndWhereItComesFrom(t *testing.T) {
 		t.Errorf("got:\n%s\nwant:\n%s", out.String(), want)
 	}
 }
+
+func TestChangesReadAsGitStatusDoesWithTheirLines(t *testing.T) {
+	var out bytes.Buffer
+	changesLines(&out, &gitdv1.ChangesResponse{Base: "0123456789abcdef", FromLayer: true, Files: []*gitdv1.ChangedFile{
+		{Path: "src/app.go", Kind: gitdv1.ChangedFile_KIND_MODIFIED, AddedLines: 3, RemovedLines: 1},
+		{Path: "logo.png", Kind: gitdv1.ChangedFile_KIND_ADDED, Binary: true},
+	}})
+	want := "since " + short("0123456789abcdef") + ", read from the agent's layer\n" +
+		"  M  +3 -1        src/app.go\n  A  binary       logo.png\n2 files, +3 -1\n"
+	if out.String() != want {
+		t.Errorf("got:\n%s\nwant:\n%s", out.String(), want)
+	}
+}

@@ -212,3 +212,13 @@ func Reason(err error) (reason, said string) {
 	}
 	return "", refused.Message()
 }
+
+// Changes says what was changed in a workspace since gitd last put it on a commit.
+func (client *Client) Changes(ctx context.Context, request *gitdv1.ChangesRequest) (*gitdv1.ChangesResponse, error) {
+	return unary(ctx, client.Workspaces.Changes, request)
+}
+
+// Diff writes the unified diff of a workspace's changes.
+func (client *Client) Diff(ctx context.Context, request *gitdv1.DiffRequest) (*gitdv1.DiffResponse, error) {
+	return unary(ctx, client.Workspaces.Diff, request)
+}
