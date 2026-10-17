@@ -75,3 +75,19 @@ func (client *Client) RemoveSettings(ctx context.Context, prefix string) error {
 	_, err := unary(ctx, client.Publishing.RemoveSettings, &gitdv1.RemoveSettingsRequest{UrlPrefix: prefix})
 	return err
 }
+
+// ListPresets is every preset as it applies.
+func (client *Client) ListPresets(ctx context.Context) (*gitdv1.ListPresetsResponse, error) {
+	return unary(ctx, client.Publishing.ListPresets, &gitdv1.ListPresetsRequest{})
+}
+
+// SetPreset keeps a preset.
+func (client *Client) SetPreset(ctx context.Context, preset *gitdv1.Preset) (*gitdv1.SetPresetResponse, error) {
+	return unary(ctx, client.Publishing.SetPreset, &gitdv1.SetPresetRequest{Preset: preset})
+}
+
+// RemovePreset forgets a preset set through the API.
+func (client *Client) RemovePreset(ctx context.Context, name string) error {
+	_, err := unary(ctx, client.Publishing.RemovePreset, &gitdv1.RemovePresetRequest{Name: name})
+	return err
+}

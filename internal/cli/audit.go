@@ -49,7 +49,11 @@ func auditLine(out io.Writer, entry *gitdv1.AuditEntry) {
 	when := entry.GetTime().AsTime().UTC().Format(time.DateTime)
 	if change := entry.GetChange(); change != nil {
 		action := strings.ReplaceAll(strings.ToLower(strings.TrimPrefix(change.GetAction().String(), "ACTION_")), "_", " ")
-		fmt.Fprintf(out, "%s  %s  %s  %s\n", when, action, change.GetSubject(), shownPrefix(change.GetUrlPrefix()))
+		line := fmt.Sprintf("%s  %s  %s", when, action, change.GetSubject())
+		if strings.HasPrefix(action, "connection") {
+			line += "  " + shownPrefix(change.GetUrlPrefix())
+		}
+		fmt.Fprintln(out, line)
 		return
 	}
 	fmt.Fprintf(out, "%s  %s  %s  %s\n", when, entry.GetBranch(), entry.GetUrl(), entry.GetWorkspace())

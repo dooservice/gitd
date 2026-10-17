@@ -27,7 +27,7 @@ func publishingCommand(app *app) *cobra.Command {
 			"applies, and a narrower one never loosens a broader one.",
 		Args: cobra.NoArgs,
 	}
-	command.AddCommand(showPublishingCommand(app), setPublishingCommand(app), removePublishingCommand(app))
+	command.AddCommand(showPublishingCommand(app), setPublishingCommand(app), removePublishingCommand(app), presetCommand(app))
 	return command
 }
 
@@ -53,7 +53,7 @@ func showPublishingCommand(app *app) *cobra.Command {
 
 func setPublishingCommand(app *app) *cobra.Command {
 	var preset, branchPrefix, open string
-	var protected, kept, labels []string
+	var protected, kept, allowed, labels []string
 	var maxFiles int32
 	var draft, reviewRequester bool
 	command := &cobra.Command{
@@ -64,7 +64,8 @@ func setPublishingCommand(app *app) *cobra.Command {
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			settings := &gitdv1.PublishSettings{
-				UrlPrefix: args[0], Preset: preset, ProtectedPaths: protected, KeptPaths: kept, BranchPrefix: branchPrefix,
+				UrlPrefix: args[0], Preset: preset, ProtectedPaths: protected, KeptPaths: kept, AllowedPaths: allowed,
+				BranchPrefix: branchPrefix,
 			}
 			if cmd.Flags().Changed("max-files") {
 				settings.MaxChangedFiles = &maxFiles
@@ -87,9 +88,10 @@ func setPublishingCommand(app *app) *cobra.Command {
 		},
 	}
 	flags := command.Flags()
-	flags.StringVar(&preset, "preset", "", "a ready set of rules: recommended")
+	flags.StringVar(&preset, "preset", "", "a preset whose rules these take, by name: recommended, or one of `gitd publishing preset list`")
 	flags.StringArrayVar(&protected, "protect", nil, "a path a publish may not change, as a glob, e.g. 'deploy/**' (repeatable)")
 	flags.StringArrayVar(&kept, "keep", nil, "a path a publish may not delete, as a glob (repeatable)")
+	flags.StringArrayVar(&allowed, "allow", nil, "a path these rules leave free, e.g. .gitmodules under recommended (repeatable)")
 	flags.Int32Var(&maxFiles, "max-files", 0, "at most this many files changed")
 	flags.StringVar(&branchPrefix, "branch-prefix", "", "what every published branch must start with, e.g. agents/")
 	flags.StringVar(&open, "pull-requests", "", "open pull requests: when-asked or always")
@@ -129,6 +131,9 @@ func settingsLines(out io.Writer, settings *gitdv1.PublishSettings) {
 	}
 	if paths := settings.GetKeptPaths(); len(paths) > 0 {
 		fmt.Fprintf(out, "  kept: %s\n", strings.Join(paths, ", "))
+	}
+	if paths := settings.GetAllowedPaths(); len(paths) > 0 {
+		fmt.Fprintf(out, "  allowed: %s\n", strings.Join(paths, ", "))
 	}
 	if settings.MaxChangedFiles != nil {
 		fmt.Fprintf(out, "  at most %d files\n", settings.GetMaxChangedFiles())

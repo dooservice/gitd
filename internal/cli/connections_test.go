@@ -30,9 +30,13 @@ func TestTheAuditReadsChangesPullRequestsAndWhoAsked(t *testing.T) {
 	auditLine(&out, &gitdv1.AuditEntry{Time: when, Branch: "agents/fix", Url: "https://github.com/acme/web", Workspace: "/w",
 		RequestedBy: "josue", Repository: &gitdv1.PublishedRepository{Url: "https://github.com/acme/web", Commit: "abcdef1234", Subjects: []string{"fix"}},
 		PullRequest: &gitdv1.OpenedPullRequest{Url: "https://github.com/acme/web/pull/7", Number: 7}})
+	auditLine(&out, &gitdv1.AuditEntry{Time: when, Change: &gitdv1.ConfigurationChange{
+		Action: gitdv1.ConfigurationChange_ACTION_PRESET_SET, Subject: "strict",
+	}})
 	want := "2026-10-17 12:00:00  connection added  app-1  https://github.com/acme\n" +
 		"2026-10-17 12:00:00  agents/fix  https://github.com/acme/web  /w\n  requested by josue\n" +
-		"  published https://github.com/acme/web " + short("abcdef1234") + ": fix\n  pull request #7: https://github.com/acme/web/pull/7\n"
+		"  published https://github.com/acme/web " + short("abcdef1234") + ": fix\n  pull request #7: https://github.com/acme/web/pull/7\n" +
+		"2026-10-17 12:00:00  preset set  strict\n"
 	if out.String() != want {
 		t.Errorf("got:\n%s\nwant:\n%s", out.String(), want)
 	}

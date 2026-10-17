@@ -24,3 +24,14 @@ func TestSettingsReadAsTheirRules(t *testing.T) {
 		t.Errorf("got:\n%s\nwant:\n%s", out.String(), want)
 	}
 }
+
+func TestAPresetReadsAsItsRulesAndWhereItComesFrom(t *testing.T) {
+	var out bytes.Buffer
+	fifty := int32(50)
+	presetLines(&out, &gitdv1.Preset{Name: "strict", ProtectedPaths: []string{"deploy/**"}, KeptPaths: []string{"migrations/**"},
+		MaxChangedFiles: &fifty, Origin: gitdv1.Preset_ORIGIN_BUILT_IN})
+	want := "strict  (built-in)\n  protected: deploy/**\n  kept: migrations/**\n  at most 50 files\n"
+	if out.String() != want {
+		t.Errorf("got:\n%s\nwant:\n%s", out.String(), want)
+	}
+}
