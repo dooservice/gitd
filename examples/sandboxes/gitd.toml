@@ -1,0 +1,8 @@
+# gitd for agent sandboxes. The defaults suit it: pools in /var/lib/gitd/pools, workspaces
+# under /var/lib/gitd/workspaces.
+
+# The token stays in gitd's container, read from its environment; no sandbox ever has it.
+# Uncomment to publish, and set GITD_TOKEN for `docker compose up`.
+# [[credentials]]
+# prefix = "https://github.com/your-org"
+# token_env = "GITD_TOKEN"
