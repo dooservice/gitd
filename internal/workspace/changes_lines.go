@@ -33,11 +33,10 @@ type aside struct {
 
 // copyAside copies the given files of a change set aside.
 func (workspaces *Workspaces) copyAside(ctx context.Context, set changeSet, files []changed) (*aside, error) {
-	directory, err := os.MkdirTemp("", "gitd-changes-*")
+	copied, err := newAside()
 	if err != nil {
 		return nil, err
 	}
-	copied := &aside{directory: directory, large: map[string]bool{}}
 	root, err := os.OpenRoot(set.path)
 	if err != nil {
 		copied.remove()
@@ -64,6 +63,15 @@ func (workspaces *Workspaces) copyAside(ctx context.Context, set changeSet, file
 		}
 	}
 	return copied, nil
+}
+
+// newAside makes a private directory to copy files aside into.
+func newAside() (*aside, error) {
+	directory, err := os.MkdirTemp("", "gitd-changes-*")
+	if err != nil {
+		return nil, err
+	}
+	return &aside{directory: directory, large: map[string]bool{}}, nil
 }
 
 // fromWorkspace copies a workspace's file under side (a/ or b/): a link as the path it
