@@ -37,16 +37,19 @@ func (record Record) Shown() *gitdv1.Connection {
 func ShownFromFile(declared []config.Credential) []*gitdv1.Connection {
 	shown := make([]*gitdv1.Connection, 0, len(declared))
 	for index, credential := range declared {
-		kind := gitdv1.Connection_KIND_TOKEN
-		if credential.SSHKey != "" {
-			kind = gitdv1.Connection_KIND_SSH_KEY
-		}
-		shown = append(shown, &gitdv1.Connection{
+		connection := &gitdv1.Connection{
 			Id:        FilePrefix + strconv.Itoa(index+1),
-			Kind:      kind,
+			Kind:      gitdv1.Connection_KIND_TOKEN,
 			UrlPrefix: credentials.CanonicalPrefix(credential.Prefix),
 			FromFile:  true,
-		})
+		}
+		switch {
+		case credential.SSHKey != "":
+			connection.Kind = gitdv1.Connection_KIND_SSH_KEY
+		case credential.GitHubApp != nil:
+			connection.Kind, connection.AppId = gitdv1.Connection_KIND_GITHUB_APP, credential.GitHubApp.AppID
+		}
+		shown = append(shown, connection)
 	}
 	return shown
 }

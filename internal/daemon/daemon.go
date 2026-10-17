@@ -57,10 +57,16 @@ func Run(ctx context.Context, path, socket, version string) error {
 	if err != nil {
 		return err
 	}
-	kept.UseGitHub(connections.GitHub{
+	github := connections.GitHub{
 		UserAgent: "gitd/" + version, Hosts: settings.Hosts,
 		LoginClientID: settings.GitHub.LoginClientID, LoginAppSlug: settings.GitHub.LoginApp,
-	})
+	}
+	kept.UseGitHub(github)
+	fileApps, err := connections.NewFileApps(settings.Credentials, github)
+	if err != nil {
+		return err
+	}
+	keys.AlsoKeep(fileApps)
 	keys.AlsoKeep(kept)
 	fileSettings, err := publishing.FromFile(settings.Publish)
 	if err != nil {
