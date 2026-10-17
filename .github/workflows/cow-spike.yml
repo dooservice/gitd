@@ -1,0 +1,28 @@
+name: cow-spike
+
+# Roadmap 0.7.0: workspaces from a shared template by kernel overlay, fuse-overlayfs and
+# reflink on XFS, against a copy as today, with git checked on each. By hand.
+on:
+  workflow_dispatch:
+    inputs:
+      repository:
+        description: "The repository"
+        default: "https://github.com/kubernetes/kubernetes"
+      agents:
+        description: "How many agents"
+        default: "100"
+      branch:
+        description: "Its branch"
+        default: "master"
+
+jobs:
+  spike:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - name: Tools
+        run: sudo apt-get update -qq && sudo apt-get install -qq -y xfsprogs fuse-overlayfs >/dev/null
+      - name: Run
+        run: sudo benchmarks/cow-spike.sh "${{ inputs.repository }}" "${{ inputs.agents }}" "${{ inputs.branch }}" | tee results.md
+      - name: Summary
+        run: cat results.md >> "$GITHUB_STEP_SUMMARY"
