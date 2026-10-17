@@ -28,3 +28,21 @@ jobs:
       # Mounting takes root; these tests skip without it.
       - name: overlay tests, as root
         run: sudo -E env "PATH=$PATH" go test -count=1 ./internal/strategy/ ./internal/mounthelper/
+
+  # Every strategy gitd may pick, under what an agent does with git (roadmap D5): copy, the
+  # kernel's overlay (root) and reflink (an XFS disk made for it).
+  conformance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - name: An XFS disk for reflink
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -qq -y xfsprogs >/dev/null
+          truncate -s 1G "$RUNNER_TEMP/xfs.img"
+          mkfs.xfs -q -m reflink=1 "$RUNNER_TEMP/xfs.img"
+          sudo mkdir -p /mnt/xfs && sudo mount -o loop "$RUNNER_TEMP/xfs.img" /mnt/xfs
+      - name: conformance, as root
+        run: sudo -E env "PATH=$PATH" GITD_CONFORMANCE_XFS=/mnt/xfs go test -count=1 -v ./internal/conformance/
