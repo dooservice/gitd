@@ -24,11 +24,19 @@ known_hosts = []
 # ssh_port = 2222
 # ssh_user = "git"
 
+# The key that encrypts the secrets of connections made through the API (tokens, GitHub
+# App keys, sign-ins), kept under <state>/connections: 32 bytes, raw, hex or base64, best a
+# systemd credential. Without one, those files are readable by gitd's user only.
+# secrets_key_file = "/run/credentials/gitd.service/secrets"
+
 # Credentials gitd keeps, so that whoever asks for a workspace or a branch never holds one.
+# Platforms usually add them through the API instead (`gitd connect github`, or
+# ConnectionService in the SDKs); those declared here are shown there and never changed.
 # Each names where its secret is, never the secret: a token file (best a systemd credential,
 # `LoadCredential=` in gitd.service, which lives in memory at $CREDENTIALS_DIRECTORY), an
-# environment variable, or an SSH key. The most specific prefix that opens a repository is
-# used; a credential a request brings wins over a kept one of the same prefix.
+# environment variable, an SSH key, or a GitHub App's key. The most specific prefix that
+# opens a repository is used; a credential a request brings wins over a kept one of the
+# same prefix.
 # [[credentials]]
 # prefix = "https://github.com/your-org"
 # token_file = "/run/credentials/gitd.service/github"
@@ -41,13 +49,38 @@ known_hosts = []
 # [[credentials]]
 # prefix = ""                    # any repository, e.g. a deploy key for everything public
 # ssh_key = "/etc/gitd/keys/id_ed25519"
+#
+# [[credentials]]                # a GitHub App: a token of an hour for one repository each time
+# prefix = "https://github.com/your-org"
+# github_app = { app_id = 123456, private_key_file = "/run/credentials/gitd.service/github-app.pem" }
+
+# gitd's public GitHub App, which people sign in through with `gitd connect github`. Its
+# client ID is not a secret. A GitHub Enterprise Server needs an App registered there.
+[github]
+login_client_id = ""             # gitd's public App on github.com, once registered
+login_app = "gitd"
 
 [publish]
 # Every published branch must start with this; empty allows any new branch. Publishing never
 # pushes over a branch that exists, so a prefix keeps agents off every branch people use.
 branch_prefix = ""               # e.g. "agents/"
 
-# Every publish, done or refused, one JSON line each in <state>/audit/publishes.jsonl.
+# The rules publishing follows for the repositories under a prefix ("" for every one).
+# Platforms usually set them through the API (`gitd publishing set`, or PublishingService);
+# those declared here are shown there and never changed. Every setting whose prefix opens
+# a repository applies: paths add up and the smallest file limit wins, so a narrower setting
+# never loosens a broader one. Checked on the commits to push, before anything is pushed.
+# [[publish.settings]]
+# prefix = "https://github.com/your-org"
+# preset = "recommended"         # protects the CI, CODEOWNERS, .gitmodules; keeps tests; 200 files
+# protected_paths = ["deploy/**"]          # may not be changed, as git's glob pathspecs
+# kept_paths = ["migrations/**"]           # may change, not be deleted or renamed away
+# max_changed_files = 100
+# branch_prefix = "agents/"                # must start with every broader one
+# pull_requests = { open = "always", draft = true, labels = ["agent"], request_review_from_requester = true }
+
+# Every publish, done or refused, and every change to connections and publishing settings,
+# one JSON line each in <state>/audit/publishes.jsonl.
 [audit]
 rotate_bytes = 16777216          # the file is rotated at this size (16 MiB)
 keep = "8760h"                   # a rotated file is deleted after this long (a year)
