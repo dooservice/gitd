@@ -33,6 +33,10 @@ type Config struct {
 	KnownHosts  []string     `toml:"known_hosts"`
 	Hosts       repo.Hosts   `toml:"hosts"`
 	Credentials []Credential `toml:"credentials"`
+	// SecretsKeyFile names the key the secrets of connections made through the API are
+	// encrypted with, under the state directory: 32 bytes, raw, hex or base64, best a
+	// systemd credential. Without one they are kept in files only gitd's user reads.
+	SecretsKeyFile string `toml:"secrets_key_file"`
 
 	Workspaces   Workspaces   `toml:"workspaces"`
 	Publish      Publish      `toml:"publish"`
@@ -66,9 +70,35 @@ type Workspaces struct {
 
 // Publish is the rules of publishing. BranchPrefix, when set, is what every published
 // branch must start with, e.g. "agents/": with publishing already limited to new branches
-// and never forced, it keeps agents off every branch people use.
+// and never forced, it keeps agents off every branch people use. Settings are the rules of
+// the repositories under a prefix, as the API's PublishingService sets them; those of the
+// file are shown by the API and never changed through it.
 type Publish struct {
-	BranchPrefix string `toml:"branch_prefix"`
+	BranchPrefix string           `toml:"branch_prefix"`
+	Settings     []PublishSetting `toml:"settings"`
+}
+
+// PublishSetting is the rules of publishing for the repositories under Prefix (empty for
+// every one): a Preset ("recommended"), paths a publish may not change and paths it may
+// not delete, as git's glob pathspecs, at most how many files it may change, the branch
+// prefix, and how pull requests are opened.
+type PublishSetting struct {
+	Prefix          string       `toml:"prefix"`
+	Preset          string       `toml:"preset"`
+	ProtectedPaths  []string     `toml:"protected_paths"`
+	KeptPaths       []string     `toml:"kept_paths"`
+	MaxChangedFiles *int32       `toml:"max_changed_files"`
+	BranchPrefix    string       `toml:"branch_prefix"`
+	PullRequests    PullRequests `toml:"pull_requests"`
+}
+
+// PullRequests is how publishes open pull requests: Open is "when_asked" or "always", and
+// RequestReviewFromRequester asks the person a publish names to review it.
+type PullRequests struct {
+	Open                       string   `toml:"open"`
+	Draft                      bool     `toml:"draft"`
+	Labels                     []string `toml:"labels"`
+	RequestReviewFromRequester bool     `toml:"request_review_from_requester"`
 }
 
 // Audit is how the audit log, every publish done or refused, is kept under the state
@@ -185,8 +215,7 @@ func (settings *Config) normalize() error {
 	default:
 		return fmt.Errorf("workspaces: strategy %q is none of auto, overlay, copy and reflink", settings.Workspaces.Strategy)
 	}
-	if prefix := settings.Publish.BranchPrefix; prefix != "" &&
-		(!branchPrefix.MatchString(prefix) || strings.Contains(prefix, "..") || strings.Contains(prefix, "//")) {
+	if prefix := settings.Publish.BranchPrefix; !ValidBranchPrefix(prefix) {
 		return fmt.Errorf("publish: branch_prefix %q cannot start a branch name", prefix)
 	}
 	if settings.Audit.RotateBytes <= 0 || settings.Audit.Keep <= 0 {
@@ -207,6 +236,13 @@ func (settings *Config) normalize() error {
 		}
 	}
 	return nil
+}
+
+// ValidBranchPrefix says whether prefix can start a branch name git accepts; empty is no
+// prefix, and valid.
+func ValidBranchPrefix(prefix string) bool {
+	return prefix == "" ||
+		branchPrefix.MatchString(prefix) && !strings.Contains(prefix, "..") && !strings.Contains(prefix, "//")
 }
 
 // Pools is where the pools live.

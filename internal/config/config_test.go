@@ -88,3 +88,35 @@ func TestABranchPrefixCanStartABranchName(t *testing.T) {
 		}
 	}
 }
+
+func TestPublishSettingsAndTheSecretsKeyAreRead(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "gitd.toml")
+	text := `secrets_key_file = "/run/credentials/gitd.service/secrets"
+
+[[publish.settings]]
+prefix = "https://github.com/acme"
+preset = "recommended"
+protected_paths = ["deploy/**"]
+max_changed_files = 50
+branch_prefix = "agents/"
+pull_requests = { open = "always", draft = true, labels = ["agent"], request_review_from_requester = true }
+`
+	if err := os.WriteFile(path, []byte(text), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	settings, err := Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if settings.SecretsKeyFile != "/run/credentials/gitd.service/secrets" {
+		t.Errorf("secrets_key_file = %q", settings.SecretsKeyFile)
+	}
+	if len(settings.Publish.Settings) != 1 {
+		t.Fatalf("settings = %+v", settings.Publish.Settings)
+	}
+	setting := settings.Publish.Settings[0]
+	if setting.Preset != "recommended" || setting.MaxChangedFiles == nil || *setting.MaxChangedFiles != 50 ||
+		setting.PullRequests.Open != "always" || !setting.PullRequests.Draft || setting.PullRequests.Labels[0] != "agent" {
+		t.Errorf("setting = %+v", setting)
+	}
+}
