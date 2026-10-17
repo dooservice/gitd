@@ -2,13 +2,14 @@
 
 What gitd protects, from whom, and how; and what it leaves to whoever deploys it. Every
 claim here names the code or the test that makes it true. Reviewed against the code at
-version 0.7 (see [Review](#review)).
+version 0.7, and extended for what 0.8 adds — connections, GitHub Apps, publishing settings
+and pull requests — which awaits the outside review of 0.9 (see [Review](#review)).
 
 ## 1. What gitd protects
 
 | Asset | Why it matters |
 |---|---|
-| **Credentials** — the tokens and SSH keys gitd keeps or is given | They read and push private repositories; keeping them out of sandboxes is gitd's point |
+| **Credentials** — the tokens and SSH keys gitd keeps or is given, GitHub Apps' private keys, sign-ins' renewal tokens | They read and push private repositories; keeping them out of sandboxes is gitd's point |
 | **The git hosts' branches** | An agent should add a branch for review, never change one people use |
 | **gitd's own files** — pools, templates, layers, state, the audit log | Every workspace borrows from them; whoever writes them reaches every workspace |
 | **The machine outside the roots** | gitd writes only where its configuration says |
@@ -21,9 +22,10 @@ version 0.7 (see [Review](#review)).
 | **An agent or a sandbox** | Write anything in its own workspace, `.git` included; run any program there; choose what it commits, `.gitmodules` included | Nothing but its workspace |
 | **A repository's contents** | Name submodules, their paths and URLs; hold any file | Nothing |
 | **An MCP client** (an agent's model) | Call the eight MCP tools, with any arguments | Nothing beyond what the tools do |
-| **A caller on the socket** (the platform, the command line) | Every call of the API, credentials in requests included | Everything gitd does: see §5 |
+| **A caller on the socket** (the platform, the command line) | Every call of the API: credentials in requests, connecting GitHub, adding and removing credentials, setting publishing rules | Everything gitd does: see §5 |
 | **gitd's own user** | Everything gitd can | Not with root: see gitd-mount |
 | **The network and the git hosts** | Answer anything, redirect | Hosts' identities are checked (SSH host keys, TLS) |
+| **A browser on gitd's machine** | Open the page `gitd connect github-app` serves on 127.0.0.1 while it waits | Nothing: the page takes back only the code that comes with its own state |
 
 The line that matters: **a sandbox is not trusted; a caller on the socket is.** gitd keeps
 the first from reaching credentials, its files or other branches; it does not keep the
@@ -62,6 +64,38 @@ second from anything, until 0.9 gives callers tokens and tenants.
   command line ([`git/rules.go`](../internal/git/rules.go)).
 - **Kept tokens in memory.** `token_file` is best a systemd credential (`LoadCredential=`),
   which lives in memory and stays root's on disk.
+
+### Credentials kept through the API stay gitd's
+
+- **Never answered.** `ListConnections` shows what a credential opens and whom it acts as,
+  never its secret (`TestATokenAddedThroughTheAPIIsListedWithoutItsSecretAndRecorded`); none
+  of `ConnectionService` or `PublishingService` is an MCP tool, and a test fails if one
+  ever becomes one (`TestNoToolLetsAnAgentTouchConnectionsSettingsOrWhoIsAskedToReview`).
+- **Kept on disk for gitd alone.** Each connection is a file under `<state>/connections`,
+  `0600`, written atomically ([`internal/files`](../internal/files)); its secret is sealed
+  with AES-256-GCM when `secrets_key_file` names a key, so a copy of the state directory
+  opens nothing without it ([`internal/secrets`](../internal/secrets)). A secret that
+  cannot be opened stops the start. IDs are made by gitd, never given, so no file is named
+  outside the directory.
+- **A token for one repository, for one purpose, for an hour.** A GitHub App's private key
+  never leaves gitd: it signs a JWT, and the installation token gitd asks for is limited to
+  the one repository and to what the operation needs — contents read to fetch, contents
+  write to push, pull requests write to open one
+  (`TestATokenIsForOneRepositoryAndWhatTheOperationNeeds`). Tokens are kept in memory only,
+  renewed five minutes before they expire, and used as tokens are: a header in git's
+  environment in the pool. The key is read again for each JWT, so replacing it rotates it.
+- **GitHub says what an App is.** `AddGitHubApp` keeps an App only once GitHub has taken its
+  key, and what it acts as comes from GitHub, not from the caller.
+- **Creating an App from a manifest** holds a random state for an hour, good once
+  (`TestAnAppIsCreatedFromAManifestOnceAndKept`); the code is checked as one GitHub sends;
+  GitHub may send the person back only to an `https` address or to `localhost`. The
+  command line's page listens on 127.0.0.1 and takes a code only with its state.
+- **A sign-in** keeps its renewal token sealed, replaced each time GitHub renews it, and the
+  token it renews in memory only; neither the sign-in nor the renewal takes a secret of
+  gitd's public App.
+- **GitHub's API is called as the git hosts are**: TLS, a timeout, answers bounded to a
+  megabyte, and redirects never followed, so a token is sent only where it was meant for
+  ([`githubapp/api.go`](../internal/githubapp/api.go)).
 
 ### A workspace cannot make gitd run, write or publish for it
 
@@ -117,17 +151,36 @@ is stopped or paused** (§4, first rows). So:
   destination and renamed into place.
 - Removing deletes without following links.
 
-### Agents publish only where they may
+### Agents publish only where they may, and only what the rules allow
 
 - Publishing creates **new branches only**, and **never forces** a push.
 - **Only a token publishes**: a deploy key is read only.
-- With `[publish] branch_prefix`, a branch outside it is refused (`BRANCH_REFUSED`) before
-  anything is staged.
+- A branch outside the prefix the publishing settings set is refused (`BRANCH_REFUSED`)
+  before anything is staged.
 - Nothing is pushed when the workspace's own repository brings no new commit.
+- **The publishing settings are checked in the pool, on the commits to push, before any
+  push** — never in the workspace, which the sandbox writes. Each commit is read on its own,
+  so a change undone later is still refused; a rename is a deletion, so a test renamed away
+  is a test deleted; a merge counts only what it brings beyond merging its parents
+  (`--diff-merges=remerge`), so a change hidden in a merge is refused and merging what
+  people changed on `main` is not. Every repository about to be pushed, submodules
+  included, is checked against its own settings
+  (`TestTheCommitsToPublishSayWhichPathsTheyTouch`,
+  `TestAPublishThatBreaksARuleIsRefusedBeforeAnythingIsPushed`). git matches the paths;
+  a pattern that would be git's pathspec magic is refused.
+- **Every setting that opens a repository applies**: paths add up, the smallest file limit
+  wins, and a narrower branch prefix must start with every broader one, so no setting
+  loosens another.
+- **A pull request is opened with the credential that pushed**, after the push; if it cannot
+  be, the branch stays published and the answer says why. An agent may ask for one through
+  MCP, but never say who asked for the work: that would let it have gitd ask anyone to
+  review.
 
 ### Every publish is on the record
 
-Every publish, done or refused, is one line of `<state>/audit/publishes.jsonl`, synced
+Every publish, done or refused — with who asked for it and its pull request — and every
+change to connections and publishing settings, is one line of
+`<state>/audit/publishes.jsonl`, synced
 before the call answers; a line a crash cut short is skipped and never joins the next
 ([`internal/audit`](../internal/audit)). Read through `Audit`, `gitd audit`,
 `read_audit_log` and both clients.
@@ -167,7 +220,10 @@ Known, and left to the deployment or to a later version:
 
 | Gap | Why | What to do |
 |---|---|---|
-| **A caller on the socket is fully trusted** | The socket has no authentication in 0.7: whoever can open it may prepare, remove or publish any workspace, and send credentials | Give the socket's group to the platform only. 0.9 adds tokens and tenants |
+| **A caller on the socket is fully trusted** | The socket has no authentication in 0.8: whoever can open it may prepare, remove or publish any workspace, send credentials, connect GitHub, add or remove credentials and change the publishing rules | Give the socket's group to the platform only. 0.9 adds tokens and tenants, and an administrator key for connections and settings |
+| **Kept secrets are on gitd's disk** | Without `secrets_key_file`, connections' secrets are files only gitd's user reads; with it, whoever reads the key and the files reads them | Set `secrets_key_file` from a systemd credential, and keep the key out of backups of the state directory |
+| **Publishing rules see paths, not intent** | They refuse changes to protected paths, deleted kept paths and too many files; harmful code in any other file passes them | Keep reviewing pull requests; protect the branches they merge into on the host |
+| **A sign-in acts as the person** | A person's token reaches what they and gitd's public App reach, and cannot be narrowed to one repository per operation as an App's can | Prefer the organisation's own App for anything shared; sign in only for one person's own work |
 | **An agent with MCP is a caller on the socket** | `gitd mcp` calls the socket; an agent that runs it, or has a shell where the socket is reachable, can do what any caller can — to other agents' workspaces too | Run `gitd mcp` for one agent at a time, and never mount the socket into a sandbox. 0.9 scopes each token to one workspace |
 | **Sandboxes read every pool they are given** | A workspace reads its pool's objects through `alternates`; a sandbox given the whole pools directory reads every repository in it | Mount only the pools a sandbox's workspace borrows from. 0.9 keeps tenants' pools apart |
 | **Pools are readable by local users** | Pools and their files are `0755`/`0644`, so sandboxes running as other users can read them | On a shared host, give the state directory to a group (`StateDirectoryMode=0750`) and put sandboxes' users in it |
@@ -185,10 +241,13 @@ Known, and left to the deployment or to a later version:
 
 1. Run gitd as its own unprivileged user (`packaging/gitd.service`), and no sandbox as it.
 2. Give the socket's group to the platform only; never mount the socket into a sandbox.
-3. Keep tokens in systemd credentials (`LoadCredential=`), each with a prefix naming its
-   host and organization: `https://github.com/your-org`.
-4. Set `[publish] branch_prefix`, and protect that prefix on the git host as you would any
-   branch an outsider proposes.
+3. Connect GitHub with the organisation's own App (`gitd connect github-app`, or
+   `BeginGitHubApp` from the platform), installed only on the repositories agents work
+   on; keep other tokens in systemd credentials (`LoadCredential=`), each with a prefix
+   naming its host and organization: `https://github.com/your-org`. Set
+   `secrets_key_file`.
+4. Set publishing settings with a branch prefix and the `recommended` preset, and protect
+   that prefix on the git host as you would any branch an outsider proposes.
 5. Mount into each sandbox its workspace, read-write, and only the pools it borrows from,
    read-only. Run sandboxes with user namespaces.
 6. Stop or pause a workspace's sandbox while gitd updates, checks out, publishes or
@@ -216,6 +275,11 @@ before writing this:
 
 It also made consistent, without a vulnerability behind them, how branches read from a
 workspace and branches to publish are checked.
+
+**What 0.8 adds** — connections and their store, GitHub Apps and sign-ins, publishing
+settings checked in the pool, pull requests — was written against this document and
+reviewed by its author; the outside review of 0.9 · 6 covers it before the network endpoint
+ships.
 
 **Independent review (0.7 · 10).** A second review, by a reviewer that started from this
 document and the code without the author's context — an AI agent, not a person — found,
