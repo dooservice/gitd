@@ -24,6 +24,8 @@ from .models import (
 from .publishing_settings import (
     OpenedPullRequest,
     Opening,
+    Preset,
+    PresetOrigin,
     PublishSettings,
     PullRequestOptions,
     PullRequestSettings,
@@ -37,6 +39,8 @@ __all__ = [
     "KeptCredential",
     "OpenedPullRequest",
     "Opening",
+    "Preset",
+    "PresetOrigin",
     "PublishSettings",
     "PullRequestOptions",
     "PullRequestSettings",

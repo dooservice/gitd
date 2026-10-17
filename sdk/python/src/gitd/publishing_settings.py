@@ -10,6 +10,7 @@ from typing import Any
 from . import messages
 
 OPENING_PREFIX = "OPEN_"
+ORIGIN_PREFIX = "ORIGIN_"
 
 
 class Opening(StrEnum):
@@ -59,14 +60,15 @@ class PullRequestSettings:
 class PublishSettings:
     """The rules of the repositories whose address starts with url_prefix (empty for every
     repository): the name of a preset whose rules they take ("recommended" is gitd's own),
-    paths a publish may not change and paths it may not delete, as git's glob pathspecs, at
-    most how many files it may change, the branch prefix, and how pull requests are opened.
-    from_file says gitd.toml declares them."""
+    paths a publish may not change and paths it may not delete, as git's glob pathspecs,
+    paths those rules leave free, at most how many files it may change, the branch prefix,
+    and how pull requests are opened. from_file says gitd.toml declares them."""
 
     url_prefix: str = ""
     preset: str = ""
     protected_paths: list[str] = field(default_factory=list)
     kept_paths: list[str] = field(default_factory=list)
+    allowed_paths: list[str] = field(default_factory=list)
     max_changed_files: int | None = None
     branch_prefix: str = ""
     pull_requests: PullRequestSettings | None = None
@@ -79,6 +81,7 @@ class PublishSettings:
             preset=settings.preset,
             protected_paths=list(settings.protected_paths),
             kept_paths=list(settings.kept_paths),
+            allowed_paths=list(settings.allowed_paths),
             max_changed_files=settings.max_changed_files if settings.HasField("max_changed_files") else None,
             branch_prefix=settings.branch_prefix,
             pull_requests=(
@@ -95,12 +98,57 @@ class PublishSettings:
             preset=self.preset,
             protected_paths=self.protected_paths,
             kept_paths=self.kept_paths,
+            allowed_paths=self.allowed_paths,
             branch_prefix=self.branch_prefix,
         )
         if self.max_changed_files is not None:
             message.max_changed_files = self.max_changed_files
         if self.pull_requests is not None:
             message.pull_requests.CopyFrom(self.pull_requests.to_message())
+        return message
+
+
+class PresetOrigin(StrEnum):
+    """Where a preset comes from: gitd's own, gitd.toml, or the API."""
+
+    BUILT_IN = "built_in"
+    FILE = "file"
+    API = "api"
+
+    @classmethod
+    def from_message(cls, number: int) -> PresetOrigin:
+        name = messages.PRESET_ORIGIN.name(number).removeprefix(ORIGIN_PREFIX).lower()
+        return cls(name) if name in {member.value for member in cls} else cls.API
+
+
+@dataclass(frozen=True)
+class Preset:
+    """A named set of rules settings take: paths a publish may not change, paths it may not
+    delete, and at most how many files it may change. One named "recommended" replaces
+    gitd's own. origin is read from gitd, never sent."""
+
+    name: str
+    protected_paths: list[str] = field(default_factory=list)
+    kept_paths: list[str] = field(default_factory=list)
+    max_changed_files: int | None = None
+    origin: PresetOrigin = PresetOrigin.API
+
+    @classmethod
+    def from_message(cls, preset: Any) -> Preset:
+        return cls(
+            name=preset.name,
+            protected_paths=list(preset.protected_paths),
+            kept_paths=list(preset.kept_paths),
+            max_changed_files=preset.max_changed_files if preset.HasField("max_changed_files") else None,
+            origin=PresetOrigin.from_message(preset.origin),
+        )
+
+    def to_message(self) -> Any:
+        message: Any = messages.Preset(
+            name=self.name, protected_paths=self.protected_paths, kept_paths=self.kept_paths
+        )
+        if self.max_changed_files is not None:
+            message.max_changed_files = self.max_changed_files
         return message
 
 

@@ -43,3 +43,6 @@ FINISH_GITHUB_LOGIN = Method("ConnectionService", "FinishGitHubLogin", messages.
 GET_SETTINGS = Method("PublishingService", "GetSettings", messages.GetSettingsResponse)
 SET_SETTINGS = Method("PublishingService", "SetSettings", messages.SetSettingsResponse)
 REMOVE_SETTINGS = Method("PublishingService", "RemoveSettings", messages.RemoveSettingsResponse)
+LIST_PRESETS = Method("PublishingService", "ListPresets", messages.ListPresetsResponse)
+SET_PRESET = Method("PublishingService", "SetPreset", messages.SetPresetResponse)
+REMOVE_PRESET = Method("PublishingService", "RemovePreset", messages.RemovePresetResponse)
