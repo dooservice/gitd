@@ -46,6 +46,15 @@ jobs:
           app-id: ${{ secrets.GITD_E2E_APP_ID }}
           private-key: ${{ secrets.GITD_E2E_APP_KEY }}
           repositories: gitd-e2e
+      - name: the pull request is the bot's, a draft, and says what gitd checked
+        if: steps.secrets.outputs.set
+        env:
+          GH_TOKEN: ${{ steps.cleanup.outputs.token }}
+          RUN: ${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          gh pr view --repo dooservice/gitd-e2e "agents/e2e-$RUN" --json author,isDraft,labels,body > pull.json
+          jq -e '.author.login == "app/gitd-e2e" and .isDraft and ([.labels[].name] | index("agent"))' pull.json
+          jq -r .body pull.json | grep -F -- "- Changes: 1 file, +1 −0"
       - name: remove what the run pushed
         if: always() && steps.secrets.outputs.set
         env:

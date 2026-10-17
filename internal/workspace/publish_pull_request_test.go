@@ -53,7 +53,13 @@ func TestAPullRequestIsOpenedAsTheSettingsSayWithWhatGitdChecked(t *testing.T) {
 	}}
 	request := &gitdv1.PublishRequest{Branch: "agents/fix", RequestedBy: "josue",
 		PullRequest: &gitdv1.PullRequestOptions{Body: "Fixes the login."}}
-	workspaces.openPullRequest(context.Background(), request, repository, rules, answer)
+	account, err := workspaces.accountOf(context.Background(), repository, request, rules)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// The push marks the commits published, after which none is left to count.
+	markPublished(t, workspaces, repository, "agents/fix")
+	workspaces.openPullRequest(context.Background(), request, repository, rules, account, answer)
 
 	if answer.GetPullRequest().GetNumber() != 7 || answer.GetPullRequestFailure() != nil {
 		t.Fatalf("answer = %v", answer)
@@ -74,12 +80,12 @@ func TestNoPullRequestUnlessTheSettingsOrThePublishAsk(t *testing.T) {
 	opener := &openerKeeping{}
 	workspaces.UsePublishing(Publishing{PullRequests: opener})
 	asked := publishing.Effective{PullRequests: &gitdv1.PullRequestSettings{Open: gitdv1.PullRequestSettings_OPEN_WHEN_ASKED}}
-	workspaces.openPullRequest(context.Background(), &gitdv1.PublishRequest{Branch: "agents/fix"}, repository, asked, answer)
+	workspaces.openPullRequest(context.Background(), &gitdv1.PublishRequest{Branch: "agents/fix"}, repository, asked, pullrequests.Account{}, answer)
 	if opener.asked != nil || answer.GetPullRequest() != nil {
 		t.Fatal("a pull request was opened that nobody asked for")
 	}
 	request := &gitdv1.PublishRequest{Branch: "agents/fix", PullRequest: &gitdv1.PullRequestOptions{Open: true, Title: "Mine"}}
-	workspaces.openPullRequest(context.Background(), request, repository, asked, answer)
+	workspaces.openPullRequest(context.Background(), request, repository, asked, pullrequests.Account{}, answer)
 	if opener.asked == nil || opener.asked.Title != "Mine" {
 		t.Errorf("asked = %+v", opener.asked)
 	}
@@ -89,11 +95,17 @@ func TestAPullRequestThatFailsLeavesTheBranchPublishedAndSaysWhy(t *testing.T) {
 	workspaces, repository, answer := staged(t)
 	workspaces.UsePublishing(Publishing{PullRequests: &openerKeeping{err: git.Fail(git.AuthRefused, "no permission")}})
 	request := &gitdv1.PublishRequest{Branch: "agents/fix", PullRequest: &gitdv1.PullRequestOptions{Open: true}}
-	workspaces.openPullRequest(context.Background(), request, repository, publishing.Effective{}, answer)
+	workspaces.openPullRequest(context.Background(), request, repository, publishing.Effective{}, pullrequests.Account{}, answer)
 	if answer.GetPullRequestFailure().GetReason() != git.AuthRefused || answer.GetRepository() == nil {
 		t.Errorf("answer = %v", answer)
 	}
 	if err := validRequester("not a login!"); err == nil {
 		t.Error("a requester that is not an account was accepted")
 	}
+}
+
+// markPublished does what a push does to the pool: the staged commits become published.
+func markPublished(t *testing.T, workspaces *Workspaces, repository repo.Repo, branch string) {
+	t.Helper()
+	run(t, workspaces.pools.Path(repository), "update-ref", "refs/gitd/published/"+branch, "refs/gitd/staging/"+branch)
 }

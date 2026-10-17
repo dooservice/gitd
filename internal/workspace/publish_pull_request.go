@@ -34,11 +34,12 @@ func wantsPullRequest(settings *gitdv1.PullRequestSettings, options *gitdv1.Pull
 	return settings.GetOpen() == gitdv1.PullRequestSettings_OPEN_ALWAYS || options.GetOpen()
 }
 
-// openPullRequest opens the pull request of a publish just pushed, and says in the answer
-// what it opened, or why it could not: the branch is published either way.
+// openPullRequest opens the pull request of a publish just pushed, telling what account
+// says of it, and says in the answer what it opened, or why it could not: the branch is
+// published either way.
 func (workspaces *Workspaces) openPullRequest(
 	ctx context.Context, request *gitdv1.PublishRequest, repository repo.Repo,
-	rules publishing.Effective, answer *gitdv1.PublishResponse,
+	rules publishing.Effective, account pullrequests.Account, answer *gitdv1.PublishResponse,
 ) {
 	options := request.GetPullRequest()
 	if !wantsPullRequest(rules.PullRequests, options) {
@@ -49,10 +50,9 @@ func (workspaces *Workspaces) openPullRequest(
 		answer.PullRequestFailure = git.Fail(git.Unsupported, "this gitd opens no pull requests").Proto()
 		return
 	}
-	account, err := workspaces.accountOf(ctx, repository, request, rules, answer)
-	if err != nil {
-		answer.PullRequestFailure = failureOf(err).Proto()
-		return
+	account.Subjects = answer.GetRepository().GetSubjects()
+	for _, submodule := range answer.GetSubmodules() {
+		account.Submodules = append(account.Submodules, submodule.GetPath()+" → "+request.GetBranch())
 	}
 	title := options.GetTitle()
 	if title == "" && len(answer.GetRepository().GetSubjects()) > 0 {
@@ -78,27 +78,25 @@ func (workspaces *Workspaces) openPullRequest(
 	answer.PullRequest = opened
 }
 
-// accountOf is what a pull request tells of a publish, read from its pool.
+// accountOf is what a pull request tells of a publish: the files and lines its commits
+// change, read from the pool before the push marks them published, and its rules.
 func (workspaces *Workspaces) accountOf(
-	ctx context.Context, repository repo.Repo, request *gitdv1.PublishRequest,
-	rules publishing.Effective, answer *gitdv1.PublishResponse,
+	ctx context.Context, repository repo.Repo, request *gitdv1.PublishRequest, rules publishing.Effective,
 ) (pullrequests.Account, error) {
+	account := pullrequests.Account{RequestedBy: request.GetRequestedBy(), Rules: rules}
+	if !wantsPullRequest(rules.PullRequests, request.GetPullRequest()) {
+		return account, nil
+	}
 	branch := request.GetBranch()
 	files, err := workspaces.pools.Touched(ctx, repository, branch, nil, false)
 	if err != nil {
-		return pullrequests.Account{}, err
+		return account, err
 	}
 	added, removed, err := workspaces.pools.Lines(ctx, repository, branch)
 	if err != nil {
-		return pullrequests.Account{}, err
+		return account, err
 	}
-	account := pullrequests.Account{
-		RequestedBy: request.GetRequestedBy(), Subjects: answer.GetRepository().GetSubjects(),
-		Files: len(files), Added: added, Removed: removed, Rules: rules,
-	}
-	for _, submodule := range answer.GetSubmodules() {
-		account.Submodules = append(account.Submodules, submodule.GetPath()+" → "+branch)
-	}
+	account.Files, account.Added, account.Removed = len(files), added, removed
 	return account, nil
 }
 

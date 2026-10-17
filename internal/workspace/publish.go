@@ -63,6 +63,10 @@ func (workspaces *Workspaces) Publish(
 	if err := workspaces.checkRules(ctx, repository, branch, rules); err != nil {
 		return nil, err
 	}
+	account, err := workspaces.accountOf(ctx, repository, request, rules)
+	if err != nil {
+		return nil, err
+	}
 
 	given := credentials.FromProto(request.GetCredentials())
 	answer = &gitdv1.PublishResponse{Branch: branch}
@@ -76,6 +80,6 @@ func (workspaces *Workspaces) Publish(
 		return nil, err
 	}
 	answer.Repository = &gitdv1.PublishedRepository{Url: repository.HTTPS(), Commit: commit, Subjects: subjects}
-	workspaces.openPullRequest(ctx, request, repository, rules, answer)
+	workspaces.openPullRequest(ctx, request, repository, rules, account, answer)
 	return answer, nil
 }
