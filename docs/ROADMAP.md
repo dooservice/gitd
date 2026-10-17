@@ -702,7 +702,7 @@ benchmark, its docs and a release (principle 7).
 | 11 | 0.7 · 9 ✓, 10 ✓ | Threat model and security review | 5, 10 |
 | 12 | 0.7 · 11 ✓ | Benchmark "100 agents", example, docs; **release 0.7.0** ✓ and launch | 7–11 |
 | 13 | 0.8 · 0–2 ✓ | GitHub App and connections through the API, publishing settings, pull requests | 12 |
-| 14 | 0.8 · 3–5 | Changes, Diff, Compare, Conflicts, Watch, provenance | 12 |
+| 14 | 0.8 · 3–5 ✓ | Changes, Diff, Compare, Conflicts, Watch, provenance | 12 |
 | 15 | 0.8 · 6–8 | Warm layers, OpenHands, proof and docs; release 0.8.0 | 13, 14 |
 | 16 | 0.9 · 0–6 | Endpoint, tokens, sandbox repositories, tenants, network, examples, outside review; release 0.9.0 | 15 |
 | 17 | 0.10 · 0–2 | CSI node plugin, Helm chart, examples; release 0.10.0 | 16 |
