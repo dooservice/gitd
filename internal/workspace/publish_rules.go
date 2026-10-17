@@ -8,11 +8,12 @@ import (
 	"github.com/dooservice/gitd/internal/git"
 )
 
-// Publishing is the rules a publish follows: BranchPrefix, when set, is what every branch
-// published must start with; Recorder, when set, keeps every publish, done or refused.
+// Publishing is the rules a publish follows: Settings, when set, say per repository the
+// branch prefix, the paths a publish may not change or delete and how many files it may
+// change; Recorder, when set, keeps every publish, done or refused.
 type Publishing struct {
-	BranchPrefix string
-	Recorder     Recorder
+	Settings Settings
+	Recorder Recorder
 }
 
 // Recorder keeps a record of a publish: the audit log.
@@ -26,8 +27,7 @@ func (workspaces *Workspaces) UsePublishing(rules Publishing) {
 }
 
 // branchAllowed refuses a branch outside the prefix publishing is limited to.
-func (workspaces *Workspaces) branchAllowed(branch string) error {
-	prefix := workspaces.publishing.BranchPrefix
+func branchAllowed(branch, prefix string) error {
 	if prefix == "" || strings.HasPrefix(branch, prefix) {
 		return nil
 	}

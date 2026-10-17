@@ -91,7 +91,7 @@ func Run(ctx context.Context, path, socket, version string) error {
 	if err != nil {
 		return err
 	}
-	workspaces.UsePublishing(workspace.Publishing{BranchPrefix: settings.Publish.BranchPrefix, Recorder: auditLog})
+	workspaces.UsePublishing(workspace.Publishing{Settings: publishingSettings, Recorder: auditLog})
 
 	templates := template.New(settings.Templates(), locks, workspaces)
 	want := strategy.Name(settings.Workspaces.Strategy)

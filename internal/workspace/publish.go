@@ -16,8 +16,9 @@ import (
 // its own repository — its commit has to be there before the superproject's points at it —
 // and the superproject last. A submodule that cannot be published stops it all, saying which.
 //
-// The branch must start with the prefix publishing is limited to, if there is one, and every
-// publish, done or refused, is recorded.
+// The branch must start with the prefix publishing is limited to, if there is one; what each
+// repository brings must pass the rules its publishing settings set, checked in its pool
+// before anything is pushed; and every publish, done or refused, is recorded.
 func (workspaces *Workspaces) Publish(
 	ctx context.Context, request *gitdv1.PublishRequest,
 ) (answer *gitdv1.PublishResponse, err error) {
@@ -31,10 +32,11 @@ func (workspaces *Workspaces) Publish(
 	}
 	defer release()
 	entry.Url = repository.HTTPS()
+	rules := workspaces.rulesFor(repository)
 	if err := workspaces.validBranch(ctx, branch); err != nil {
 		return nil, err
 	}
-	if err := workspaces.branchAllowed(branch); err != nil {
+	if err := branchAllowed(branch, rules.BranchPrefix); err != nil {
 		return nil, err
 	}
 	commit, subjects, err := workspaces.pools.Stage(ctx, repository, path, branch)
@@ -48,6 +50,14 @@ func (workspaces *Workspaces) Publish(
 	}
 	changed, err := workspaces.stageSubmodules(ctx, path, repository, branch)
 	if err != nil {
+		return nil, err
+	}
+	for _, submodule := range changed {
+		if err := workspaces.checkRules(ctx, submodule.repository, branch, workspaces.rulesFor(submodule.repository)); err != nil {
+			return nil, err
+		}
+	}
+	if err := workspaces.checkRules(ctx, repository, branch, rules); err != nil {
 		return nil, err
 	}
 

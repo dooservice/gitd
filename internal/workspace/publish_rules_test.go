@@ -12,6 +12,7 @@ import (
 	"github.com/dooservice/gitd/internal/git"
 	"github.com/dooservice/gitd/internal/lock"
 	"github.com/dooservice/gitd/internal/pool"
+	"github.com/dooservice/gitd/internal/publishing"
 	"github.com/dooservice/gitd/internal/repo"
 	"github.com/dooservice/gitd/internal/strategy"
 	"github.com/dooservice/gitd/internal/template"
@@ -29,7 +30,14 @@ func TestEveryPublishIsRecordedAndABranchOutsideThePrefixRefused(t *testing.T) {
 	repository := repo.Repo{Host: "github.com", Path: "acme/web"}
 	workspaces, roots := newTestWorkspaces(t, repository)
 	recorded := &entries{}
-	workspaces.UsePublishing(Publishing{BranchPrefix: "agents/", Recorder: recorded})
+	settings, err := publishing.Open(t.TempDir(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := settings.Set(&gitdv1.PublishSettings{BranchPrefix: "agents/"}); err != nil {
+		t.Fatal(err)
+	}
+	workspaces.UsePublishing(Publishing{Settings: settings, Recorder: recorded})
 	ctx := context.Background()
 	path := made(t, workspaces, roots, "agent-1", repository)
 
