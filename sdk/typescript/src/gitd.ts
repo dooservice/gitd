@@ -11,6 +11,7 @@ import {
 } from "./gen/gitd/v1/gitd_pb.js";
 import { call, drain } from "./calls.js";
 import { sideProto, toEvent, toSide } from "./compare-convert.js";
+import { toWarmLayer } from "./warm-convert.js";
 import { refusal } from "./errors.js";
 import { Credentials } from "./credentials.js";
 import { pullRequestOptionsProto } from "./publishing-convert.js";
@@ -45,6 +46,7 @@ import type {
   Side,
   WorkspaceEvent,
   UpdateOptions,
+  WarmLayer,
   Workspace,
 } from "./types.js";
 
@@ -115,6 +117,7 @@ export class Gitd {
       withSubmodules: options.submodules ?? false,
       fullHistory: options.fullHistory ?? false,
       strategy: strategyProto(options.strategy),
+      warm: options.warm ?? "",
     };
     const stream = this.workspaces.prepare(request, { signal: options.signal });
     return toWorkspace(options.path, await drain(stream, options.onProgress));
@@ -241,6 +244,22 @@ export class Gitd {
       }
       throw refusal(error);
     }
+  }
+
+  /**
+   * Seals what was installed in an overlay workspace as the warm layer `name` of its
+   * repository, for workspaces made later at the same commit to stand on. The layer is
+   * moved, not copied: the workspace is removed.
+   */
+  async seal(path: string, name: string): Promise<WarmLayer> {
+    const answer = await call(() => this.workspaces.seal({ path, name }));
+    return toWarmLayer(answer.warm);
+  }
+
+  /** The warm layers of a repository. */
+  async warmLayers(url: string): Promise<WarmLayer[]> {
+    const answer = await call(() => this.workspaces.listWarm({ url }));
+    return answer.warm.map(toWarmLayer);
   }
 
   /** Deletes a workspace; its pool stays. */

@@ -11,7 +11,7 @@ export interface Workspace {
   /** The branch it follows; empty when detached at a commit. */
   branch: string;
   strategy: StrategyName;
-  /** An overlay workspace's template (lower) and its own layer (upper, work). */
+  /** An overlay workspace's template (lower), its own layer (upper, work), and its warm layer. */
   layers?: Layers;
   /** Submodules that could not be checked out, and why. */
   pendingSubmodules: PendingSubmodule[];
@@ -23,6 +23,22 @@ export interface Layers {
   lower: string;
   upper: string;
   work: string;
+  /** The warm layer between the template and its own, when it stands on one; else empty. */
+  warm: string;
+}
+
+/** A layer sealed from a workspace — what installing its dependencies wrote — for later ones to stand on. */
+export interface WarmLayer {
+  url: string;
+  name: string;
+  /** Workspaces stand on it at this commit only. */
+  commit: string;
+  sealedAt: Date;
+  sealedFrom: string;
+  /** Files it changes that git does not ignore, e.g. a lock file rewritten. */
+  changedFiles: number;
+  /** Workspaces standing on it now. */
+  users: number;
 }
 
 export interface PendingSubmodule {
@@ -223,6 +239,11 @@ export interface PrepareOptions extends Progressing {
   fullHistory?: boolean;
   /** A preference; gitd falls back to copy when it cannot run here. */
   strategy?: StrategyName;
+  /**
+   * A warm layer to stand on, its dependencies installed already: the workspace is then made
+   * by overlay, at the commit the layer was sealed at, or not at all.
+   */
+  warm?: string;
 }
 
 export interface UpdateOptions extends Progressing {

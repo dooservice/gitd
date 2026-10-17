@@ -38,7 +38,7 @@ export function toWorkspace(path: string, result: WorkspaceResult): Workspace {
     commit: result.commit,
     branch: result.branch,
     strategy: strategyName(result.strategy),
-    layers: layers && { lower: layers.lower, upper: layers.upper, work: layers.work },
+    layers: layers && { lower: layers.lower, upper: layers.upper, work: layers.work, warm: layers.warm },
     pendingSubmodules: result.pendingSubmodules.map((submodule) => ({
       path: submodule.path,
       url: submodule.url,
