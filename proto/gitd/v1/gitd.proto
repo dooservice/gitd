@@ -39,6 +39,16 @@ service WorkspaceService {
   rpc Changes(ChangesRequest) returns (ChangesResponse);
   // The unified diff of a workspace's changes, of some files or all, cut short at a size.
   rpc Diff(DiffRequest) returns (DiffResponse);
+  // How two works differ — two workspaces, two published branches, or one of each — file by
+  // file, with their lines and, when asked, their diff: what choosing between attempts at
+  // one task needs.
+  rpc Compare(CompareRequest) returns (CompareResponse);
+  // Whether the committed work of several workspaces or published branches merges cleanly,
+  // pair by pair, and on which files it does not. Read with git merge-tree in the pool,
+  // running none of the repository's code.
+  rpc Conflicts(ConflictsRequest) returns (ConflictsResponse);
+  // What happens to workspaces as it happens: made, changed, published, refused, removed.
+  rpc Watch(WatchRequest) returns (stream WatchResponse);
 }
 
 service RepositoryService {
@@ -442,6 +452,79 @@ message DiffResponse {
   string diff = 2;
   // Cut short at max_bytes.
   bool truncated = 3;
+}
+
+// One work to compare: a workspace, by its path, or a branch gitd published — or any
+// branch its pool holds — by its name.
+message Side {
+  oneof of {
+    string workspace = 1;
+    string branch = 2;
+  }
+}
+
+message CompareRequest {
+  Side first = 1;
+  Side second = 2;
+  // The repository, when both sides are branches; a workspace says its own, and every side
+  // must be of the same repository.
+  string url = 3;
+  bool include_ignored = 4;
+  // The unified diff too, from first to second, cut short at max_bytes (512 KiB unless
+  // said, never more than 8 MiB).
+  bool with_diff = 5;
+  int64 max_bytes = 6;
+}
+
+message CompareResponse {
+  // From first to second: added is in second only, deleted in first only.
+  repeated ChangedFile files = 1;
+  string diff = 2;
+  bool truncated = 3;
+}
+
+message ConflictsRequest {
+  // At least two; a workspace stands for what it committed, which gitd brings into the pool
+  // as publishing does, so its sandbox should not be writing meanwhile.
+  repeated Side sides = 1;
+  string url = 2;
+}
+
+// Two works that do not merge cleanly, and the files they conflict on.
+message Conflict {
+  Side first = 1;
+  Side second = 2;
+  repeated string paths = 3;
+}
+
+message ConflictsResponse {
+  // Every pair that does not merge cleanly; none when all do.
+  repeated Conflict conflicts = 1;
+}
+
+message WatchRequest {
+  // Only these workspaces; every workspace when empty.
+  repeated string paths = 1;
+}
+
+message WatchResponse {
+  enum Kind {
+    KIND_UNSPECIFIED = 0;
+    KIND_MADE = 1;
+    // Something in the workspace changed: seen in the agent's layer of an overlay workspace,
+    // within a couple of seconds, and coalesced.
+    KIND_CHANGED = 2;
+    KIND_PUBLISHED = 3;
+    KIND_REFUSED = 4;
+    KIND_REMOVED = 5;
+  }
+  Kind kind = 1;
+  string path = 2;
+  google.protobuf.Timestamp time = 3;
+  // The branch, for a publish done or refused.
+  string branch = 4;
+  // The pull request opened, or why a publish was refused.
+  string detail = 5;
 }
 
 message ProbeRequest {

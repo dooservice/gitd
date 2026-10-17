@@ -1147,6 +1147,254 @@
           ]
         },
         {
+          "name": "Side",
+          "field": [
+            {
+              "name": "workspace",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "oneofIndex": 0,
+              "jsonName": "workspace"
+            },
+            {
+              "name": "branch",
+              "number": 2,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "oneofIndex": 0,
+              "jsonName": "branch"
+            }
+          ],
+          "oneofDecl": [
+            {
+              "name": "of"
+            }
+          ]
+        },
+        {
+          "name": "CompareRequest",
+          "field": [
+            {
+              "name": "first",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".gitd.v1.Side",
+              "jsonName": "first"
+            },
+            {
+              "name": "second",
+              "number": 2,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".gitd.v1.Side",
+              "jsonName": "second"
+            },
+            {
+              "name": "url",
+              "number": 3,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "url"
+            },
+            {
+              "name": "include_ignored",
+              "number": 4,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_BOOL",
+              "jsonName": "includeIgnored"
+            },
+            {
+              "name": "with_diff",
+              "number": 5,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_BOOL",
+              "jsonName": "withDiff"
+            },
+            {
+              "name": "max_bytes",
+              "number": 6,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_INT64",
+              "jsonName": "maxBytes"
+            }
+          ]
+        },
+        {
+          "name": "CompareResponse",
+          "field": [
+            {
+              "name": "files",
+              "number": 1,
+              "label": "LABEL_REPEATED",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".gitd.v1.ChangedFile",
+              "jsonName": "files"
+            },
+            {
+              "name": "diff",
+              "number": 2,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "diff"
+            },
+            {
+              "name": "truncated",
+              "number": 3,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_BOOL",
+              "jsonName": "truncated"
+            }
+          ]
+        },
+        {
+          "name": "ConflictsRequest",
+          "field": [
+            {
+              "name": "sides",
+              "number": 1,
+              "label": "LABEL_REPEATED",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".gitd.v1.Side",
+              "jsonName": "sides"
+            },
+            {
+              "name": "url",
+              "number": 2,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "url"
+            }
+          ]
+        },
+        {
+          "name": "Conflict",
+          "field": [
+            {
+              "name": "first",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".gitd.v1.Side",
+              "jsonName": "first"
+            },
+            {
+              "name": "second",
+              "number": 2,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".gitd.v1.Side",
+              "jsonName": "second"
+            },
+            {
+              "name": "paths",
+              "number": 3,
+              "label": "LABEL_REPEATED",
+              "type": "TYPE_STRING",
+              "jsonName": "paths"
+            }
+          ]
+        },
+        {
+          "name": "ConflictsResponse",
+          "field": [
+            {
+              "name": "conflicts",
+              "number": 1,
+              "label": "LABEL_REPEATED",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".gitd.v1.Conflict",
+              "jsonName": "conflicts"
+            }
+          ]
+        },
+        {
+          "name": "WatchRequest",
+          "field": [
+            {
+              "name": "paths",
+              "number": 1,
+              "label": "LABEL_REPEATED",
+              "type": "TYPE_STRING",
+              "jsonName": "paths"
+            }
+          ]
+        },
+        {
+          "name": "WatchResponse",
+          "field": [
+            {
+              "name": "kind",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_ENUM",
+              "typeName": ".gitd.v1.WatchResponse.Kind",
+              "jsonName": "kind"
+            },
+            {
+              "name": "path",
+              "number": 2,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "path"
+            },
+            {
+              "name": "time",
+              "number": 3,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".google.protobuf.Timestamp",
+              "jsonName": "time"
+            },
+            {
+              "name": "branch",
+              "number": 4,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "branch"
+            },
+            {
+              "name": "detail",
+              "number": 5,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "detail"
+            }
+          ],
+          "enumType": [
+            {
+              "name": "Kind",
+              "value": [
+                {
+                  "name": "KIND_UNSPECIFIED",
+                  "number": 0
+                },
+                {
+                  "name": "KIND_MADE",
+                  "number": 1
+                },
+                {
+                  "name": "KIND_CHANGED",
+                  "number": 2
+                },
+                {
+                  "name": "KIND_PUBLISHED",
+                  "number": 3
+                },
+                {
+                  "name": "KIND_REFUSED",
+                  "number": 4
+                },
+                {
+                  "name": "KIND_REMOVED",
+                  "number": 5
+                }
+              ]
+            }
+          ]
+        },
+        {
           "name": "ProbeRequest",
           "field": [
             {
@@ -2328,6 +2576,22 @@
               "name": "Diff",
               "inputType": ".gitd.v1.DiffRequest",
               "outputType": ".gitd.v1.DiffResponse"
+            },
+            {
+              "name": "Compare",
+              "inputType": ".gitd.v1.CompareRequest",
+              "outputType": ".gitd.v1.CompareResponse"
+            },
+            {
+              "name": "Conflicts",
+              "inputType": ".gitd.v1.ConflictsRequest",
+              "outputType": ".gitd.v1.ConflictsResponse"
+            },
+            {
+              "name": "Watch",
+              "inputType": ".gitd.v1.WatchRequest",
+              "outputType": ".gitd.v1.WatchResponse",
+              "serverStreaming": true
             }
           ]
         },

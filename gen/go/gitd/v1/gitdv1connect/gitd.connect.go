@@ -67,6 +67,14 @@ const (
 	WorkspaceServiceChangesProcedure = "/gitd.v1.WorkspaceService/Changes"
 	// WorkspaceServiceDiffProcedure is the fully-qualified name of the WorkspaceService's Diff RPC.
 	WorkspaceServiceDiffProcedure = "/gitd.v1.WorkspaceService/Diff"
+	// WorkspaceServiceCompareProcedure is the fully-qualified name of the WorkspaceService's Compare
+	// RPC.
+	WorkspaceServiceCompareProcedure = "/gitd.v1.WorkspaceService/Compare"
+	// WorkspaceServiceConflictsProcedure is the fully-qualified name of the WorkspaceService's
+	// Conflicts RPC.
+	WorkspaceServiceConflictsProcedure = "/gitd.v1.WorkspaceService/Conflicts"
+	// WorkspaceServiceWatchProcedure is the fully-qualified name of the WorkspaceService's Watch RPC.
+	WorkspaceServiceWatchProcedure = "/gitd.v1.WorkspaceService/Watch"
 	// RepositoryServiceProbeProcedure is the fully-qualified name of the RepositoryService's Probe RPC.
 	RepositoryServiceProbeProcedure = "/gitd.v1.RepositoryService/Probe"
 	// ServerServiceInfoProcedure is the fully-qualified name of the ServerService's Info RPC.
@@ -146,6 +154,16 @@ type WorkspaceServiceClient interface {
 	Changes(context.Context, *connect.Request[v1.ChangesRequest]) (*connect.Response[v1.ChangesResponse], error)
 	// The unified diff of a workspace's changes, of some files or all, cut short at a size.
 	Diff(context.Context, *connect.Request[v1.DiffRequest]) (*connect.Response[v1.DiffResponse], error)
+	// How two works differ — two workspaces, two published branches, or one of each — file by
+	// file, with their lines and, when asked, their diff: what choosing between attempts at
+	// one task needs.
+	Compare(context.Context, *connect.Request[v1.CompareRequest]) (*connect.Response[v1.CompareResponse], error)
+	// Whether the committed work of several workspaces or published branches merges cleanly,
+	// pair by pair, and on which files it does not. Read with git merge-tree in the pool,
+	// running none of the repository's code.
+	Conflicts(context.Context, *connect.Request[v1.ConflictsRequest]) (*connect.Response[v1.ConflictsResponse], error)
+	// What happens to workspaces as it happens: made, changed, published, refused, removed.
+	Watch(context.Context, *connect.Request[v1.WatchRequest]) (*connect.ServerStreamForClient[v1.WatchResponse], error)
 }
 
 // NewWorkspaceServiceClient constructs a client for the gitd.v1.WorkspaceService service. By
@@ -219,6 +237,24 @@ func NewWorkspaceServiceClient(httpClient connect.HTTPClient, baseURL string, op
 			connect.WithSchema(workspaceServiceMethods.ByName("Diff")),
 			connect.WithClientOptions(opts...),
 		),
+		compare: connect.NewClient[v1.CompareRequest, v1.CompareResponse](
+			httpClient,
+			baseURL+WorkspaceServiceCompareProcedure,
+			connect.WithSchema(workspaceServiceMethods.ByName("Compare")),
+			connect.WithClientOptions(opts...),
+		),
+		conflicts: connect.NewClient[v1.ConflictsRequest, v1.ConflictsResponse](
+			httpClient,
+			baseURL+WorkspaceServiceConflictsProcedure,
+			connect.WithSchema(workspaceServiceMethods.ByName("Conflicts")),
+			connect.WithClientOptions(opts...),
+		),
+		watch: connect.NewClient[v1.WatchRequest, v1.WatchResponse](
+			httpClient,
+			baseURL+WorkspaceServiceWatchProcedure,
+			connect.WithSchema(workspaceServiceMethods.ByName("Watch")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -234,6 +270,9 @@ type workspaceServiceClient struct {
 	publish        *connect.Client[v1.PublishRequest, v1.PublishResponse]
 	changes        *connect.Client[v1.ChangesRequest, v1.ChangesResponse]
 	diff           *connect.Client[v1.DiffRequest, v1.DiffResponse]
+	compare        *connect.Client[v1.CompareRequest, v1.CompareResponse]
+	conflicts      *connect.Client[v1.ConflictsRequest, v1.ConflictsResponse]
+	watch          *connect.Client[v1.WatchRequest, v1.WatchResponse]
 }
 
 // Prepare calls gitd.v1.WorkspaceService.Prepare.
@@ -286,6 +325,21 @@ func (c *workspaceServiceClient) Diff(ctx context.Context, req *connect.Request[
 	return c.diff.CallUnary(ctx, req)
 }
 
+// Compare calls gitd.v1.WorkspaceService.Compare.
+func (c *workspaceServiceClient) Compare(ctx context.Context, req *connect.Request[v1.CompareRequest]) (*connect.Response[v1.CompareResponse], error) {
+	return c.compare.CallUnary(ctx, req)
+}
+
+// Conflicts calls gitd.v1.WorkspaceService.Conflicts.
+func (c *workspaceServiceClient) Conflicts(ctx context.Context, req *connect.Request[v1.ConflictsRequest]) (*connect.Response[v1.ConflictsResponse], error) {
+	return c.conflicts.CallUnary(ctx, req)
+}
+
+// Watch calls gitd.v1.WorkspaceService.Watch.
+func (c *workspaceServiceClient) Watch(ctx context.Context, req *connect.Request[v1.WatchRequest]) (*connect.ServerStreamForClient[v1.WatchResponse], error) {
+	return c.watch.CallServerStream(ctx, req)
+}
+
 // WorkspaceServiceHandler is an implementation of the gitd.v1.WorkspaceService service.
 type WorkspaceServiceHandler interface {
 	// Create a workspace at a path, from the repository's pool, at a branch or a commit.
@@ -313,6 +367,16 @@ type WorkspaceServiceHandler interface {
 	Changes(context.Context, *connect.Request[v1.ChangesRequest]) (*connect.Response[v1.ChangesResponse], error)
 	// The unified diff of a workspace's changes, of some files or all, cut short at a size.
 	Diff(context.Context, *connect.Request[v1.DiffRequest]) (*connect.Response[v1.DiffResponse], error)
+	// How two works differ — two workspaces, two published branches, or one of each — file by
+	// file, with their lines and, when asked, their diff: what choosing between attempts at
+	// one task needs.
+	Compare(context.Context, *connect.Request[v1.CompareRequest]) (*connect.Response[v1.CompareResponse], error)
+	// Whether the committed work of several workspaces or published branches merges cleanly,
+	// pair by pair, and on which files it does not. Read with git merge-tree in the pool,
+	// running none of the repository's code.
+	Conflicts(context.Context, *connect.Request[v1.ConflictsRequest]) (*connect.Response[v1.ConflictsResponse], error)
+	// What happens to workspaces as it happens: made, changed, published, refused, removed.
+	Watch(context.Context, *connect.Request[v1.WatchRequest], *connect.ServerStream[v1.WatchResponse]) error
 }
 
 // NewWorkspaceServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -382,6 +446,24 @@ func NewWorkspaceServiceHandler(svc WorkspaceServiceHandler, opts ...connect.Han
 		connect.WithSchema(workspaceServiceMethods.ByName("Diff")),
 		connect.WithHandlerOptions(opts...),
 	)
+	workspaceServiceCompareHandler := connect.NewUnaryHandler(
+		WorkspaceServiceCompareProcedure,
+		svc.Compare,
+		connect.WithSchema(workspaceServiceMethods.ByName("Compare")),
+		connect.WithHandlerOptions(opts...),
+	)
+	workspaceServiceConflictsHandler := connect.NewUnaryHandler(
+		WorkspaceServiceConflictsProcedure,
+		svc.Conflicts,
+		connect.WithSchema(workspaceServiceMethods.ByName("Conflicts")),
+		connect.WithHandlerOptions(opts...),
+	)
+	workspaceServiceWatchHandler := connect.NewServerStreamHandler(
+		WorkspaceServiceWatchProcedure,
+		svc.Watch,
+		connect.WithSchema(workspaceServiceMethods.ByName("Watch")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/gitd.v1.WorkspaceService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case WorkspaceServicePrepareProcedure:
@@ -404,6 +486,12 @@ func NewWorkspaceServiceHandler(svc WorkspaceServiceHandler, opts ...connect.Han
 			workspaceServiceChangesHandler.ServeHTTP(w, r)
 		case WorkspaceServiceDiffProcedure:
 			workspaceServiceDiffHandler.ServeHTTP(w, r)
+		case WorkspaceServiceCompareProcedure:
+			workspaceServiceCompareHandler.ServeHTTP(w, r)
+		case WorkspaceServiceConflictsProcedure:
+			workspaceServiceConflictsHandler.ServeHTTP(w, r)
+		case WorkspaceServiceWatchProcedure:
+			workspaceServiceWatchHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -451,6 +539,18 @@ func (UnimplementedWorkspaceServiceHandler) Changes(context.Context, *connect.Re
 
 func (UnimplementedWorkspaceServiceHandler) Diff(context.Context, *connect.Request[v1.DiffRequest]) (*connect.Response[v1.DiffResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("gitd.v1.WorkspaceService.Diff is not implemented"))
+}
+
+func (UnimplementedWorkspaceServiceHandler) Compare(context.Context, *connect.Request[v1.CompareRequest]) (*connect.Response[v1.CompareResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("gitd.v1.WorkspaceService.Compare is not implemented"))
+}
+
+func (UnimplementedWorkspaceServiceHandler) Conflicts(context.Context, *connect.Request[v1.ConflictsRequest]) (*connect.Response[v1.ConflictsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("gitd.v1.WorkspaceService.Conflicts is not implemented"))
+}
+
+func (UnimplementedWorkspaceServiceHandler) Watch(context.Context, *connect.Request[v1.WatchRequest], *connect.ServerStream[v1.WatchResponse]) error {
+	return connect.NewError(connect.CodeUnimplemented, errors.New("gitd.v1.WorkspaceService.Watch is not implemented"))
 }
 
 // RepositoryServiceClient is a client for the gitd.v1.RepositoryService service.

@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"errors"
 
 	"connectrpc.com/connect"
 
@@ -26,4 +27,24 @@ func (server *Server) Diff(
 		return nil, server.refuse(err)
 	}
 	return connect.NewResponse(answer), nil
+}
+
+// Compare, Conflicts and Watch come with their own changes; until then they answer that
+// they are not implemented.
+func (server *Server) Compare(
+	context.Context, *connect.Request[gitdv1.CompareRequest],
+) (*connect.Response[gitdv1.CompareResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("comparing is not done yet"))
+}
+
+func (server *Server) Conflicts(
+	context.Context, *connect.Request[gitdv1.ConflictsRequest],
+) (*connect.Response[gitdv1.ConflictsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("conflicts are not read yet"))
+}
+
+func (server *Server) Watch(
+	context.Context, *connect.Request[gitdv1.WatchRequest], *connect.ServerStream[gitdv1.WatchResponse],
+) error {
+	return connect.NewError(connect.CodeUnimplemented, errors.New("watching is not done yet"))
 }
