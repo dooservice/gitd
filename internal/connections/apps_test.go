@@ -36,7 +36,7 @@ func TestAGitHubAppKeptMakesItsTokensAsACredentialUntilItIsRemoved(t *testing.T)
 	if err := store.Remove(added.ID); err != nil {
 		t.Fatal(err)
 	}
-	if len(store.Credentials()) != 0 || len(store.apps.made) != 0 {
+	if len(store.Credentials()) != 0 || len(store.minters.made) != 0 {
 		t.Error("the App removed still makes tokens")
 	}
 }

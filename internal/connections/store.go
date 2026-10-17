@@ -32,7 +32,7 @@ type Store struct {
 	records   map[string]Record
 	opened    map[string][]byte
 	github    GitHub
-	apps      apps
+	minters   minters
 	creating  pending[appBeingCreated]
 }
 
