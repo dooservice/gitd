@@ -1,7 +1,8 @@
 # Security policy
 
-gitd holds the credentials that read private repositories and writes the code that runs
-from its workspaces, so we treat every report seriously.
+gitd holds the credentials that read and push private repositories, so that the agents
+and sandboxes working in its workspaces never do. Keeping them out of reach is its whole
+point, and we treat every report seriously.
 
 ## Reporting a vulnerability
 
@@ -20,7 +21,9 @@ before disclosing.
 
 ## Scope
 
-In scope: this service, its socket API and how it handles credentials, URLs and repository
-contents. Out of scope: vulnerabilities in git itself; report those to the git project.
+In scope: this service, its socket API, its command line and MCP tools, and how it handles
+credentials (kept or sent), URLs and repository contents — in particular anything that lets
+a workspace, an agent or an MCP client obtain a credential, write outside gitd's roots, or
+publish where it should not. Out of scope: vulnerabilities in git itself; report those to the git project.
 
 Only the latest release gets fixes.
