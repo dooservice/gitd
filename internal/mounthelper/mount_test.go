@@ -37,13 +37,13 @@ func TestGitdMountMountsAndUnmountsAnOverlayAndNothingElse(t *testing.T) {
 	go func() { _ = Serve(listener, config) }()
 	client := Client{Socket: socket}
 
-	if err := client.MountOverlay(lower, upper, work, target); err != nil {
+	if err := client.MountOverlay([]string{lower}, upper, work, target); err != nil {
 		t.Fatal(err)
 	}
 	if data, err := os.ReadFile(filepath.Join(target, "README.md")); err != nil || string(data) != "hi" {
 		t.Errorf("the overlay does not show the template: %q, %v", data, err)
 	}
-	if err := client.MountOverlay(lower, upper, work, target); err == nil || !strings.Contains(err.Error(), "not empty") {
+	if err := client.MountOverlay([]string{lower}, upper, work, target); err == nil || !strings.Contains(err.Error(), "not empty") {
 		t.Errorf("mounted over a mounted workspace: %v", err)
 	}
 	if err := client.Unmount(target); err != nil {
@@ -54,6 +54,31 @@ func TestGitdMountMountsAndUnmountsAnOverlayAndNothingElse(t *testing.T) {
 	}
 	if err := client.Unmount(target); err != nil {
 		t.Errorf("unmounting what is not mounted: %v", err)
+	}
+
+	// A warm layer stands between the template and the workspace's own layer, and wins.
+	warm := filepath.Join(config.Templates, ".warm", "web")
+	if err := os.MkdirAll(warm, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(warm, "README.md"), []byte("warm"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := client.MountOverlay([]string{warm, lower}, upper, work, target); err != nil {
+		t.Fatal(err)
+	}
+	if data, err := os.ReadFile(filepath.Join(target, "README.md")); err != nil || string(data) != "warm" {
+		t.Errorf("the overlay does not show the warm layer: %q, %v", data, err)
+	}
+	if err := client.Unmount(target); err != nil {
+		t.Fatal(err)
+	}
+	// Each lower layer is checked on its own, and there are at most two.
+	if err := client.MountOverlay([]string{upper, lower}, upper, work, target); err == nil {
+		t.Error("mounted a lower layer outside the templates")
+	}
+	if err := client.MountOverlay([]string{warm, warm, lower}, upper, work, target); err == nil || !strings.Contains(err.Error(), "at most") {
+		t.Errorf("mounted three lower layers: %v", err)
 	}
 
 	// A mount that is not an overlay is never unmounted.

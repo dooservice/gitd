@@ -2,12 +2,14 @@ package mounthelper
 
 import (
 	"fmt"
+	"strings"
 
 	"golang.org/x/sys/unix"
 )
 
 // Request is what gitd asks: Op "mount", with all four directories, or "unmount", with the
-// target only.
+// target only. Lower is one template, or a warm layer and its template joined by a colon,
+// the topmost first; each is checked on its own.
 type Request struct {
 	Op     string `json:"op"`
 	Lower  string `json:"lower,omitempty"`
@@ -41,31 +43,49 @@ func mountOverlay(config Config, uid int, request Request) error {
 		return err
 	}
 	defer layers.close()
-	options := "lowerdir=" + layers.lower.Path + ",upperdir=" + layers.upper.Path + ",workdir=" + layers.work.Path
+	lowers := make([]string, len(layers.lowers))
+	for index, lower := range layers.lowers {
+		lowers[index] = lower.Path
+	}
+	options := "lowerdir=" + strings.Join(lowers, ":") + ",upperdir=" + layers.upper.Path + ",workdir=" + layers.work.Path
 	return unix.Mount("overlay", layers.target.Path, "overlay", unix.MS_NOSUID|unix.MS_NODEV, options)
 }
 
-// mountLayers are a mount request's four directories, pinned and checked.
+// maxLowers is how many read-only layers a workspace may stand on: its template, and a warm
+// layer above it.
+const maxLowers = 2
+
+// mountLayers are a mount request's directories, pinned and checked.
 type mountLayers struct {
-	lower, upper, work, target pinned
+	lowers              []pinned
+	upper, work, target pinned
 }
 
 func (layers mountLayers) close() {
-	for _, dir := range []pinned{layers.lower, layers.upper, layers.work, layers.target} {
+	for _, dir := range append([]pinned{layers.upper, layers.work, layers.target}, layers.lowers...) {
 		if dir.Path != "" {
 			dir.Close()
 		}
 	}
 }
 
-// checkMount pins a mount request's directories, each where it belongs — the lower layer
+// checkMount pins a mount request's directories, each where it belongs — the lower layers
 // among the templates, upper and work among the layers, the target in a root and empty —
 // all the caller's, reached without a symbolic link.
 func checkMount(config Config, uid int, request Request) (mountLayers, error) {
 	var layers mountLayers
 	var err error
-	if layers.lower, err = pin(config.Templates, request.Lower, uid); err != nil {
-		return mountLayers{}, err
+	lowers := strings.Split(request.Lower, ":")
+	if len(lowers) > maxLowers {
+		return mountLayers{}, fmt.Errorf("%w: at most %d lower layers", errRefused, maxLowers)
+	}
+	for _, lower := range lowers {
+		pinned, err := pin(config.Templates, lower, uid)
+		if err != nil {
+			layers.close()
+			return mountLayers{}, err
+		}
+		layers.lowers = append(layers.lowers, pinned)
 	}
 	if layers.upper, err = pin(config.Layers, request.Upper, uid); err != nil {
 		layers.close()

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"strings"
 	"time"
 )
 
@@ -13,9 +14,10 @@ type Client struct {
 	Socket string
 }
 
-// MountOverlay asks for target to be mounted as the overlay of upper on lower.
-func (client Client) MountOverlay(lower, upper, work, target string) error {
-	return client.ask(Request{Op: "mount", Lower: lower, Upper: upper, Work: work, Target: target})
+// MountOverlay asks for target to be mounted as the overlay of upper on lowers, the topmost
+// first, which travel as one field joined by colons, as overlayfs names them.
+func (client Client) MountOverlay(lowers []string, upper, work, target string) error {
+	return client.ask(Request{Op: "mount", Lower: strings.Join(lowers, ":"), Upper: upper, Work: work, Target: target})
 }
 
 // Unmount asks for the overlay at target to be unmounted.
