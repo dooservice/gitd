@@ -178,6 +178,7 @@ calls gitd in a few lines instead of writing a client.
 | D5 | A strategy is chosen automatically only if the conformance suite passes on it | git correctness is not negotiable — it is what kept fuse-overlayfs out |
 | D6 | `update` and `checkout` stay plain git inside the workspace | Correct in every case |
 | D7 | New contract fields only | Principle 2 |
+| D7b | Handing a runtime the layers to mount itself moves to 0.9 | Docker needs none — gitd-mount mounts the workspace on the host, and the container binds it like any directory; the CSI driver is the first that needs layers, so it shapes that part of the contract |
 | D8 | SDKs in 0.7, not 1.0 | Platforms are the users; a client in their language is the first thing they need, and generating it is cheap |
 | D9 | Branch prefix and audit log in 0.7 | Small, and what makes a company trust agents to publish |
 
@@ -202,7 +203,7 @@ calls gitd in a few lines instead of writing a client.
 | **0.7 · 1 Templates** ✓ | `internal/template`: build, register users, retire; housekeeping retires the unused | Done: built once even when asked for at once, shared, never rebuilt, retired only when unused and rested, swept after a crash; built by the workspace package, detached at its commit and tuned for copies |
 | **0.7 · 2 Strategies** ✓ | One interface; copy (today's code moved behind it), overlay (external and helper), reflink (`FICLONE`); detection at start | Done: overlay and reflink makers, detection (a state on an overlay told apart), Prepare and Remove through them; end to end with the kernel's overlay, workspaces after the first in 26–32 ms. Whole-history and submodule workspaces are still written, until templates hold them |
 | **0.7 · 3 `gitd-mount`** ✓ | The helper: a small root service with `CAP_SYS_ADMIN` only, socket-activated, with systemd units | Done: refuses any path outside its directories or through a symlink, any caller but gitd's user, any unmount of what is not an overlay; tests (root ones in CI) and a fuzz target; end to end, an unprivileged gitd made workspaces in 34–36 ms through it |
-| **0.7 · 4 Contract** | `[workspaces] strategy`; `strategy` on `Prepare`; `strategy` and `layers` in `WorkspaceResult` and `Describe`; CLI flags and MCP output | buf lint and breaking-change check pass; a 0.6 client still works |
+| **0.7 · 4 Contract** ✓ | `[workspaces] strategy`; `strategy` on `Prepare`; `strategy` and `layers` in `WorkspaceResult` and `Describe`; strategy, its reason and templates in `Info`; CLI flags and MCP output | Done: buf breaking finds nothing against 0.6.0, and the 0.6.0 command line works against it |
 | **0.7 · 5 Lifecycle** | Unmount on remove; remount at start; templates and layers in the start-up sweep and in `Info` | A restarted gitd serves every overlay workspace it had |
 | **0.7 · 6 Conformance** | What agents do — status, diff, add, commit, stash, rebase, checkout, submodules, publish — on every strategy in CI; fuse-overlayfs retried inside a user namespace | It gates D5; fuse-overlayfs either passes and joins, or stays out, recorded here |
 | **0.7 · 7 SDKs** | Python and TypeScript clients from the contract with buf; published; one example each | `pip install` / `npm install`, then prepare, describe and publish in a few lines |
@@ -359,7 +360,7 @@ publishes, and the pod never holds a credential.
 
 | Task | What | Done when |
 |---|---|---|
-| **0.9 · 0 Node plugin** | CSI NodePublish and NodeUnpublish for ephemeral volumes | A pod on kind gets a workspace |
+| **0.9 · 0 Node plugin** | CSI NodePublish and NodeUnpublish for ephemeral volumes; the contract's way of handing the plugin a workspace's layers to mount itself (from 0.7, D7b) | A pod on kind gets a workspace |
 | **0.9 · 1 Helm chart** | gitd and the plugin as DaemonSets, Secrets, configuration | `helm install` on kind and a real cluster |
 | **0.9 · 2 Examples** | A pod and an agent Job that commits and publishes | Run end to end in CI |
 
@@ -423,7 +424,7 @@ benchmark, its docs and a release (principle 7).
 | 3 | 0.7 · 1 ✓ | Templates | 2 |
 | 4 | 0.7 · 2 ✓ | Strategies and detection: copy moved behind the interface first, then overlay, then reflink | 3 |
 | 5 | 0.7 · 3 ✓ | `gitd-mount` | 4 |
-| 6 | 0.7 · 4 | Contract, CLI and MCP | 4 |
+| 6 | 0.7 · 4 ✓ | Contract, CLI and MCP | 4 |
 | 7 | 0.7 · 5 | Lifecycle | 5, 6 |
 | 8 | 0.7 · 6 | Conformance suite gating the strategies; fuse-overlayfs in a user namespace | 4 |
 | 9 | 0.7 · 7 | Python and TypeScript SDKs | 6 |
