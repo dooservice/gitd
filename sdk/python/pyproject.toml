@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "gitd"
-version = "0.7.0"
+version = "0.8.0"
 description = "Client for gitd: instant, secretless git checkouts for agent sandboxes"
 readme = "README.md"
 license = "Apache-2.0"
