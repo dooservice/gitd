@@ -74,3 +74,28 @@ func (handlers *connectionHandlers) AddGitHubApp(
 	handlers.server.recordChange(gitdv1.ConfigurationChange_ACTION_CONNECTION_ADDED, added.ID, added.URLPrefix)
 	return connect.NewResponse(&gitdv1.AddGitHubAppResponse{Connection: added.Shown()}), nil
 }
+
+func (handlers *connectionHandlers) BeginGitHubApp(
+	_ context.Context, request *connect.Request[gitdv1.BeginGitHubAppRequest],
+) (*connect.Response[gitdv1.BeginGitHubAppResponse], error) {
+	message := request.Msg
+	toCreate, err := handlers.server.Connections.BeginApp(message.GetHost(), message.GetOrganization(),
+		message.GetName(), message.GetRedirectUrl())
+	if err != nil {
+		return nil, refuseChange(err)
+	}
+	return connect.NewResponse(&gitdv1.BeginGitHubAppResponse{
+		FormAction: toCreate.FormAction, Manifest: toCreate.Manifest, State: toCreate.State,
+	}), nil
+}
+
+func (handlers *connectionHandlers) CompleteGitHubApp(
+	ctx context.Context, request *connect.Request[gitdv1.CompleteGitHubAppRequest],
+) (*connect.Response[gitdv1.CompleteGitHubAppResponse], error) {
+	record, install, err := handlers.server.Connections.CompleteApp(ctx, request.Msg.GetCode(), request.Msg.GetState())
+	if err != nil {
+		return nil, refuseChange(err)
+	}
+	handlers.server.recordChange(gitdv1.ConfigurationChange_ACTION_CONNECTION_ADDED, record.ID, record.URLPrefix)
+	return connect.NewResponse(&gitdv1.CompleteGitHubAppResponse{Connection: record.Shown(), InstallUrl: install}), nil
+}

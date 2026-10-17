@@ -91,3 +91,23 @@ func TestAConnectionThatCannotBeChangedIsRefusedWithItsCode(t *testing.T) {
 		}
 	}
 }
+
+func TestCreatingAGitHubAppStartsThroughTheAPIAndAStateIsNeverGuessed(t *testing.T) {
+	handlers := &connectionHandlers{server: connectionsServer(t)}
+	ctx := context.Background()
+	begun, err := handlers.BeginGitHubApp(ctx, connect.NewRequest(&gitdv1.BeginGitHubAppRequest{
+		Organization: "acme", Name: "acme-agents", RedirectUrl: "https://platform.example.com/github/created",
+	}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if begun.Msg.GetState() == "" || !strings.Contains(begun.Msg.GetFormAction(), "/organizations/acme/settings/apps/new") {
+		t.Errorf("begun = %v", begun.Msg)
+	}
+	var refused *connect.Error
+	if _, err := handlers.CompleteGitHubApp(ctx, connect.NewRequest(&gitdv1.CompleteGitHubAppRequest{
+		Code: "code", State: "guessed",
+	})); !errors.As(err, &refused) || refused.Code() != connect.CodeInvalidArgument {
+		t.Errorf("a guessed state: %v", err)
+	}
+}
