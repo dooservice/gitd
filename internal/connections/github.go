@@ -31,7 +31,7 @@ func (store *Store) AddApp(ctx context.Context, host string, appID int64, privat
 	if err != nil {
 		return Record{}, fmt.Errorf("%w: %v", ErrInvalid, err)
 	}
-	app := githubapp.NewApp(signer, store.github.api(host))
+	app := githubapp.NewApp(signer, store.github.API(host))
 	bot, manage, err := app.Identity(ctx)
 	if err != nil {
 		return Record{}, fmt.Errorf("%w: GitHub did not take this key as App %d's: %v", ErrInvalid, appID, err)

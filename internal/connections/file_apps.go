@@ -35,7 +35,7 @@ func NewFileApps(declared []config.Credential, github GitHub) (*FileApps, error)
 			return nil, fmt.Errorf("credentials[%d] (%q): %w", index, credential.Prefix, err)
 		}
 		host, _, _ := strings.Cut(strings.TrimPrefix(prefix, "https://"), "/")
-		app := githubapp.NewApp(signer, github.api(host))
+		app := githubapp.NewApp(signer, github.API(host))
 		label := appLabel(Record{AppID: setting.AppID})
 		apps.kept = append(apps.kept, credentials.KeptMinter(prefix, app, label))
 	}

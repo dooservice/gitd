@@ -80,7 +80,7 @@ func (store *Store) FinishLogin(ctx context.Context, loginID string) (Record, st
 }
 
 func (store *Store) keepLogin(ctx context.Context, host string, tokens githubapp.UserTokens) (Record, string, error) {
-	login, err := store.github.api(host).User(ctx, tokens.AccessToken)
+	login, err := store.github.API(host).User(ctx, tokens.AccessToken)
 	if err != nil {
 		return Record{}, "", err
 	}

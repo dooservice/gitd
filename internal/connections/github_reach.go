@@ -27,8 +27,8 @@ func (github GitHub) web(host string) string {
 	return githubapp.WebBase(host, github.Hosts[host].HTTPSPort)
 }
 
-// api is GitHub's API for a host.
-func (github GitHub) api(host string) *githubapp.API {
+// API is GitHub's API for a host.
+func (github GitHub) API(host string) *githubapp.API {
 	base := github.APIBase
 	if base == "" {
 		base = githubapp.APIBase(host, github.Hosts[host].HTTPSPort)

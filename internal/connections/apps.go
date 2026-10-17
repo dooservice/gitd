@@ -18,7 +18,7 @@ func (store *Store) app(record Record) (credentials.Minter, error) {
 		if err != nil {
 			return nil, err
 		}
-		return githubapp.NewApp(signer, store.github.api(record.Host)), nil
+		return githubapp.NewApp(signer, store.github.API(record.Host)), nil
 	})
 }
 

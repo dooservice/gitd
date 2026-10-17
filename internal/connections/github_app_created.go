@@ -71,7 +71,7 @@ func (store *Store) CompleteApp(ctx context.Context, code, state string) (Record
 	if !manifestCode.MatchString(code) {
 		return Record{}, "", fmt.Errorf("%w: this is not a code GitHub sends", ErrInvalid)
 	}
-	created, err := store.github.api(being.host).Convert(ctx, code)
+	created, err := store.github.API(being.host).Convert(ctx, code)
 	if err != nil {
 		return Record{}, "", fmt.Errorf("%w: GitHub did not exchange the code: %v", ErrInvalid, err)
 	}
