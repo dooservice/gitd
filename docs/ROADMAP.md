@@ -468,7 +468,7 @@ It lands first as `examples/openhands`, run in CI, and is then proposed to OpenH
 | **0.8 · 5 Provenance** | Origin fields on `Publish`, into the audit log and the pull request | Recorded, bounded, shown; never a commit rewritten |
 | **0.8 · 6 Warm layers** | `Seal`; `Prepare` on a warm layer; retirement | A workspace starts with `node_modules` installed in milliseconds, measured; gitd ran no setup |
 | **0.8 · 7 OpenHands** | `examples/openhands`, in CI; then a proposal upstream | An OpenHands agent works and publishes on a gitd workspace with no token in its sandbox |
-| **0.8 · 8 Proof and docs** | Benchmark of Changes and warm layers; README, THREAT_MODEL, DESIGN; a demo of a policy stopping an injected agent | Numbers measured; docs reviewed against the code; release 0.8.0 |
+| **0.8 · 8 Proof and docs** | Benchmark of Changes and warm layers; README, THREAT_MODEL, DESIGN; a demo of a policy stopping an injected agent; the release checklist: npm's trusted publisher added again (it lapsed on 19 October 2026, unvalidated), the SDKs at 0.8.0, the release notes | Numbers measured; docs reviewed against the code; release 0.8.0. **Done ahead**: `docs/GITHUB.md`, so agents' branches get no secrets, and the threat model's gap that rules by path cannot see what the CI runs |
 
 ---
 
@@ -656,10 +656,14 @@ Coding agents rarely need it; it waits until users ask.
 
 ## Launch: reaching the people gitd is for
 
-The engineering is ahead of the audience: the repository has no stars yet. gitd launches
-**when 0.7 ships**, with its headline number — *100 agents on kubernetes: a workspace
-each in 23 ms and 4.3 MB, one fetch, no token in any sandbox; 67× faster and 49× less disk
-than 100 clones* — measured by a workflow anyone can run (the *hundred agents* workflow).
+The engineering is ahead of the audience: the repository has no stars yet. A **soft launch
+runs alongside the code** — the MCP directories, a post with the story, a message to two or
+three platforms — so that what people answer reaches the design while it is being written;
+the Show HN waits for 0.8 and its security demo. Every review is named for what it was: the
+0.7 review was an AI reviewer's, and the review by a person comes in 0.9. The headline
+number is one anyone can measure again with the *hundred agents* workflow: *100 agents on
+kubernetes: a workspace each in 23 ms and 4.3 MB, one fetch, no token in any sandbox; 67×
+faster and 49× less disk than 100 clones.*
 
 | Where | What |
 |---|---|
@@ -668,7 +672,7 @@ than 100 clones* — measured by a workflow anyone can run (the *hundred agents*
 | MCP directories | The official MCP registry, the awesome-mcp-servers lists, Smithery and Glama |
 | A post and a demo | The why and the numbers; a terminal recording of ten agents and a published branch |
 | Agent and sandbox platforms | Talk to two or three (E2B, Daytona, Modal, Runloop or similar): would they integrate it, what is missing — the answers shape 0.8 and 0.9 |
-| OpenHands | The integration of 0.8 · 7, proposed upstream: an agent on a gitd workspace, no token in its sandbox |
+| OpenHands | The integration of 0.8 · 7, proposed upstream: an agent on a gitd workspace, no token in its sandbox. The proposal links the exact lines of OpenHands' SDK where the token goes into the clone URL and stays in `.git/config`, so it reads as a fact, not a claim |
 | A security demo | An agent told by an injected issue to change the CI and take the token: the token is not there, and the policy refuses the publish |
 | GitHub | Discussions open; good first issues labelled; the roadmap linked from the README |
 
@@ -727,7 +731,7 @@ those runs.
 | SDKs, branch prefix and audit log move into 0.7 | What platforms need first, and cheap |
 | Multi-tenancy in 0.9, isolated per tenant, nothing shared at first | A multi-customer platform asks first; isolation must not be gettable wrong |
 | A security review before 0.9's network service | The more surface gitd exposes, the more "secretless" must be proved |
-| Launch with 0.7, not before | The headline number is what gets attention |
+| A soft launch alongside 0.8, the Show HN with 0.8's security demo | What people answer reaches the design while it is written; the demo of a refused publish is what gets attention |
 | The local git endpoint (0.9) before the CSI driver (0.10) | It reaches more sandboxes with less code |
 | No interface of gitd's own; gitd is what platforms and interfaces build on | Interfaces for parallel agents are many (Cursor, Codex, Conductor, Vibe Kanban…); a git layer that keeps credentials and enforces rules is not |
 | The difference is security: the agent never holds a credential, and gitd decides what may be published | Agents' credentials are what prompt injection goes for, and worktrees, VM forks and git mirrors leave that open |
