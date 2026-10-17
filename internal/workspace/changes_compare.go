@@ -191,17 +191,17 @@ func (workspaces *Workspaces) withoutIgnored(ctx context.Context, lower string, 
 		}
 	}
 	ignored := map[string]bool{}
-	for start := 0; start < len(added); start += 500 {
-		chunk := added[start:min(start+500, len(added))]
-		out, err := workspaces.runner.Run(ctx, git.Cmd{Dir: lower, Differences: true,
-			Args: append([]string{"check-ignore", "-z", "--"}, chunk...)})
-		if err != nil {
-			return nil, err
-		}
-		for name := range strings.SplitSeq(out, "\x00") {
-			if name != "" {
-				ignored[name] = true
-			}
+	if len(added) == 0 {
+		return files, nil
+	}
+	out, err := workspaces.runner.Run(ctx, git.Cmd{Dir: lower, Differences: true,
+		Args: []string{"check-ignore", "-z", "--stdin"}, Input: strings.Join(added, "\x00") + "\x00"})
+	if err != nil {
+		return nil, err
+	}
+	for name := range strings.SplitSeq(out, "\x00") {
+		if name != "" {
+			ignored[name] = true
 		}
 	}
 	return slices.DeleteFunc(files, func(file changed) bool { return ignored[file.path] }), nil
