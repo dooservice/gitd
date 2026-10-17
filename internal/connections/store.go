@@ -33,6 +33,7 @@ type Store struct {
 	opened    map[string][]byte
 	github    GitHub
 	apps      apps
+	creating  pending[appBeingCreated]
 }
 
 // UseGitHub says how the GitHub Apps of the connections reach GitHub's API.

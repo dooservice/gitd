@@ -19,6 +19,14 @@ type GitHub struct {
 	WebBase   string
 }
 
+// web is where a host's pages are.
+func (github GitHub) web(host string) string {
+	if github.WebBase != "" {
+		return github.WebBase
+	}
+	return githubapp.WebBase(host, github.Hosts[host].HTTPSPort)
+}
+
 // api is GitHub's API for a host.
 func (github GitHub) api(host string) *githubapp.API {
 	base := github.APIBase
