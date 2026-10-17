@@ -24,6 +24,7 @@ import (
 	"github.com/dooservice/gitd/internal/git"
 	"github.com/dooservice/gitd/internal/metrics"
 	"github.com/dooservice/gitd/internal/pool"
+	"github.com/dooservice/gitd/internal/publishing"
 	"github.com/dooservice/gitd/internal/workspace"
 )
 
@@ -51,6 +52,8 @@ type Server struct {
 	// configuration file declares, as the API shows them.
 	Connections     *connections.Store
 	FileConnections []*gitdv1.Connection
+	// Publishing is the publishing settings, the file's and those set through the API.
+	Publishing *publishing.Store
 }
 
 // Serve answers on the Unix socket until ctx ends, and serves the metrics at
@@ -63,6 +66,9 @@ func (server *Server) Serve(ctx context.Context, socket, metricsAddress string) 
 	routes.Handle(gitdv1connect.NewServerServiceHandler(server, options))
 	if server.Connections != nil {
 		routes.Handle(gitdv1connect.NewConnectionServiceHandler(&connectionHandlers{server: server}, options))
+	}
+	if server.Publishing != nil {
+		routes.Handle(gitdv1connect.NewPublishingServiceHandler(&publishingHandlers{server: server}, options))
 	}
 
 	listener, err := listen(socket)
