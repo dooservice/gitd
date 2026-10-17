@@ -260,49 +260,107 @@ workspace with no git host token in its sandbox, end to end in CI; and callers w
 
 ### How it is built
 
-**GitHub App credentials.** A credential may be a GitHub App instead of a token:
+**Set through the API, not only a file.** gitd is run by platforms, which connect it to
+GitHub, choose its rules and open pull requests from their own pages; editing a TOML file
+on a server for each would be tedious. So in 0.8:
 
-```toml
-[[credentials]]
-prefix = "https://github.com/acme/"
-github_app = { app_id = 123456, private_key_file = "/run/credentials/gitd.service/github-app.pem" }
-```
+- **The configuration file keeps what installing gitd decides** — socket, state, roots,
+  limits. Credentials and publishing rules may still be declared there, as configuration
+  as code; the API shows those as read-only.
+- **Connections and publishing settings are managed through the API**: a
+  `ConnectionService` and a `PublishService`, in both SDKs. gitd keeps what is set under its
+  state directory and applies it at once, without a restart.
+- **The command line is one more client of that API** (`gitd connect github`, `gitd publish
+  settings`), as the SDKs are.
+- **None of it reaches MCP.** An agent can never see, add or remove a connection or a
+  rule; a test enforces it, as it does for credentials today.
+- **Secrets at rest** are files readable only by gitd's user under `<state>/connections/`,
+  encrypted with AES-256-GCM when `secrets_key_file` names a key (best a systemd
+  credential). Adding or removing a connection and changing a rule are recorded in the
+  audit log.
 
-- gitd signs a short JWT with the App's private key, finds the App's installation for the
-  repository's owner, and asks for an installation token **limited to that one repository**
-  and to the permissions the operation needs: contents read to fetch, contents write to
-  push, pull requests write to open one.
-- Tokens are kept in memory until shortly before they expire (an hour), never written to
-  disk, never logged.
-- The agent's commits stay the agent's; the push and the pull request come from the App
-  (`name[bot]`), so a reviewer sees at once that an agent published it.
+**Connecting GitHub.** A platform puts a "Connect GitHub" button on its own page; behind
+it, one of three ways:
+
+| Way | What the person does | Pull requests appear as | For |
+|---|---|---|---|
+| **The organisation's own App** (recommended) | One click: GitHub's "Create GitHub App" from a manifest gitd writes, then choose the repositories | The organisation's bot, e.g. `acme-agents[bot]` | Teams and production |
+| **Signing in** | Enters a code at github.com/login/device, as with `gh auth login` | The person | One person, or trying gitd |
+| **The platform's existing App** | Nothing: the platform registers it once, or keeps sending a token with each call as today | The platform's bot | Platforms that already have one |
+
+- **The organisation's own App**: `BeginGitHubApp(org, name)` returns the address and the
+  manifest — permissions Contents and Pull requests (read and write) and Metadata, no
+  webhook. GitHub sends the person back to the platform's page with a code, which the
+  platform hands to `CompleteGitHubApp(code)`; gitd exchanges it for the App's ID and
+  private key and keeps them. Nobody copies a key.
+- **Signing in** uses GitHub's device flow with gitd's public App, whose client ID is in the
+  binary: neither the sign-in nor renewing its tokens takes a secret. Its tokens last eight
+  hours and are renewed for six months, kept only on the gitd server.
+- **The platform's existing App**: `AddGitHubApp(app_id, private_key)`.
+- **Why each organisation has its own App, not one `gitd[bot]`**: a bot's tokens are made
+  with its App's private key, and a key shared by every gitd would open every customer's
+  repositories. With its own App, the key stays on the organisation's server and nobody
+  else — dooservice included — holds it.
+- `ListConnections` says what each opens, as whom and until when, never a secret;
+  `RemoveConnection` disconnects.
+
+**Tokens of an App.** For every operation gitd signs a short JWT with the App's private
+key, finds the App's installation for the repository's owner, and asks for an installation
+token **limited to that one repository** and to what the operation needs: contents read to
+fetch, contents write to push, pull requests write to open one.
+
+- Tokens are kept in memory until shortly before they expire (an hour) — a hundred fetches
+  at once ask for one — and never written to disk or logged.
+- They are used as tokens are today: a header in git's environment in the pool, never in
+  the workspace or on a command line.
+- The private key is read again each time a JWT is signed, so replacing its file rotates it
+  without a restart.
+- The agent's commits stay the agent's; the push and the pull request come from the App,
+  so a reviewer sees at once that an agent published it — and the person who asked, not
+  being the author, may approve it.
 - GitHub Enterprise Server is reached through the host's configured address. GitLab's
   equivalents (group and project access tokens) follow on demand.
 
-**Publishing policies.** Beside the branch prefix, rules checked on what a publish brings,
-per URL prefix as credentials are:
+**Publishing settings.** Per URL prefix, set through `PublishService.SetSettings` (or the
+file): the branch prefix, the rules a publish must pass, and how pull requests are opened.
+A platform need not write patterns: it picks a preset and adjusts it.
 
-```toml
-[[publish.rules]]
-prefix = "https://github.com/acme/"
-protected_paths = [".github/workflows/**", ".gitlab-ci.yml", "CODEOWNERS"]  # may not be changed
-kept_paths = ["**/*_test.go", "tests/**"]                                    # may change, not be deleted
-max_changed_files = 200
-```
+| Preset `recommended` | |
+|---|---|
+| May not be changed | `.github/workflows/**`, `.gitlab-ci.yml`, `CODEOWNERS`, `.gitmodules` |
+| May change, not be deleted | tests: `**/*_test.*`, `**/*.test.*`, `**/test/**`, `**/tests/**`, `**/__tests__/**` |
+| At most | 200 files changed |
 
-- Checked in the pool, on the commits about to be pushed, against the branch they start
-  from — never in the workspace, which is the sandbox's to write.
-- A refusal is a new reason, `POLICY_REFUSED`, naming the rule and the paths; it is recorded
-  in the audit log like every publish.
-- No rules, no change: 0.7's publishing stays as it is.
+- **Checked in the pool, commit by commit, before anything is pushed** — never in the
+  workspace, which is the sandbox's to write. Every repository about to be pushed,
+  submodules included, is checked against the settings of its own prefix.
+- **git matches the paths** (`:(glob)` pathspecs), so `**` means what it means to git.
+- Renaming a test away counts as deleting it (`--no-renames`). A change undone by a later
+  commit is still refused: that history would be pushed too. A merge is checked on what it
+  brings itself (`--diff-merges=remerge`): merging `main` with people's changes passes,
+  hiding a change inside a merge does not.
+- Every setting whose prefix opens the repository applies, not only the most specific: a
+  narrower setting never loosens a broader one.
+- A refusal is a new reason, `POLICY_REFUSED`, naming the rule and the paths ("agents/fix
+  changes .github/workflows/ci.yml, which the settings for https://github.com/acme
+  protect"); it is recorded in the audit log, and nothing is pushed.
+- No settings, no change: 0.7's publishing stays as it is.
 
-**Pull requests on publish.** `Publish` may ask for a pull request (title, body, base,
-draft). gitd opens it through the host's API with the same credential it pushed with —
-GitHub first, GitLab's merge requests after — and returns its address, which the audit log
-records too. Its body defaults to the commits' subjects, the provenance below and **what
-gitd checked**: the rules the publish passed, the files and lines it changes, and any
-protected or kept path it came near — a reviewer reads in a minute what they would
-otherwise dig for. A host whose API gitd does not know refuses plainly.
+**Pull requests on publish.** The settings say whether a publish opens one (always, or when
+asked), as a draft or not, with which labels, and whether to ask the person who asked for
+the work to review it. A publish says who that was (`requested_by`) and may override the
+title, body, base or draft.
+
+- gitd opens it through the host's API with the same App it pushed with — GitHub first,
+  GitLab's merge requests on demand — and returns its address and number, which the audit
+  log records too.
+- Its body says who asked and **what gitd checked**: the commits, the files and lines they
+  change, the rules they passed, the submodules published — a reviewer reads in a minute
+  what they would otherwise dig for. The platform's own text, when given, comes first.
+- If the push succeeds and the pull request does not, the branch stays published and the
+  answer says why the pull request failed (`pull_request_failure`): retrying the publish
+  would only meet the branch it made.
+- A host whose API gitd does not know answers `UNSUPPORTED` in that field.
 
 **Changes.** `Changes(path)` lists what an agent changed: each file added, modified,
 deleted, renamed or untracked, with lines added and removed, against the commit the
@@ -375,6 +433,8 @@ It lands first as `examples/openhands`, run in CI, and is then proposed to OpenH
 | # | Decision | Why |
 |---|---|---|
 | D19 | GitHub App before any other host's equivalent | Most agent platforms publish to GitHub; it is what companies install |
+| D19b | Connections and publishing settings through the API; the file only for what installing gitd decides | gitd is run by platforms, from their own pages; editing a file on a server for each is tedious |
+| D19c | Pull requests as the organisation's own App, created in one click; signing in only for one person | A bot shows an agent did it and lets the requester approve; a shared `gitd[bot]` would need one key that opens every customer's repositories |
 | D20 | Installation tokens scoped to one repository and the operation's permissions, kept in memory only | A token that leaks opens one repository for minutes, and the agent never holds one anyway |
 | D21 | Policies checked in the pool on the commits to push, never in the workspace | The workspace is the sandbox's to write; the pool is gitd's |
 | D22 | Changes, Diff and Compare read the agent's layer on overlay, and run git only in the template; Conflicts merges in the pool with `git merge-tree` | Fast where the tree is large, and no git in a workspace a sandbox may be writing |
@@ -387,6 +447,8 @@ It lands first as `examples/openhands`, run in CI, and is then proposed to OpenH
 
 | Risk | Handling |
 |---|---|
+| A copy of the disk or a backup carries a connection's secret | Files readable only by gitd's user; encrypted with a key kept apart (`secrets_key_file`) when given; an App's tokens live in memory only |
+| A caller connects or changes rules it should not | Only a caller on the socket, trusted in full until 0.9, where these calls take a tenant's administrator key; never through MCP; every change in the audit log |
 | The App's private key leaks | Read from a credential file (systemd `LoadCredential=`), never logged; its tokens open one repository each, for an hour; rotated in GitHub without restarting gitd |
 | A policy is written too loosely | Refusals are recorded with the rule and paths; rules are tested against real repositories in CI; no rules means 0.7's behaviour |
 | Changes on overlay disagree with git | The conformance suite compares `Changes` with `git status` on every strategy |
@@ -398,9 +460,9 @@ It lands first as `examples/openhands`, run in CI, and is then proposed to OpenH
 
 | Task | What | Done when |
 |---|---|---|
-| **0.8 · 0 GitHub App** | `github_app` credentials: JWT, installation lookup, tokens per repository and permission, kept in memory | Fetch and publish as an App, end to end against a test App; no token on disk |
-| **0.8 · 1 Publishing policies** | `[[publish.rules]]`: protected paths, kept paths, maximum files; `POLICY_REFUSED`; audit | Each rule refuses what it should and nothing else; recorded |
-| **0.8 · 2 Pull requests** | `Publish` opens one on GitHub, its body saying what gitd checked; its address in the answer and the audit log | A publish opens a pull request as the App, end to end |
+| **0.8 · 0 GitHub App** | `ConnectionService`: the organisation's own App from a manifest, signing in by device flow, a platform's App; tokens per repository and purpose, kept in memory; connections kept under the state, encrypted when a key is given, applied without a restart | A platform connects GitHub through the API with no file edited; fetch and publish as an App, end to end against a test App; no token on disk |
+| **0.8 · 1 Publishing settings** | `PublishService`: presets, protected and kept paths, maximum files, branch prefix, per prefix; checked in the pool commit by commit; `POLICY_REFUSED`; audit | Each rule refuses what it should and nothing else, merges included; recorded; settable through the API and the file |
+| **0.8 · 2 Pull requests** | Opened on publish as the App, per the settings: draft, labels, the requester asked to review; the body says what gitd checked; `pull_request_failure`; audit | A publish opens a pull request as `<org>-agents[bot]` with the requester as reviewer, end to end |
 | **0.8 · 3 Changes and Diff** | From the layer on overlay, from git on copy; limits; CLI and MCP | Agree with `git status` and `git diff` on every strategy; measured on kubernetes |
 | **0.8 · 4 Compare, Conflicts and Watch** | The difference between two workspaces or branches; whether several merge cleanly; a stream of events | Compare agrees with `git diff` between them; Conflicts agrees with a real merge and runs no repository code; Watch sees a change, a publish and a removal |
 | **0.8 · 5 Provenance** | Origin fields on `Publish`, into the audit log and the pull request | Recorded, bounded, shown; never a commit rewritten |
@@ -635,7 +697,7 @@ benchmark, its docs and a release (principle 7).
 | 10 | 0.7 · 8 ✓ | Branch prefix and audit log | 6 |
 | 11 | 0.7 · 9 ✓, 10 ✓ | Threat model and security review | 5, 10 |
 | 12 | 0.7 · 11 ✓ | Benchmark "100 agents", example, docs; **release 0.7.0** ✓ and launch | 7–11 |
-| 13 | 0.8 · 0–2 | GitHub App, publishing policies, pull requests | 12 |
+| 13 | 0.8 · 0–2 | GitHub App and connections through the API, publishing settings, pull requests | 12 |
 | 14 | 0.8 · 3–5 | Changes, Diff, Compare, Conflicts, Watch, provenance | 12 |
 | 15 | 0.8 · 6–8 | Warm layers, OpenHands, proof and docs; release 0.8.0 | 13, 14 |
 | 16 | 0.9 · 0–6 | Endpoint, tokens, sandbox repositories, tenants, network, examples, outside review; release 0.9.0 | 15 |
