@@ -205,7 +205,7 @@ func (store *Store) Sweep() int {
 		if err != nil || path == store.Dir {
 			return nil
 		}
-		if pool.IsTemp(entry.Name()) {
+		if pool.IsTemp(entry.Name()) || (filepath.Dir(path) == store.Dir && strings.HasPrefix(entry.Name(), ".probe-")) {
 			if os.RemoveAll(path) == nil {
 				slog.Warn("half-built template removed", "path", path)
 				removed++

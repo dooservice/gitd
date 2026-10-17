@@ -61,3 +61,32 @@ func TestTheKernelMountsAnOverlayWorkspaceOfAGitTemplateAndGitBehaves(t *testing
 		t.Errorf("the template is dirty: %q", status)
 	}
 }
+
+func TestAnOverlayUnmountedBehindGitdsBackIsMountedAgain(t *testing.T) {
+	needRoot(t)
+	root := t.TempDir()
+	template, dest := filepath.Join(root, "template"), filepath.Join(root, "agent-1")
+	if err := os.MkdirAll(template, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(template, "README.md"), []byte("hi"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	maker := &OverlayMaker{Layers: filepath.Join(root, "layers"), Mounter: Kernel{}}
+	if err := maker.Make(context.Background(), template, dest); err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = maker.Unmake(context.Background(), dest) }()
+	if !mountedOverlay(dest) {
+		t.Fatal("a made workspace is not an overlay mount")
+	}
+	if err := (Kernel{}).Unmount(dest); err != nil {
+		t.Fatal(err)
+	}
+	if mountedOverlay(dest) {
+		t.Fatal("still mounted")
+	}
+	if remounted, failed := maker.Remount(context.Background()); remounted != 1 || len(failed) != 0 || !mountedOverlay(dest) {
+		t.Errorf("Remount = %d, %v; mounted %v", remounted, failed, mountedOverlay(dest))
+	}
+}

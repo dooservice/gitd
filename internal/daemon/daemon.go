@@ -69,8 +69,10 @@ func Run(ctx context.Context, path, socket, version string) error {
 		made = maker.Name()
 	}
 	slog.Info("workspaces are made by "+string(made), "why", why)
-	keeper := housekeeping.New(pools, templates, runner, settings.Roots, settings.Housekeeping, measured)
+	overlay, _ := maker.(*strategy.OverlayMaker)
+	keeper := housekeeping.New(pools, templates, overlay, runner, settings.Roots, settings.Housekeeping, measured)
 	keeper.Sweep()
+	keeper.Remount(ctx)
 	go keeper.Run(ctx)
 
 	served := &server.Server{

@@ -1,6 +1,7 @@
 package housekeeping
 
 import (
+	"context"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -21,6 +22,14 @@ func (keeper *Keeper) Sweep() {
 	if keeper.templates != nil {
 		keeper.templates.Sweep()
 	}
+	if keeper.overlay != nil && keeper.templates != nil {
+		// Layers whose workspace is gone free their templates for retirement.
+		for _, record := range keeper.overlay.Sweep() {
+			if key, ok := keeper.templates.KeyOf(record.Template); ok {
+				_ = keeper.templates.Let(context.Background(), key, record.Workspace)
+			}
+		}
+	}
 }
 
 func (keeper *Keeper) sweep(dir string, depth, limit int) {
@@ -34,6 +43,11 @@ func (keeper *Keeper) sweep(dir string, depth, limit int) {
 			if os.RemoveAll(path) == nil {
 				slog.Warn("half-built copy removed", "path", path)
 			}
+			continue
+		}
+		if strings.HasPrefix(entry.Name(), ".gitd-probe-") {
+			// Where a crash interrupted the start-up's overlay probe: an empty directory.
+			_ = os.Remove(path)
 			continue
 		}
 		if !entry.IsDir() {

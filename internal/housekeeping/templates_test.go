@@ -12,6 +12,7 @@ import (
 	"github.com/dooservice/gitd/internal/metrics"
 	"github.com/dooservice/gitd/internal/pool"
 	"github.com/dooservice/gitd/internal/repo"
+	"github.com/dooservice/gitd/internal/strategy"
 	"github.com/dooservice/gitd/internal/template"
 )
 
@@ -47,3 +48,59 @@ func TestARoundRetiresTheTemplatesNobodyUses(t *testing.T) {
 		t.Error("a template nobody uses outlived the round")
 	}
 }
+
+func TestTheSweepFreesTheTemplateOfAWorkspaceThatIsGoneAndProbesLeftBehind(t *testing.T) {
+	root := t.TempDir()
+	locks, err := lock.NewLocks(filepath.Join(root, "locks"), time.Minute)
+	if err != nil {
+		t.Fatal(err)
+	}
+	templates := template.New(filepath.Join(root, "state", "templates"), locks, stubBuilder{})
+	key := template.Key{Repository: repo.Repo{Host: "github.com", Path: "acme/web"}, Commit: "4efeed310944064485f024fefa3ab3c8021be23d"}
+	workspace := filepath.Join(root, "workspaces", "agent-1")
+	dir, err := templates.Take(context.Background(), key, workspace)
+	if err != nil {
+		t.Fatal(err)
+	}
+	overlay := &strategy.OverlayMaker{Layers: filepath.Join(root, "state", "layers"), Mounter: noMounter{}}
+	if err := overlay.Make(context.Background(), dir, workspace); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Remove(workspace); err != nil { // deleted by hand, unmounted
+		t.Fatal(err)
+	}
+	probes := []string{
+		filepath.Join(root, "workspaces", ".gitd-probe-123"),
+		filepath.Join(root, "state", "templates", ".probe-456"),
+	}
+	for _, probe := range probes {
+		if err := os.MkdirAll(probe, 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	keeper := &Keeper{
+		pools:     pool.New(filepath.Join(root, "state", "pools"), nil, nil, locks, nil, time.Minute),
+		templates: templates,
+		overlay:   overlay,
+		roots:     []string{filepath.Join(root, "workspaces")},
+		settings:  config.Housekeeping{SweepDepth: 4},
+	}
+	keeper.Sweep()
+	if users := templates.Users(key); len(users) != 0 {
+		t.Errorf("the template still counts the gone workspace: %v", users)
+	}
+	if len(overlay.Records()) != 0 {
+		t.Error("the gone workspace's layer is still there")
+	}
+	for _, probe := range probes {
+		if _, err := os.Stat(probe); err == nil {
+			t.Errorf("%s left behind", probe)
+		}
+	}
+}
+
+// noMounter mounts nothing: enough for a layer to be recorded.
+type noMounter struct{}
+
+func (noMounter) MountOverlay(string, string, string, string) error { return nil }
+func (noMounter) Unmount(string) error                              { return nil }
