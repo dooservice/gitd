@@ -95,6 +95,10 @@ gitd submodules PATH                 gitd remove PATH
 gitd probe URL                       gitd adopt PATH
 gitd info                            gitd retire [--unused 720h]
 gitd audit [--since 24h] [--repository URL] [--limit N]
+gitd publish PATH BRANCH [--requested-by LOGIN] [--pull-request] [--title T] [--draft]
+gitd connect github | github-app --name N [--org O]
+gitd connections list | remove ID | add-token PREFIX --token-env VAR | add-github-app
+gitd publishing show | set PREFIX [--preset recommended] … | remove PREFIX
 gitd mcp
 ```
 
@@ -103,8 +107,31 @@ Every command takes `--socket` (default `$GITD_SOCKET`, then `/run/gitd/gitd.soc
 
 ## Credentials
 
-gitd keeps them, so callers never have to. Each names where its secret is, never the
-secret itself:
+gitd keeps them, so callers never have to, and a platform manages them from its own pages
+through the API (`ConnectionService` in both clients) or the command line, with no file to
+edit and no restart. None of this is offered to agents through MCP.
+
+**GitHub, with no token made by hand.** The organisation creates its own GitHub App in one
+click, and gitd keeps its key; pull requests then come from the App's bot, and each token
+gitd makes from it opens one repository for an hour, for what the operation needs:
+
+```sh
+$ gitd connect github-app --org acme --name acme-agents
+Open http://127.0.0.1:41703/ and press "Create GitHub App"
+app-3f9a1c2b7d01  github_app  https://github.com/acme  as acme-agents[bot]
+Install it on the repositories it may reach: https://github.com/apps/acme-agents/installations/new
+```
+
+A platform does the same through `BeginGitHubApp` and `CompleteGitHubApp`, with GitHub
+sending the person back to its own page. One person can instead sign in with a code
+(`gitd connect github`, GitHub's device flow, once gitd's public App is registered), and
+pull requests appear as them; a platform that already has an App registers it
+(`gitd connections add-github-app`). `gitd connections list` shows them all, never a
+secret.
+
+**Any host, or as configuration as code.** A token is added the same way (`gitd connections
+add-token PREFIX --token-env VAR`), or declared in the file, naming where its secret is,
+never the secret itself:
 
 ```toml
 [[credentials]]
@@ -116,6 +143,10 @@ prefix = "https://gitlab.com/your-group"
 token_env = "GITLAB_TOKEN"
 
 [[credentials]]
+prefix = "https://github.com/your-org/tools"
+github_app = { app_id = 123456, private_key_file = "/run/credentials/gitd.service/github-app.pem" }
+
+[[credentials]]
 prefix = ""                                            # any repository
 ssh_key = "/etc/gitd/keys/id_ed25519"
 ```
@@ -123,19 +154,39 @@ ssh_key = "/etc/gitd/keys/id_ed25519"
 A repository is read with the most specific credential that opens it, and only that one. A
 token reaches git as an HTTP header in its environment, scoped to that one repository; a
 key, through `GIT_SSH_COMMAND`, with hosts checked against known keys (GitHub, GitLab,
-Bitbucket and Codeberg are built in). A token's prefix must name its host, or gitd does not
-start: with none it would go to any host a submodule names. A caller may still send a
-credential with a request, which wins over a kept one of the same prefix.
+Bitbucket and Codeberg are built in). A token's prefix must name its host, or it is
+refused: with none it would go to any host a submodule names. The secrets of connections
+made through the API are kept under `<state>/connections`, readable by gitd's user only,
+and encrypted when `secrets_key_file` names a key. A caller may still send a credential
+with a request, which wins over a kept one of the same prefix.
 
 ## Publishing rules
 
-Agents publish only new branches, never forced. A prefix keeps them off the branches people
-use, and every publish, done or refused, is on the record:
+Agents publish only new branches, never forced. A platform sets, per repository prefix,
+what a publish may contain, through the API (`PublishingService`) or the command line, and
+gitd checks it on the commits to push — commit by commit, in the pool — before anything is
+pushed:
 
-```toml
-[publish]
-branch_prefix = "agents/"      # "main" or "release/1.2" is refused: BRANCH_REFUSED
+```sh
+$ gitd publishing set https://github.com/acme --preset recommended --branch-prefix agents/ \
+    --pull-requests always --draft --label agent --review-requester
 ```
+
+The `recommended` preset protects `.github/workflows/**`, `.gitlab-ci.yml`, `CODEOWNERS`
+and `.gitmodules`, keeps tests from being deleted or renamed away, and allows at most 200
+files changed. A merge counts only what it brings itself, so merging what people changed on
+`main` is not the agent's change. Every setting whose prefix opens a repository applies,
+and a narrower one never loosens a broader one. The same settings can be declared in the
+file (`[[publish.settings]]`, and `[publish] branch_prefix` for every repository).
+
+When the settings say so, or a publish asks, gitd opens the pull request on GitHub with
+the credential that pushed: from the App's bot, the person who asked for the work
+(`--requested-by`) asked to review it, and its body saying what gitd checked — the commits,
+the files and lines they change, and the rules they passed. If the pull request cannot be
+opened, the branch stays published and the answer says why.
+
+Every publish, done or refused, and every change to connections and settings, is on the
+record:
 
 ```sh
 $ gitd audit --since 24h
@@ -197,9 +248,12 @@ Every key has a default; [`packaging/gitd.toml`](packaging/gitd.toml) shows them
 | `git` | `git` | The git binary |
 | `metrics` | empty (off) | Where Prometheus metrics are served, e.g. `127.0.0.1:9419` |
 | `known_hosts` | `[]` | Files of SSH host keys trusted besides the built-in ones |
-| `[[credentials]]` | none | Credentials gitd keeps, by URL prefix |
+| `[[credentials]]` | none | Credentials gitd keeps, by URL prefix: a token, an SSH key or a GitHub App |
+| `secrets_key_file` | empty | The key that encrypts the secrets of connections made through the API |
+| `[github]` | gitd's public App | The App people sign in through with `gitd connect github` |
 | `[publish]` | `branch_prefix = ""` (any new branch) | What every published branch must start with |
-| `[audit]` | rotate at 16 MiB, keep a year | How the audit log of every publish is kept |
+| `[[publish.settings]]` | none | Rules and pull requests per repository prefix, as the API sets them |
+| `[audit]` | rotate at 16 MiB, keep a year | How the audit log of every publish and change is kept |
 | `[hosts."<host>"]` | — | `https_port`, `ssh_port`, `ssh_user` of a host not on the usual ones |
 | `[limits]` | 4 fetches, 8 writes, 32 queued, 5m wait, 30m per call | How much runs at once and for how long |
 | `[housekeeping]` | every 6h, retire after 30 days | Pool maintenance and retirement |
