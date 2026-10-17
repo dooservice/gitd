@@ -110,7 +110,7 @@ func TestALayerSaysWhatItsAgentTouchedAndWhatItHides(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer view.Close()
-	candidates, err := layerPaths(lower, upper, view)
+	candidates, err := layerPaths([]string{lower}, upper, view)
 	if err != nil {
 		t.Fatal(err)
 	}

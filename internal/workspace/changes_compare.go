@@ -190,12 +190,22 @@ func (workspaces *Workspaces) withoutIgnored(ctx context.Context, lower string, 
 			added = append(added, file.path)
 		}
 	}
-	ignored := map[string]bool{}
-	if len(added) == 0 {
-		return files, nil
+	ignored, err := workspaces.ignoredAmong(ctx, lower, added)
+	if err != nil {
+		return nil, err
 	}
-	out, err := workspaces.runner.Run(ctx, git.Cmd{Dir: lower, Differences: true,
-		Args: []string{"check-ignore", "-z", "--stdin"}, Input: strings.Join(added, "\x00") + "\x00"})
+	return slices.DeleteFunc(files, func(file changed) bool { return ignored[file.path] }), nil
+}
+
+// ignoredAmong are which of paths the repository checked out at dir ignores, as git
+// check-ignore says: a tracked file is never ignored.
+func (workspaces *Workspaces) ignoredAmong(ctx context.Context, dir string, paths []string) (map[string]bool, error) {
+	ignored := map[string]bool{}
+	if len(paths) == 0 {
+		return ignored, nil
+	}
+	out, err := workspaces.runner.Run(ctx, git.Cmd{Dir: dir, Differences: true,
+		Args: []string{"check-ignore", "-z", "--stdin"}, Input: strings.Join(paths, "\x00") + "\x00"})
 	if err != nil {
 		return nil, err
 	}
@@ -204,5 +214,5 @@ func (workspaces *Workspaces) withoutIgnored(ctx context.Context, lower string, 
 			ignored[name] = true
 		}
 	}
-	return slices.DeleteFunc(files, func(file changed) bool { return ignored[file.path] }), nil
+	return ignored, nil
 }

@@ -73,9 +73,9 @@ func (workspaces *Workspaces) changeSet(ctx context.Context, requested string, i
 	defer root.Close()
 
 	var candidates []string
-	if lower, upper, ok := workspaces.layers(path); ok {
+	if record, upper, ok := workspaces.layers(path); ok {
 		set.fromLayer = true
-		candidates, set.base, err = workspaces.layerCandidates(ctx, set.repository, path, lower, upper, root)
+		candidates, set.base, err = workspaces.layerCandidates(ctx, set.repository, path, record, upper, root)
 	} else {
 		candidates, set.base, err = workspaces.gitCandidates(ctx, set.repository, path, includeIgnored)
 	}
@@ -87,21 +87,23 @@ func (workspaces *Workspaces) changeSet(ctx context.Context, requested string, i
 		return changeSet{}, err
 	}
 	if set.fromLayer && !includeIgnored {
-		lower, _, _ := workspaces.layers(path)
-		set.files, err = workspaces.withoutIgnored(ctx, lower, set.files)
+		record, _, _ := workspaces.layers(path)
+		set.files, err = workspaces.withoutIgnored(ctx, record.Template, set.files)
 	}
 	return set, err
 }
 
-// layers are an overlay workspace's template and own layer, as gitd's own record of its
-// layers says, never as the workspace's configuration does.
-func (workspaces *Workspaces) layers(path string) (lower, upper string, ok bool) {
+// layers are an overlay workspace's record — its template, and the warm layer it stands
+// on — and its own layer, as gitd's own record of its layers says, never as the
+// workspace's configuration does.
+func (workspaces *Workspaces) layers(path string) (strategy.Record, string, bool) {
 	overlay, isOverlay := workspaces.maker.(*strategy.OverlayMaker)
 	if !isOverlay {
-		return "", "", false
+		return strategy.Record{}, "", false
 	}
-	lower, upper, _, ok = overlay.LayersOf(path)
-	return lower, upper, ok
+	record, ok := overlay.RecordOf(path)
+	_, upper, _, _ := overlay.LayersOf(path)
+	return record, upper, ok
 }
 
 func sortedCopy(paths []string) []string {

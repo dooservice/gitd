@@ -11,16 +11,20 @@ import (
 	"syscall"
 
 	"github.com/dooservice/gitd/internal/repo"
+	"github.com/dooservice/gitd/internal/strategy"
 )
 
 // layerCandidates are the paths that may have changed in an overlay workspace: everything
 // in its own layer outside .git — a file written there, a mark of a deletion, a directory
-// that may hide what its template holds — and what differs between its template's commit
-// and the commit gitd last put it on, which updating or checking it out brought. It also
-// answers that commit, its template's when gitd noted none.
+// that may hide what its lower layers hold — what the warm layer it stands on changes,
+// and what differs between its template's commit and the commit gitd last put it on,
+// which updating or checking it out brought. It also answers that commit, its template's
+// when gitd noted none. What the warm layer holds that git ignores is the layer's, not
+// the workspace's, and is never walked.
 func (workspaces *Workspaces) layerCandidates(
-	ctx context.Context, repository repo.Repo, workspace, lower, upper string, root *os.Root,
+	ctx context.Context, repository repo.Repo, workspace string, record strategy.Record, upper string, root *os.Root,
 ) ([]string, string, error) {
+	lower := record.Template
 	templateCommit, _, err := workspaces.runner.Resolve(ctx, lower, "HEAD")
 	if err != nil {
 		return nil, "", err
@@ -29,9 +33,16 @@ func (workspaces *Workspaces) layerCandidates(
 	if !noted {
 		base = templateCommit
 	}
-	candidates, err := layerPaths(lower, upper, root)
+	candidates, err := layerPaths(record.Lowers(), upper, root)
 	if err != nil {
 		return nil, "", err
+	}
+	if record.Warm != "" {
+		warm, err := workspaces.templates.WarmAt(record.Warm)
+		if err != nil {
+			return nil, "", err
+		}
+		candidates = append(candidates, warm.Changed...)
 	}
 	if base != templateCommit {
 		moved, err := workspaces.pools.ChangedBetween(ctx, repository, templateCommit, base)
@@ -45,11 +56,11 @@ func (workspaces *Workspaces) layerCandidates(
 
 // layerPaths walks a workspace's own layer, never following a link. A file or a link there
 // is a candidate; so is a mark of a deletion (a character device numbered 0), which is
-// where the template's file or directory was. A directory of the layer the template also
-// has may hide what the template holds under it — overlay marks such a directory in an
-// attribute gitd, unprivileged, cannot read — so what the template has there and the
+// where a lower layer's file or directory was. A directory of the layer a lower layer also
+// has may hide what that layer holds under it — overlay marks such a directory in an
+// attribute gitd, unprivileged, cannot read — so what a lower layer has there and the
 // workspace does not show is a candidate too.
-func layerPaths(lower, upper string, root *os.Root) ([]string, error) {
+func layerPaths(lowers []string, upper string, root *os.Root) ([]string, error) {
 	var candidates []string
 	err := filepath.WalkDir(upper, func(walked string, entry fs.DirEntry, err error) error {
 		if err != nil {
@@ -65,11 +76,13 @@ func layerPaths(lower, upper string, root *os.Root) ([]string, error) {
 		}
 		switch {
 		case entry.IsDir():
-			hidden, err := hiddenUnder(lower, relative, root)
-			if err != nil {
-				return err
+			for _, lower := range lowers {
+				hidden, err := hiddenUnder(lower, relative, root)
+				if err != nil {
+					return err
+				}
+				candidates = append(candidates, hidden...)
 			}
-			candidates = append(candidates, hidden...)
 		case entry.Type()&fs.ModeCharDevice != 0 && isWhiteout(walked):
 			candidates = append(candidates, relative)
 		case entry.Type().IsRegular() || entry.Type()&fs.ModeSymlink != 0:
