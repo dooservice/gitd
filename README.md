@@ -1,5 +1,7 @@
 # gitd
 
+![Without gitd, three clones fetch and store every object three times; with gitd, one pool fetches once and the workspaces borrow its objects](docs/gitd.svg)
+
 A service that keeps the local copies of git repositories on a server: one **pool** per
 repository, which is the only copy that talks to the network, and **workspaces** that
 borrow their objects from it. Ten workspaces of the same repository take the disk of one
