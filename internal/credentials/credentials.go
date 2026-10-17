@@ -76,6 +76,9 @@ func FromProto(given []*gitdv1.Credential) []Credential {
 func Stored(settings []config.Credential) ([]Credential, error) {
 	stored := make([]Credential, 0, len(settings))
 	for _, setting := range settings {
+		if setting.GitHubApp != nil {
+			continue // a GitHub App's tokens are made by the connections package
+		}
 		credential := Credential{Prefix: CanonicalPrefix(setting.Prefix), User: setting.TokenUser, Key: setting.SSHKey, stored: true}
 		if setting.SSHKey == "" && !credential.NamesHost() {
 			return nil, fmt.Errorf("the token for %q: give a prefix that names its host, e.g. https://github.com/your-org; "+

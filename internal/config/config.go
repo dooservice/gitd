@@ -48,15 +48,24 @@ type Config struct {
 
 // Credential is one credential gitd keeps for the repositories under Prefix (empty for
 // any), so that a caller need not send it: a token read from TokenFile or from the
-// environment variable TokenEnv, sent as TokenUser, or the SSH key at SSHKey. The
-// configuration names where the secret is, never the secret: a TokenFile is best a
-// systemd credential (`LoadCredential=`), which lives in memory.
+// environment variable TokenEnv, sent as TokenUser, the SSH key at SSHKey, or a GitHub App
+// whose installation tokens open one repository each. The configuration names where the
+// secret is, never the secret: a TokenFile or an App's key is best a systemd credential
+// (`LoadCredential=`), which lives in memory.
 type Credential struct {
-	Prefix    string `toml:"prefix"`
-	TokenFile string `toml:"token_file"`
-	TokenEnv  string `toml:"token_env"`
-	TokenUser string `toml:"token_user"`
-	SSHKey    string `toml:"ssh_key"`
+	Prefix    string     `toml:"prefix"`
+	TokenFile string     `toml:"token_file"`
+	TokenEnv  string     `toml:"token_env"`
+	TokenUser string     `toml:"token_user"`
+	SSHKey    string     `toml:"ssh_key"`
+	GitHubApp *GitHubApp `toml:"github_app"`
+}
+
+// GitHubApp is a GitHub App by its ID and the file of its private key, read each time it
+// signs, so replacing the file rotates the key.
+type GitHubApp struct {
+	AppID          int64  `toml:"app_id"`
+	PrivateKeyFile string `toml:"private_key_file"`
 }
 
 // GitHub is gitd's public GitHub App, which people sign in through: its client ID, which
@@ -242,11 +251,18 @@ func (settings *Config) normalize() error {
 				set++
 			}
 		}
-		if set != 1 {
-			return fmt.Errorf("credentials[%d] (%q): give exactly one of token_file, token_env and ssh_key", index, credential.Prefix)
+		if credential.GitHubApp != nil {
+			set++
 		}
-		if credential.TokenUser != "" && credential.SSHKey != "" {
-			return fmt.Errorf("credentials[%d] (%q): token_user goes with a token, not with ssh_key", index, credential.Prefix)
+		if set != 1 {
+			return fmt.Errorf("credentials[%d] (%q): give exactly one of token_file, token_env, ssh_key and github_app",
+				index, credential.Prefix)
+		}
+		if credential.TokenUser != "" && (credential.SSHKey != "" || credential.GitHubApp != nil) {
+			return fmt.Errorf("credentials[%d] (%q): token_user goes with a token", index, credential.Prefix)
+		}
+		if app := credential.GitHubApp; app != nil && (app.AppID <= 0 || app.PrivateKeyFile == "") {
+			return fmt.Errorf("credentials[%d] (%q): a github_app needs its app_id and private_key_file", index, credential.Prefix)
 		}
 	}
 	return nil
