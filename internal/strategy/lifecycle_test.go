@@ -76,3 +76,47 @@ func TestAHalfBuiltLayerIsSwept(t *testing.T) {
 		t.Error("the half-built layer is still there")
 	}
 }
+
+func TestALiftedLayerLeavesItsGitBehindAndIsPutBackWhenNotTaken(t *testing.T) {
+	root := t.TempDir()
+	template, dest := filepath.Join(root, "template"), filepath.Join(root, "workspaces", "agent-1")
+	if err := os.MkdirAll(template, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(template, "README.md"), []byte("hi"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	mounter := &countingMounter{}
+	maker := &OverlayMaker{Layers: filepath.Join(root, "layers"), Mounter: mounter}
+	if err := maker.Make(context.Background(), template, dest); err != nil {
+		t.Fatal(err)
+	}
+	_, upper, _, _ := maker.LayersOf(dest)
+	if err := os.MkdirAll(filepath.Join(upper, ".git"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	lifted, err := maker.Lift(dest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(lifted.Upper, ".git")); !os.IsNotExist(err) {
+		t.Errorf("the workspace's .git is still in the lifted layer: %v", err)
+	}
+	if err := lifted.Restore(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(upper, ".git")); err != nil || mounter.mounts != 2 {
+		t.Errorf("restored: .git %v, %d mounts", err, mounter.mounts)
+	}
+	lifted, err = maker.Lift(dest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Rename(lifted.Upper, filepath.Join(root, "sealed")); err != nil {
+		t.Fatal(err)
+	}
+	lifted.Drop()
+	if _, err := os.Stat(dest); !os.IsNotExist(err) || len(maker.Records()) != 0 {
+		t.Errorf("dropped: %v, records %v", err, maker.Records())
+	}
+}

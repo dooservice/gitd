@@ -92,14 +92,14 @@ func (maker *OverlayMaker) LayersOf(dest string) (lower, upper, work string, ok 
 	return "", "", "", false
 }
 
-// WarmOf is the warm layer the overlay workspace at dest was made on, if any.
-func (maker *OverlayMaker) WarmOf(dest string) string {
+// RecordOf is the record of the overlay workspace at dest, when it is one.
+func (maker *OverlayMaker) RecordOf(dest string) (Record, bool) {
 	for _, record := range maker.Records() {
 		if record.Workspace == dest {
-			return record.Warm
+			return record, true
 		}
 	}
-	return ""
+	return Record{}, false
 }
 
 // Record is one overlay workspace as its layer records it: its template, and the warm layer
