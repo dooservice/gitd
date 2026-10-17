@@ -37,7 +37,7 @@ func FromProto(given []*gitdv1.Credential) []Credential {
 	read := make([]Credential, 0, len(given))
 	for _, credential := range given {
 		read = append(read, Credential{
-			Prefix: canonicalPrefix(credential.GetUrlPrefix()),
+			Prefix: CanonicalPrefix(credential.GetUrlPrefix()),
 			Token:  credential.GetHttpsToken(),
 			User:   credential.GetHttpsUser(),
 			Key:    credential.GetSshKeyPath(),
@@ -53,8 +53,8 @@ func FromProto(given []*gitdv1.Credential) []Credential {
 func Stored(settings []config.Credential) ([]Credential, error) {
 	stored := make([]Credential, 0, len(settings))
 	for _, setting := range settings {
-		credential := Credential{Prefix: canonicalPrefix(setting.Prefix), User: setting.TokenUser, Key: setting.SSHKey, stored: true}
-		if setting.SSHKey == "" && !credential.namesHost() {
+		credential := Credential{Prefix: CanonicalPrefix(setting.Prefix), User: setting.TokenUser, Key: setting.SSHKey, stored: true}
+		if setting.SSHKey == "" && !credential.NamesHost() {
 			return nil, fmt.Errorf("the token for %q: give a prefix that names its host, e.g. https://github.com/your-org; "+
 				"without one it would be sent to any host a repository or its submodules name", setting.Prefix)
 		}
@@ -80,10 +80,16 @@ func Stored(settings []config.Credential) ([]Credential, error) {
 	return stored, nil
 }
 
-// canonicalPrefix writes a prefix the way a canonical address starts, without a port, so
+// KeptToken is a token gitd keeps for the repositories under prefix, sent as user (empty
+// for the one its host expects).
+func KeptToken(prefix, token, user string) Credential {
+	return Credential{Prefix: CanonicalPrefix(prefix), Token: token, User: user, stored: true}
+}
+
+// CanonicalPrefix writes a prefix the way a canonical address starts, without a port, so
 // that `git@host:acme/`, `ssh://git@host:2222/acme/` and `https://host:3000/acme/` open the
 // same repositories.
-func canonicalPrefix(prefix string) string {
+func CanonicalPrefix(prefix string) string {
 	text := strings.ToLower(strings.TrimSpace(prefix))
 	if !strings.Contains(text, "://") {
 		if _, after, ok := strings.Cut(text, "@"); ok {
@@ -119,11 +125,12 @@ func tokenUser(host string) string {
 // names no host carries nothing: it would go to any host a repository's submodules name.
 // A key needs no such prefix, as ssh checks every host against the keys it knows.
 func (credential Credential) carries() bool {
-	return credential.Token != "" && credential.namesHost() || credential.Key != ""
+	return credential.Token != "" && credential.NamesHost() || credential.Key != ""
 }
 
-// namesHost says whether the prefix names a host, as https://host[/path] does.
-func (credential Credential) namesHost() bool {
+// NamesHost says whether the prefix names a host, as https://host[/path] does: a token
+// whose prefix does not would go to any host a repository's submodules name.
+func (credential Credential) NamesHost() bool {
 	host, _, _ := strings.Cut(strings.TrimPrefix(credential.Prefix, "https://"), "/")
 	return strings.HasPrefix(credential.Prefix, "https://") && host != ""
 }

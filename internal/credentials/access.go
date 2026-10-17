@@ -33,6 +33,18 @@ type Keys struct {
 	knownHosts string
 	hosts      repo.Hosts
 	stored     []Credential
+	sources    []Source
+}
+
+// Source is credentials gitd keeps that may change while it runs, such as the connections
+// made through the API: asked for again at every operation.
+type Source interface {
+	Credentials() []Credential
+}
+
+// AlsoKeep adds credentials gitd keeps besides those of the configuration file.
+func (keys *Keys) AlsoKeep(source Source) {
+	keys.sources = append(keys.sources, source)
 }
 
 // NewKeys writes the host keys under dir, where every ssh gitd starts reads them: the
@@ -73,6 +85,9 @@ func (keys *Keys) Address(repository repo.Repo) string {
 // and one attempt: nothing here guesses by trying them in turn.
 func (keys *Keys) For(repository repo.Repo, given []Credential) Access {
 	candidates := append(append([]Credential(nil), given...), keys.stored...)
+	for _, source := range keys.sources {
+		candidates = append(candidates, source.Credentials()...)
+	}
 	var chosen *Credential
 	for index, credential := range candidates {
 		if !credential.carries() || !credential.opens(repository) {

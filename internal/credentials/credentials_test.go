@@ -20,8 +20,8 @@ func TestThePrefixOfAKeyAndOfATokenAreWrittenTheSameWay(t *testing.T) {
 		"https://Git.Example.com:3000/acme":    "https://git.example.com/acme",
 		"forgejo@git.example.com:acme":         "https://git.example.com/acme",
 	} {
-		if got := canonicalPrefix(prefix); got != want {
-			t.Errorf("canonicalPrefix(%q) = %q", prefix, got)
+		if got := CanonicalPrefix(prefix); got != want {
+			t.Errorf("CanonicalPrefix(%q) = %q", prefix, got)
 		}
 	}
 }
@@ -135,7 +135,7 @@ func TestATokenIsSentToTheAddressOnTheHostsPort(t *testing.T) {
 		t.Fatal(err)
 	}
 	repository, _ := repo.Of("ssh://git@git.example.com:2222/acme/web.git")
-	given := []Credential{{Prefix: canonicalPrefix("https://git.example.com:3000/acme"), Token: "secret"}}
+	given := []Credential{{Prefix: CanonicalPrefix("https://git.example.com:3000/acme"), Token: "secret"}}
 	access := keys.For(repository, given)
 	if access.URL != "https://git.example.com:3000/acme/web" || !access.Offered {
 		t.Fatalf("access = %+v", access)
@@ -200,7 +200,7 @@ func TestATokenIsNeverSentToAHostItsPrefixDoesNotName(t *testing.T) {
 	keys := &Keys{knownHosts: "/state/known_hosts"}
 	internal := repo.Repo{Host: "169.254.169.254", Path: "latest/meta-data"}
 	for _, prefix := range []string{"", "https://", "git@:"} {
-		given := []Credential{{Prefix: canonicalPrefix(prefix), Token: "secret"}}
+		given := []Credential{{Prefix: CanonicalPrefix(prefix), Token: "secret"}}
 		access := keys.For(internal, given)
 		if access.Offered || strings.Contains(strings.Join(access.Env, " "), base64.StdEncoding.EncodeToString([]byte("x-access-token:secret"))) {
 			t.Errorf("a token with prefix %q is offered to %s", prefix, internal.Host)
@@ -208,5 +208,32 @@ func TestATokenIsNeverSentToAHostItsPrefixDoesNotName(t *testing.T) {
 	}
 	if _, err := Stored([]config.Credential{{Prefix: "", TokenEnv: "HOME"}}); err == nil {
 		t.Error("a kept token with no prefix is accepted")
+	}
+}
+
+// changing is credentials that change while gitd runs, as connections made through the API do.
+type changing struct{ credentials []Credential }
+
+func (source *changing) Credentials() []Credential { return source.credentials }
+
+func TestACredentialKeptWhileGitdRunsIsUsedAtOnce(t *testing.T) {
+	keys, err := NewKeys(t.TempDir(), nil, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	source := &changing{}
+	keys.AlsoKeep(source)
+	repository, _ := repo.Of("https://gitlab.example.com/acme/tools")
+	if keys.For(repository, nil).Offered {
+		t.Fatal("a credential was offered before any was kept")
+	}
+	source.credentials = []Credential{KeptToken("https://gitlab.example.com/acme/", "glpat", "")}
+	access := keys.For(repository, nil)
+	if !access.Offered || !strings.Contains(access.Via, "kept token for https://gitlab.example.com/acme") {
+		t.Errorf("after keeping one: %+v", access)
+	}
+	source.credentials = nil
+	if keys.For(repository, nil).Offered {
+		t.Error("a credential was offered after it was removed")
 	}
 }
