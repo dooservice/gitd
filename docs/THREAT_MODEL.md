@@ -2,8 +2,9 @@
 
 What gitd protects, from whom, and how; and what it leaves to whoever deploys it. Every
 claim here names the code or the test that makes it true. Reviewed against the code at
-version 0.7, and extended for what 0.8 adds — connections, GitHub Apps, publishing settings
-and pull requests — which awaits the outside review of 0.9 (see [Review](#review)).
+version 0.7, and extended for what 0.8 adds — connections, GitHub Apps, publishing settings,
+pull requests, reading and comparing what agents changed, watching, provenance and warm
+layers — which awaits the outside review of 0.9 (see [Review](#review)).
 
 ## 1. What gitd protects
 
@@ -21,7 +22,7 @@ and pull requests — which awaits the outside review of 0.9 (see [Review](#revi
 |---|---|---|
 | **An agent or a sandbox** | Write anything in its own workspace, `.git` included; run any program there; choose what it commits, `.gitmodules` included | Nothing but its workspace |
 | **A repository's contents** | Name submodules, their paths and URLs; hold any file | Nothing |
-| **An MCP client** (an agent's model) | Call the eight MCP tools, with any arguments | Nothing beyond what the tools do |
+| **An MCP client** (an agent's model) | Call the ten MCP tools, with any arguments | Nothing beyond what the tools do |
 | **A caller on the socket** (the platform, the command line) | Every call of the API: credentials in requests, connecting GitHub, adding and removing credentials, setting publishing rules | Everything gitd does: see §5 |
 | **gitd's own user** | Everything gitd can | Not with root: see gitd-mount |
 | **The network and the git hosts** | Answer anything, redirect | Hosts' identities are checked (SSH host keys, TLS) |
@@ -102,8 +103,9 @@ second from anything, until 0.9 gives callers tokens and tenants.
 A sandbox writes its workspace's `.git`, and gitd runs git there. Without care that is a
 way in: a filter in `.git/config` runs as gitd's user on the next checkout. The checks below
 hold for what is on disk when gitd looks, which is why **the operations that run git in a
-workspace — update, checkout, submodules, publish and describe — are made while its sandbox
-is stopped or paused** (§4, first rows). So:
+workspace — update, checkout, submodules, publish, describe, and on a written workspace
+changes, diff, compare and conflicts — are made while its sandbox is stopped or paused**
+(§4, first rows). So:
 
 - **Only listed configuration keys.** Before gitd runs git in a workspace it lists every key
   of its configuration, and of each submodule's, without following includes, and refuses
@@ -141,6 +143,53 @@ is stopped or paused** (§4, first rows). So:
   must stay inside the workspace as git's own checks require.
 - **Branches are checked** with `git check-ref-format`, and a leading `-` refused, whether a
   caller gives them or gitd reads one from a workspace.
+
+### Reading what an agent changed runs nothing of the agent's
+
+`Changes`, `Diff` and `Compare` say what an agent changed; `Conflicts` whether works merge
+([`workspace/changes*.go`](../internal/workspace), [`compare.go`](../internal/workspace/compare.go),
+[`conflicts.go`](../internal/workspace/conflicts.go)).
+
+- **On overlay, no git runs in the workspace.** The candidates are read from the agent's
+  own layer and the files are reached through an `os.Root` of the workspace, so a link
+  there is read as a link, never followed; each is hashed as git would and compared with
+  the base commit's blob, read from the pool. Which files git ignores is asked of the
+  template, which gitd built and the sandbox never wrote
+  (`TestChangesReadFromALayerAgreeWithGit`, on the kernel's overlay in CI).
+- **Lines and diffs are counted on copies.** The changed files are copied aside into a
+  private directory — a link as the path it names, a file over 16 MB as binary — and git
+  compares the copies with `--no-index`, `--no-ext-diff` and `--no-textconv`, so neither a
+  link nor a `.gitattributes` driver of the repository gets git to read or run anything
+  else. A diff stops at a size the caller sets, 512 KiB by default.
+- **On a written workspace**, git lists the changes there, after the same checks of `.git`
+  as every call that runs git in a workspace; so does `Conflicts` before fetching a
+  workspace's commit into the pool under a ref of its own, which it then forgets. The
+  merge itself is `git merge-tree` in the pool, writing nothing to any work tree.
+- **Watch says what happened, never what is in a file**: paths, kinds and commits, to a
+  caller on the socket. A watcher too slow to read is dropped, not waited for, and a
+  workspace's layer is looked at only while someone watches it.
+
+### Warm layers carry what a sandbox installed, and only that
+
+A warm layer is an overlay workspace's own layer, sealed for later workspaces to stand on
+([`workspace/seal.go`](../internal/workspace/seal.go),
+[`template/warm.go`](../internal/template/warm.go)). It was written by a sandbox, so:
+
+- **gitd never runs the install**: the platform runs it in its sandbox, then calls `Seal`.
+  No MCP tool seals or picks a warm layer; only a caller on the socket does.
+- **Never the workspace's `.git`.** It is set aside before the layer is moved, so nothing
+  a sandbox wrote to git's configuration, hooks or alternates reaches the workspaces on it,
+  which get a `.git` of their own from their template and every check above
+  (`TestAWarmLayerCarriesWhatOneWorkspaceInstalledToTheNext`, on the kernel's overlay in CI).
+- **Moved, never written after.** Sealing refuses, and puts the workspace back, while its
+  overlay is still mounted anywhere gitd can see — a sandbox's bind of it lives on after
+  gitd unmounts it, and what it wrote would land under every workspace on the layer
+  (`ErrHeld`, tested with a bind mount). The layer is mounted read-only below each
+  workspace's own; a workspace on it writes only to its own layer.
+- **Bounded to what gitd-mount allows**: two lower layers at most, each pinned beneath the
+  templates with `openat2` and owned by gitd's user, as a template is.
+- **One layer of a name, replaced only when unused**, and retired after `retire_after` with
+  no workspace on it.
 
 ### gitd writes only under its roots
 
@@ -233,6 +282,9 @@ Known, and left to the deployment or to a later version:
 | **Tokens are visible to gitd's user and root** | A token is in the environment of the git processes gitd starts, which `/proc/<pid>/environ` shows to the same user and to root | Run gitd as its own user, and no sandbox as that user |
 | **gitd fetches what repositories name** | A caller's URL, or a submodule URL in a repository, is fetched from gitd's network position — internal hosts included — and its contents end up in a workspace | Limit gitd's outbound network to the git hosts it serves |
 | **A sandbox running while gitd runs git in its workspace** | gitd checks `.git` — configuration, links, alternates — and then runs git, which reads it again; a sandbox changing it in between undoes the checks. No check made before git runs can close that | **Run update, checkout, submodules, publish and describe while the workspace's sandbox is stopped or paused** (`docker pause` is instant); prepare needs no pause, as a new workspace has no sandbox yet. An agent calling an MCP tool waits for its answer: let no process of its sandbox run in the background meanwhile. 0.9's sandbox repositories end this: the sandbox pushes to gitd, which no longer reads its `.git` |
+| **A warm layer holds what its install wrote** | A sandbox ran the install; an install script, or an agent in that sandbox, can leave anything in the layer — a changed dependency, a file a later test imports — and every workspace on it starts with it | Seal from a sandbox that ran only the install, from a commit people reviewed, before any agent works there; seal again rather than reuse one an agent touched |
+| **A process outside every sandbox still in a sealed workspace** | Sealing finds the workspace's overlay in every mount table gitd can see; a process of gitd's own user with its working directory inside, after a lazy unmount, keeps writing and is in none | Seal once the sandbox and whatever ran in the workspace have stopped |
+| **Provenance is told, not proven** | The agent, model, session and task a publish names are the caller's word, recorded and shown as given | Treat them as the platform's statement; the audit log says which caller made the publish |
 | **Submodules choose what a kept token reads** | A repository's `.gitmodules` names its submodules, and gitd reads each with the most specific kept credential that opens it: anything under a token's prefix, private repositories included | Give tokens prefixes as narrow as the repositories agents work on (`https://github.com/acme/web`, not the whole organization) |
 | **Adopting trusts the clone** | `Adopt` takes a clone's `origin` as its repository | Adopt only clones a sandbox has not had |
 | **The audit log is gitd's to write** | It records honestly but is not tamper-proof against gitd's own user, and a publish is not undone if its entry cannot be written (that is logged as an error) | Ship the file to a log store the gitd user cannot change |
@@ -256,7 +308,9 @@ Known, and left to the deployment or to a later version:
 5. Mount into each sandbox its workspace, read-write, and only the pools it borrows from,
    read-only. Run sandboxes with user namespaces.
 6. Stop or pause a workspace's sandbox while gitd updates, checks out, publishes or
-   describes it; prepare needs no pause.
+   describes it, and on a written workspace while it reads its changes or conflicts;
+   prepare, and changes on overlay, need no pause. Seal only once the sandbox has stopped,
+   from one that ran only the install.
 7. Install gitd-mount for overlay workspaces, with its configuration matching gitd's state
    and roots; it is the only part that runs as root.
 8. Keep gitd's state and roots on a `nosuid,nodev` filesystem, limit gitd's outbound
