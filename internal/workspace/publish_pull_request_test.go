@@ -109,3 +109,19 @@ func markPublished(t *testing.T, workspaces *Workspaces, repository repo.Repo, b
 	t.Helper()
 	run(t, workspaces.pools.Path(repository), "update-ref", "refs/gitd/published/"+branch, "refs/gitd/staging/"+branch)
 }
+
+func TestTheCommitAWorkspaceIsPutOnIsNotedAndForgottenOnRemove(t *testing.T) {
+	repository := repo.Repo{Host: "github.com", Path: "acme/web"}
+	workspaces, roots := newTestWorkspaces(t, repository)
+	path := made(t, workspaces, roots, "agent", repository)
+	head := run(t, path, "rev-parse", "HEAD")
+	if base, found := workspaces.pools.Base(repository, path); !found || base != head {
+		t.Fatalf("base = %q, %v; want %s", base, found, head)
+	}
+	if err := workspaces.Remove(context.Background(), &gitdv1.RemoveRequest{Path: path}); err != nil {
+		t.Fatal(err)
+	}
+	if _, found := workspaces.pools.Base(repository, path); found {
+		t.Error("a removed workspace's base is still noted")
+	}
+}

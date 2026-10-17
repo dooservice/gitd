@@ -30,6 +30,15 @@ func (workspaces *Workspaces) note(ctx context.Context, path string, used []repo
 	return nil
 }
 
+// settled notes what a workspace just made or moved borrows from, and the commit it is now
+// on, which is what its changes are read against from then on.
+func (workspaces *Workspaces) settled(ctx context.Context, work job, result Result, used []repo.Repo) error {
+	if err := workspaces.note(ctx, work.path, used); err != nil {
+		return err
+	}
+	return workspaces.pools.SetBase(ctx, work.repository, work.path, result.Commit)
+}
+
 // bringUp borrows the pool again, fetches its branches into the workspace — on this disk,
 // where nothing has to travel because every object is already the pool's — and settles
 // the workspace at the job's revision.

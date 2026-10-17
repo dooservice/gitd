@@ -56,7 +56,7 @@ func (workspaces *Workspaces) createFromTemplate(ctx context.Context, work job) 
 	if err := workspaces.claim(ctx, work.path, work.repository); err != nil {
 		return Result{}, err
 	}
-	return result, workspaces.note(ctx, work.path, []repo.Repo{work.repository})
+	return result, workspaces.settled(ctx, work, result, []repo.Repo{work.repository})
 }
 
 // target is the commit a job goes to, in full, and the branch it follows, if any: the commit
