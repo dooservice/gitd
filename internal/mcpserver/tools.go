@@ -48,6 +48,18 @@ func (tools *tools) register(server *mcp.Server) {
 		Annotations: &mcp.ToolAnnotations{ReadOnlyHint: true, IdempotentHint: true, OpenWorldHint: no()},
 	}, tools.describe)
 	mcp.AddTool(server, &mcp.Tool{
+		Name:        "list_changes",
+		Title:       "List a workspace's changes",
+		Description: "List each file added, modified or deleted in a workspace since gitd put it on its commit, committed or not, with its lines: review your work before publishing it. Reads nothing from the network.",
+		Annotations: &mcp.ToolAnnotations{ReadOnlyHint: true, IdempotentHint: true, OpenWorldHint: no()},
+	}, tools.changes)
+	mcp.AddTool(server, &mcp.Tool{
+		Name:        "show_diff",
+		Title:       "Show a workspace's diff",
+		Description: "Show the unified diff of a workspace's changes, of some files or all, cut short at a size. Reads nothing from the network.",
+		Annotations: &mcp.ToolAnnotations{ReadOnlyHint: true, IdempotentHint: true, OpenWorldHint: no()},
+	}, tools.diff)
+	mcp.AddTool(server, &mcp.Tool{
 		Name:        "publish_branch",
 		Title:       "Publish a branch",
 		Description: "Push what was committed in a workspace to a new branch of its repository, and open its pull request when gitd's settings say so or you ask. gitd pushes with the credential it keeps; the push is never forced, and gitd may refuse a publish that breaks its rules, such as changing the CI or deleting tests. Commit your changes in the workspace first.",
@@ -98,6 +110,35 @@ type checkoutInput struct {
 
 type pathInput struct {
 	Path string `json:"path" jsonschema:"absolute path of the workspace"`
+}
+
+type changesInput struct {
+	Path    string `json:"path" jsonschema:"absolute path of the workspace"`
+	Ignored bool   `json:"include_ignored,omitempty" jsonschema:"include files the base commit's .gitignore ignores, such as node_modules"`
+}
+
+type diffInput struct {
+	Path     string   `json:"path" jsonschema:"absolute path of the workspace"`
+	Files    []string `json:"files,omitempty" jsonschema:"only these files, relative to the workspace; all the changes when empty"`
+	MaxBytes int64    `json:"max_bytes,omitempty" jsonschema:"at most this many bytes of diff; 512 KiB when unset"`
+}
+
+type changedFile struct {
+	Path    string `json:"path"`
+	Kind    string `json:"kind" jsonschema:"added, modified or deleted"`
+	Added   int32  `json:"added_lines"`
+	Removed int32  `json:"removed_lines"`
+	Binary  bool   `json:"binary,omitempty"`
+}
+
+type changesOutput struct {
+	Base  string        `json:"base" jsonschema:"the commit gitd put the workspace on, which the changes are read against"`
+	Files []changedFile `json:"files"`
+}
+
+type diffOutput struct {
+	Diff      string `json:"diff"`
+	Truncated bool   `json:"truncated,omitempty" jsonschema:"cut short at max_bytes: ask for fewer files"`
 }
 
 type publishInput struct {
@@ -228,6 +269,29 @@ func (tools *tools) describe(ctx context.Context, _ *mcp.CallToolRequest, in pat
 		out.Submodules = append(out.Submodules, submodule{Path: state.GetPath(), URL: state.GetUrl(), Commit: state.GetCommit(), CheckedOut: state.GetCheckedOut()})
 	}
 	return nil, out, nil
+}
+
+func (tools *tools) changes(ctx context.Context, _ *mcp.CallToolRequest, in changesInput) (*mcp.CallToolResult, changesOutput, error) {
+	answer, err := tools.gitd.Changes(ctx, &gitdv1.ChangesRequest{Path: in.Path, IncludeIgnored: in.Ignored})
+	if err != nil {
+		return nil, changesOutput{}, refusal(err)
+	}
+	out := changesOutput{Base: answer.GetBase(), Files: []changedFile{}}
+	for _, file := range answer.GetFiles() {
+		out.Files = append(out.Files, changedFile{
+			Path: file.GetPath(), Kind: strings.ToLower(strings.TrimPrefix(file.GetKind().String(), "KIND_")),
+			Added: file.GetAddedLines(), Removed: file.GetRemovedLines(), Binary: file.GetBinary(),
+		})
+	}
+	return nil, out, nil
+}
+
+func (tools *tools) diff(ctx context.Context, _ *mcp.CallToolRequest, in diffInput) (*mcp.CallToolResult, diffOutput, error) {
+	answer, err := tools.gitd.Diff(ctx, &gitdv1.DiffRequest{Path: in.Path, Files: in.Files, MaxBytes: in.MaxBytes})
+	if err != nil {
+		return nil, diffOutput{}, refusal(err)
+	}
+	return nil, diffOutput{Diff: answer.GetDiff(), Truncated: answer.GetTruncated()}, nil
 }
 
 func (tools *tools) publish(ctx context.Context, _ *mcp.CallToolRequest, in publishInput) (*mcp.CallToolResult, publishOutput, error) {

@@ -53,6 +53,8 @@ func TestEveryToolSaysWhetherItReadsOrDestroys(t *testing.T) {
 		"update_workspace":   {false, true},
 		"checkout_commit":    {false, true},
 		"describe_workspace": {true, false},
+		"list_changes":       {true, false},
+		"show_diff":          {true, false},
 		"publish_branch":     {false, false},
 		"remove_workspace":   {false, true},
 		"probe_repository":   {true, false},
