@@ -142,7 +142,7 @@ func (store *Store) All() []Key {
 		if err != nil || !entry.IsDir() || path == store.Dir {
 			return nil
 		}
-		if pool.IsTemp(entry.Name()) {
+		if pool.IsTemp(entry.Name()) || path == filepath.Join(store.Dir, WarmDir) {
 			return filepath.SkipDir
 		}
 		key, ok := store.keyOf(path)
@@ -198,12 +198,16 @@ func exists(path string) bool {
 
 // Sweep removes what a gitd that died left half built under the templates directory: the
 // temporary directories templates are built in, and the users files left half written. It
-// does not look inside a template, which has nothing of the sort and many files.
+// does not look inside a template, which has nothing of the sort and many files, nor among
+// the warm layers, which SweepWarm sweeps.
 func (store *Store) Sweep() int {
 	removed := 0
 	_ = filepath.WalkDir(store.Dir, func(path string, entry fs.DirEntry, err error) error {
 		if err != nil || path == store.Dir {
 			return nil
+		}
+		if path == filepath.Join(store.Dir, WarmDir) {
+			return filepath.SkipDir
 		}
 		if pool.IsTemp(entry.Name()) || (filepath.Dir(path) == store.Dir && strings.HasPrefix(entry.Name(), ".probe-")) {
 			if os.RemoveAll(path) == nil {
