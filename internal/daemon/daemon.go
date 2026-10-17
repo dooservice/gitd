@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"os"
 
+	"github.com/dooservice/gitd/internal/audit"
 	"github.com/dooservice/gitd/internal/config"
 	"github.com/dooservice/gitd/internal/credentials"
 	"github.com/dooservice/gitd/internal/git"
@@ -56,6 +57,11 @@ func Run(ctx context.Context, path, socket, version string) error {
 
 	pools := pool.New(settings.Pools(), runner, keys, locks, fetches, settings.Housekeeping.StaleLock)
 	workspaces := workspace.New(settings.Roots, runner, pools, locks, writes, settings.Housekeeping.StaleLock)
+	auditLog, err := audit.New(settings.AuditLog(), settings.Audit.RotateBytes, settings.Audit.Keep)
+	if err != nil {
+		return err
+	}
+	workspaces.UsePublishing(workspace.Publishing{BranchPrefix: settings.Publish.BranchPrefix, Recorder: auditLog})
 
 	templates := template.New(settings.Templates(), locks, workspaces)
 	want := strategy.Name(settings.Workspaces.Strategy)
@@ -87,6 +93,7 @@ func Run(ctx context.Context, path, socket, version string) error {
 		Strategy:       made.Proto(),
 		StrategyReason: why,
 		TemplateTotals: keeper.TemplateTotals,
+		AuditLog:       auditLog,
 	}
 	return served.Serve(ctx, settings.Socket, settings.Metrics)
 }

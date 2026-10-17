@@ -19,6 +19,7 @@ import (
 
 	gitdv1 "github.com/dooservice/gitd/gen/go/gitd/v1"
 	"github.com/dooservice/gitd/gen/go/gitd/v1/gitdv1connect"
+	"github.com/dooservice/gitd/internal/audit"
 	"github.com/dooservice/gitd/internal/git"
 	"github.com/dooservice/gitd/internal/metrics"
 	"github.com/dooservice/gitd/internal/pool"
@@ -42,6 +43,8 @@ type Server struct {
 	Strategy       gitdv1.Strategy
 	StrategyReason string
 	TemplateTotals func() (int, int64)
+	// AuditLog is every publish, done or refused.
+	AuditLog *audit.Log
 }
 
 // Serve answers on the Unix socket until ctx ends, and serves the metrics at

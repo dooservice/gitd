@@ -9,6 +9,7 @@ package gitdv1
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -92,6 +93,8 @@ const (
 	GitFailure_REASON_CORRUPT       GitFailure_Reason = 8
 	GitFailure_REASON_GIT_FAILED    GitFailure_Reason = 9
 	GitFailure_REASON_NOTHING_NEW   GitFailure_Reason = 10
+	// The branch is outside the prefix publishing is limited to.
+	GitFailure_REASON_BRANCH_REFUSED GitFailure_Reason = 11
 )
 
 // Enum value maps for GitFailure_Reason.
@@ -108,19 +111,21 @@ var (
 		8:  "REASON_CORRUPT",
 		9:  "REASON_GIT_FAILED",
 		10: "REASON_NOTHING_NEW",
+		11: "REASON_BRANCH_REFUSED",
 	}
 	GitFailure_Reason_value = map[string]int32{
-		"REASON_UNSPECIFIED":   0,
-		"REASON_AUTH_REQUIRED": 1,
-		"REASON_AUTH_REFUSED":  2,
-		"REASON_NOT_FOUND":     3,
-		"REASON_BAD_ADDRESS":   4,
-		"REASON_PATH_REFUSED":  5,
-		"REASON_BUSY":          6,
-		"REASON_TIMEOUT":       7,
-		"REASON_CORRUPT":       8,
-		"REASON_GIT_FAILED":    9,
-		"REASON_NOTHING_NEW":   10,
+		"REASON_UNSPECIFIED":    0,
+		"REASON_AUTH_REQUIRED":  1,
+		"REASON_AUTH_REFUSED":   2,
+		"REASON_NOT_FOUND":      3,
+		"REASON_BAD_ADDRESS":    4,
+		"REASON_PATH_REFUSED":   5,
+		"REASON_BUSY":           6,
+		"REASON_TIMEOUT":        7,
+		"REASON_CORRUPT":        8,
+		"REASON_GIT_FAILED":     9,
+		"REASON_NOTHING_NEW":    10,
+		"REASON_BRANCH_REFUSED": 11,
 	}
 )
 
@@ -1866,7 +1871,8 @@ func (x *AdoptResult) GetBytesReleased() int64 {
 type PublishRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	Path  string                 `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
-	// A branch that does not exist yet: nothing is ever pushed over one that does.
+	// A branch that does not exist yet: nothing is ever pushed over one that does. It must
+	// start with `[publish] branch_prefix`, when the configuration sets one.
 	Branch        string        `protobuf:"bytes,2,opt,name=branch,proto3" json:"branch,omitempty"`
 	Credentials   []*Credential `protobuf:"bytes,3,rep,name=credentials,proto3" json:"credentials,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -2421,11 +2427,216 @@ func (x *InfoResponse) GetTemplatesBytes() int64 {
 	return 0
 }
 
+type AuditRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Only the entries from this time on; all of them when unset.
+	Since *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=since,proto3" json:"since,omitempty"`
+	// Only the publishes of this repository, as its URL is written in the entries.
+	Url string `protobuf:"bytes,2,opt,name=url,proto3" json:"url,omitempty"`
+	// At most this many, newest first: 100 when unset, never more than 1000.
+	Limit         int32 `protobuf:"varint,3,opt,name=limit,proto3" json:"limit,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AuditRequest) Reset() {
+	*x = AuditRequest{}
+	mi := &file_gitd_v1_gitd_proto_msgTypes[33]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AuditRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AuditRequest) ProtoMessage() {}
+
+func (x *AuditRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_gitd_v1_gitd_proto_msgTypes[33]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AuditRequest.ProtoReflect.Descriptor instead.
+func (*AuditRequest) Descriptor() ([]byte, []int) {
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{33}
+}
+
+func (x *AuditRequest) GetSince() *timestamppb.Timestamp {
+	if x != nil {
+		return x.Since
+	}
+	return nil
+}
+
+func (x *AuditRequest) GetUrl() string {
+	if x != nil {
+		return x.Url
+	}
+	return ""
+}
+
+func (x *AuditRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+type AuditResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Entries       []*AuditEntry          `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AuditResponse) Reset() {
+	*x = AuditResponse{}
+	mi := &file_gitd_v1_gitd_proto_msgTypes[34]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AuditResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AuditResponse) ProtoMessage() {}
+
+func (x *AuditResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_gitd_v1_gitd_proto_msgTypes[34]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AuditResponse.ProtoReflect.Descriptor instead.
+func (*AuditResponse) Descriptor() ([]byte, []int) {
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{34}
+}
+
+func (x *AuditResponse) GetEntries() []*AuditEntry {
+	if x != nil {
+		return x.Entries
+	}
+	return nil
+}
+
+// One publish, done or refused, as the audit log keeps it: one per line of the log file,
+// in this message's JSON form.
+type AuditEntry struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Time  *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=time,proto3" json:"time,omitempty"`
+	// The workspace's path, as the caller gave it.
+	Workspace string `protobuf:"bytes,2,opt,name=workspace,proto3" json:"workspace,omitempty"`
+	// The workspace's repository; empty when the workspace could not be opened.
+	Url    string `protobuf:"bytes,3,opt,name=url,proto3" json:"url,omitempty"`
+	Branch string `protobuf:"bytes,4,opt,name=branch,proto3" json:"branch,omitempty"`
+	// What was pushed: the workspace's repository, then each submodule. Unset when refused.
+	Repository *PublishedRepository   `protobuf:"bytes,5,opt,name=repository,proto3" json:"repository,omitempty"`
+	Submodules []*PublishedRepository `protobuf:"bytes,6,rep,name=submodules,proto3" json:"submodules,omitempty"`
+	// Why it was refused. Unset when it was published.
+	Refusal       *GitFailure `protobuf:"bytes,7,opt,name=refusal,proto3" json:"refusal,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AuditEntry) Reset() {
+	*x = AuditEntry{}
+	mi := &file_gitd_v1_gitd_proto_msgTypes[35]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AuditEntry) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AuditEntry) ProtoMessage() {}
+
+func (x *AuditEntry) ProtoReflect() protoreflect.Message {
+	mi := &file_gitd_v1_gitd_proto_msgTypes[35]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AuditEntry.ProtoReflect.Descriptor instead.
+func (*AuditEntry) Descriptor() ([]byte, []int) {
+	return file_gitd_v1_gitd_proto_rawDescGZIP(), []int{35}
+}
+
+func (x *AuditEntry) GetTime() *timestamppb.Timestamp {
+	if x != nil {
+		return x.Time
+	}
+	return nil
+}
+
+func (x *AuditEntry) GetWorkspace() string {
+	if x != nil {
+		return x.Workspace
+	}
+	return ""
+}
+
+func (x *AuditEntry) GetUrl() string {
+	if x != nil {
+		return x.Url
+	}
+	return ""
+}
+
+func (x *AuditEntry) GetBranch() string {
+	if x != nil {
+		return x.Branch
+	}
+	return ""
+}
+
+func (x *AuditEntry) GetRepository() *PublishedRepository {
+	if x != nil {
+		return x.Repository
+	}
+	return nil
+}
+
+func (x *AuditEntry) GetSubmodules() []*PublishedRepository {
+	if x != nil {
+		return x.Submodules
+	}
+	return nil
+}
+
+func (x *AuditEntry) GetRefusal() *GitFailure {
+	if x != nil {
+		return x.Refusal
+	}
+	return nil
+}
+
 var File_gitd_v1_gitd_proto protoreflect.FileDescriptor
 
 const file_gitd_v1_gitd_proto_rawDesc = "" +
 	"\n" +
-	"\x12gitd/v1/gitd.proto\x12\agitd.v1\"\x9b\x01\n" +
+	"\x12gitd/v1/gitd.proto\x12\agitd.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\x9b\x01\n" +
 	"\n" +
 	"Credential\x12\x1d\n" +
 	"\n" +
@@ -2456,14 +2667,14 @@ const file_gitd_v1_gitd_proto_rawDesc = "" +
 	"\x10PendingSubmodule\x12\x10\n" +
 	"\x03url\x18\x01 \x01(\tR\x03url\x12\x12\n" +
 	"\x04path\x18\x02 \x01(\tR\x04path\x12-\n" +
-	"\afailure\x18\x03 \x01(\v2\x13.gitd.v1.GitFailureR\afailure\"\x80\x03\n" +
+	"\afailure\x18\x03 \x01(\v2\x13.gitd.v1.GitFailureR\afailure\"\x9b\x03\n" +
 	"\n" +
 	"GitFailure\x122\n" +
 	"\x06reason\x18\x01 \x01(\x0e2\x1a.gitd.v1.GitFailure.ReasonR\x06reason\x12\x19\n" +
 	"\bgit_said\x18\x02 \x01(\tR\agitSaid\x12\x1e\n" +
 	"\n" +
 	"repository\x18\x03 \x01(\tR\n" +
-	"repository\"\x82\x02\n" +
+	"repository\"\x9d\x02\n" +
 	"\x06Reason\x12\x16\n" +
 	"\x12REASON_UNSPECIFIED\x10\x00\x12\x18\n" +
 	"\x14REASON_AUTH_REQUIRED\x10\x01\x12\x17\n" +
@@ -2476,7 +2687,8 @@ const file_gitd_v1_gitd_proto_rawDesc = "" +
 	"\x0eREASON_CORRUPT\x10\b\x12\x15\n" +
 	"\x11REASON_GIT_FAILED\x10\t\x12\x16\n" +
 	"\x12REASON_NOTHING_NEW\x10\n" +
-	"\"\x97\x02\n" +
+	"\x12\x19\n" +
+	"\x15REASON_BRANCH_REFUSED\x10\v\"\x97\x02\n" +
 	"\x0ePrepareRequest\x12\x10\n" +
 	"\x03url\x18\x01 \x01(\tR\x03url\x12\x12\n" +
 	"\x04path\x18\x02 \x01(\tR\x04path\x12-\n" +
@@ -2604,7 +2816,26 @@ const file_gitd_v1_gitd_proto_rawDesc = "" +
 	"\bstrategy\x18\x05 \x01(\x0e2\x11.gitd.v1.StrategyR\bstrategy\x12'\n" +
 	"\x0fstrategy_reason\x18\x06 \x01(\tR\x0estrategyReason\x12\x1c\n" +
 	"\ttemplates\x18\a \x01(\x05R\ttemplates\x12'\n" +
-	"\x0ftemplates_bytes\x18\b \x01(\x03R\x0etemplatesBytes*c\n" +
+	"\x0ftemplates_bytes\x18\b \x01(\x03R\x0etemplatesBytes\"h\n" +
+	"\fAuditRequest\x120\n" +
+	"\x05since\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\x05since\x12\x10\n" +
+	"\x03url\x18\x02 \x01(\tR\x03url\x12\x14\n" +
+	"\x05limit\x18\x03 \x01(\x05R\x05limit\">\n" +
+	"\rAuditResponse\x12-\n" +
+	"\aentries\x18\x01 \x03(\v2\x13.gitd.v1.AuditEntryR\aentries\"\xaf\x02\n" +
+	"\n" +
+	"AuditEntry\x12.\n" +
+	"\x04time\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\x04time\x12\x1c\n" +
+	"\tworkspace\x18\x02 \x01(\tR\tworkspace\x12\x10\n" +
+	"\x03url\x18\x03 \x01(\tR\x03url\x12\x16\n" +
+	"\x06branch\x18\x04 \x01(\tR\x06branch\x12<\n" +
+	"\n" +
+	"repository\x18\x05 \x01(\v2\x1c.gitd.v1.PublishedRepositoryR\n" +
+	"repository\x12<\n" +
+	"\n" +
+	"submodules\x18\x06 \x03(\v2\x1c.gitd.v1.PublishedRepositoryR\n" +
+	"submodules\x12-\n" +
+	"\arefusal\x18\a \x01(\v2\x13.gitd.v1.GitFailureR\arefusal*c\n" +
 	"\bStrategy\x12\x18\n" +
 	"\x14STRATEGY_UNSPECIFIED\x10\x00\x12\x11\n" +
 	"\rSTRATEGY_COPY\x10\x01\x12\x14\n" +
@@ -2620,10 +2851,11 @@ const file_gitd_v1_gitd_proto_rawDesc = "" +
 	"\x05Adopt\x12\x15.gitd.v1.AdoptRequest\x1a\x16.gitd.v1.AdoptResponse0\x01\x12<\n" +
 	"\aPublish\x12\x17.gitd.v1.PublishRequest\x1a\x18.gitd.v1.PublishResponse2K\n" +
 	"\x11RepositoryService\x126\n" +
-	"\x05Probe\x12\x15.gitd.v1.ProbeRequest\x1a\x16.gitd.v1.ProbeResponse2\x7f\n" +
+	"\x05Probe\x12\x15.gitd.v1.ProbeRequest\x1a\x16.gitd.v1.ProbeResponse2\xb7\x01\n" +
 	"\rServerService\x123\n" +
 	"\x04Info\x12\x14.gitd.v1.InfoRequest\x1a\x15.gitd.v1.InfoResponse\x129\n" +
-	"\x06Retire\x12\x16.gitd.v1.RetireRequest\x1a\x17.gitd.v1.RetireResponseB2Z0github.com/dooservice/gitd/gen/go/gitd/v1;gitdv1b\x06proto3"
+	"\x06Retire\x12\x16.gitd.v1.RetireRequest\x1a\x17.gitd.v1.RetireResponse\x126\n" +
+	"\x05Audit\x12\x15.gitd.v1.AuditRequest\x1a\x16.gitd.v1.AuditResponseB2Z0github.com/dooservice/gitd/gen/go/gitd/v1;gitdv1b\x06proto3"
 
 var (
 	file_gitd_v1_gitd_proto_rawDescOnce sync.Once
@@ -2638,7 +2870,7 @@ func file_gitd_v1_gitd_proto_rawDescGZIP() []byte {
 }
 
 var file_gitd_v1_gitd_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_gitd_v1_gitd_proto_msgTypes = make([]protoimpl.MessageInfo, 34)
+var file_gitd_v1_gitd_proto_msgTypes = make([]protoimpl.MessageInfo, 37)
 var file_gitd_v1_gitd_proto_goTypes = []any{
 	(Strategy)(0),                  // 0: gitd.v1.Strategy
 	(GitFailure_Reason)(0),         // 1: gitd.v1.GitFailure.Reason
@@ -2676,7 +2908,11 @@ var file_gitd_v1_gitd_proto_goTypes = []any{
 	(*RetireResponse)(nil),         // 33: gitd.v1.RetireResponse
 	(*InfoRequest)(nil),            // 34: gitd.v1.InfoRequest
 	(*InfoResponse)(nil),           // 35: gitd.v1.InfoResponse
-	nil,                            // 36: gitd.v1.ProbeResponse.CommitsEntry
+	(*AuditRequest)(nil),           // 36: gitd.v1.AuditRequest
+	(*AuditResponse)(nil),          // 37: gitd.v1.AuditResponse
+	(*AuditEntry)(nil),             // 38: gitd.v1.AuditEntry
+	nil,                            // 39: gitd.v1.ProbeResponse.CommitsEntry
+	(*timestamppb.Timestamp)(nil),  // 40: google.protobuf.Timestamp
 }
 var file_gitd_v1_gitd_proto_depIdxs = []int32{
 	8,  // 0: gitd.v1.PendingSubmodule.failure:type_name -> gitd.v1.GitFailure
@@ -2711,35 +2947,43 @@ var file_gitd_v1_gitd_proto_depIdxs = []int32{
 	3,  // 29: gitd.v1.ProbeRequest.credentials:type_name -> gitd.v1.Credential
 	2,  // 30: gitd.v1.ProbeResponse.access:type_name -> gitd.v1.ProbeResponse.Access
 	8,  // 31: gitd.v1.ProbeResponse.failure:type_name -> gitd.v1.GitFailure
-	36, // 32: gitd.v1.ProbeResponse.commits:type_name -> gitd.v1.ProbeResponse.CommitsEntry
+	39, // 32: gitd.v1.ProbeResponse.commits:type_name -> gitd.v1.ProbeResponse.CommitsEntry
 	0,  // 33: gitd.v1.InfoResponse.strategy:type_name -> gitd.v1.Strategy
-	9,  // 34: gitd.v1.WorkspaceService.Prepare:input_type -> gitd.v1.PrepareRequest
-	13, // 35: gitd.v1.WorkspaceService.Update:input_type -> gitd.v1.UpdateRequest
-	15, // 36: gitd.v1.WorkspaceService.Checkout:input_type -> gitd.v1.CheckoutRequest
-	17, // 37: gitd.v1.WorkspaceService.SyncSubmodules:input_type -> gitd.v1.SyncSubmodulesRequest
-	20, // 38: gitd.v1.WorkspaceService.Describe:input_type -> gitd.v1.DescribeRequest
-	22, // 39: gitd.v1.WorkspaceService.Remove:input_type -> gitd.v1.RemoveRequest
-	24, // 40: gitd.v1.WorkspaceService.Adopt:input_type -> gitd.v1.AdoptRequest
-	27, // 41: gitd.v1.WorkspaceService.Publish:input_type -> gitd.v1.PublishRequest
-	30, // 42: gitd.v1.RepositoryService.Probe:input_type -> gitd.v1.ProbeRequest
-	34, // 43: gitd.v1.ServerService.Info:input_type -> gitd.v1.InfoRequest
-	32, // 44: gitd.v1.ServerService.Retire:input_type -> gitd.v1.RetireRequest
-	11, // 45: gitd.v1.WorkspaceService.Prepare:output_type -> gitd.v1.PrepareResponse
-	14, // 46: gitd.v1.WorkspaceService.Update:output_type -> gitd.v1.UpdateResponse
-	16, // 47: gitd.v1.WorkspaceService.Checkout:output_type -> gitd.v1.CheckoutResponse
-	18, // 48: gitd.v1.WorkspaceService.SyncSubmodules:output_type -> gitd.v1.SyncSubmodulesResponse
-	21, // 49: gitd.v1.WorkspaceService.Describe:output_type -> gitd.v1.DescribeResponse
-	23, // 50: gitd.v1.WorkspaceService.Remove:output_type -> gitd.v1.RemoveResponse
-	25, // 51: gitd.v1.WorkspaceService.Adopt:output_type -> gitd.v1.AdoptResponse
-	29, // 52: gitd.v1.WorkspaceService.Publish:output_type -> gitd.v1.PublishResponse
-	31, // 53: gitd.v1.RepositoryService.Probe:output_type -> gitd.v1.ProbeResponse
-	35, // 54: gitd.v1.ServerService.Info:output_type -> gitd.v1.InfoResponse
-	33, // 55: gitd.v1.ServerService.Retire:output_type -> gitd.v1.RetireResponse
-	45, // [45:56] is the sub-list for method output_type
-	34, // [34:45] is the sub-list for method input_type
-	34, // [34:34] is the sub-list for extension type_name
-	34, // [34:34] is the sub-list for extension extendee
-	0,  // [0:34] is the sub-list for field type_name
+	40, // 34: gitd.v1.AuditRequest.since:type_name -> google.protobuf.Timestamp
+	38, // 35: gitd.v1.AuditResponse.entries:type_name -> gitd.v1.AuditEntry
+	40, // 36: gitd.v1.AuditEntry.time:type_name -> google.protobuf.Timestamp
+	28, // 37: gitd.v1.AuditEntry.repository:type_name -> gitd.v1.PublishedRepository
+	28, // 38: gitd.v1.AuditEntry.submodules:type_name -> gitd.v1.PublishedRepository
+	8,  // 39: gitd.v1.AuditEntry.refusal:type_name -> gitd.v1.GitFailure
+	9,  // 40: gitd.v1.WorkspaceService.Prepare:input_type -> gitd.v1.PrepareRequest
+	13, // 41: gitd.v1.WorkspaceService.Update:input_type -> gitd.v1.UpdateRequest
+	15, // 42: gitd.v1.WorkspaceService.Checkout:input_type -> gitd.v1.CheckoutRequest
+	17, // 43: gitd.v1.WorkspaceService.SyncSubmodules:input_type -> gitd.v1.SyncSubmodulesRequest
+	20, // 44: gitd.v1.WorkspaceService.Describe:input_type -> gitd.v1.DescribeRequest
+	22, // 45: gitd.v1.WorkspaceService.Remove:input_type -> gitd.v1.RemoveRequest
+	24, // 46: gitd.v1.WorkspaceService.Adopt:input_type -> gitd.v1.AdoptRequest
+	27, // 47: gitd.v1.WorkspaceService.Publish:input_type -> gitd.v1.PublishRequest
+	30, // 48: gitd.v1.RepositoryService.Probe:input_type -> gitd.v1.ProbeRequest
+	34, // 49: gitd.v1.ServerService.Info:input_type -> gitd.v1.InfoRequest
+	32, // 50: gitd.v1.ServerService.Retire:input_type -> gitd.v1.RetireRequest
+	36, // 51: gitd.v1.ServerService.Audit:input_type -> gitd.v1.AuditRequest
+	11, // 52: gitd.v1.WorkspaceService.Prepare:output_type -> gitd.v1.PrepareResponse
+	14, // 53: gitd.v1.WorkspaceService.Update:output_type -> gitd.v1.UpdateResponse
+	16, // 54: gitd.v1.WorkspaceService.Checkout:output_type -> gitd.v1.CheckoutResponse
+	18, // 55: gitd.v1.WorkspaceService.SyncSubmodules:output_type -> gitd.v1.SyncSubmodulesResponse
+	21, // 56: gitd.v1.WorkspaceService.Describe:output_type -> gitd.v1.DescribeResponse
+	23, // 57: gitd.v1.WorkspaceService.Remove:output_type -> gitd.v1.RemoveResponse
+	25, // 58: gitd.v1.WorkspaceService.Adopt:output_type -> gitd.v1.AdoptResponse
+	29, // 59: gitd.v1.WorkspaceService.Publish:output_type -> gitd.v1.PublishResponse
+	31, // 60: gitd.v1.RepositoryService.Probe:output_type -> gitd.v1.ProbeResponse
+	35, // 61: gitd.v1.ServerService.Info:output_type -> gitd.v1.InfoResponse
+	33, // 62: gitd.v1.ServerService.Retire:output_type -> gitd.v1.RetireResponse
+	37, // 63: gitd.v1.ServerService.Audit:output_type -> gitd.v1.AuditResponse
+	52, // [52:64] is the sub-list for method output_type
+	40, // [40:52] is the sub-list for method input_type
+	40, // [40:40] is the sub-list for extension type_name
+	40, // [40:40] is the sub-list for extension extendee
+	0,  // [0:40] is the sub-list for field type_name
 }
 
 func init() { file_gitd_v1_gitd_proto_init() }
@@ -2781,7 +3025,7 @@ func file_gitd_v1_gitd_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_gitd_v1_gitd_proto_rawDesc), len(file_gitd_v1_gitd_proto_rawDesc)),
 			NumEnums:      3,
-			NumMessages:   34,
+			NumMessages:   37,
 			NumExtensions: 0,
 			NumServices:   3,
 		},

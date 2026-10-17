@@ -39,6 +39,8 @@ type Workspaces struct {
 	// templates and maker make workspaces from templates; a nil maker writes every file.
 	templates *template.Store
 	maker     strategy.Maker
+	// publishing is the rules publishes follow.
+	publishing Publishing
 }
 
 // UseTemplates has new workspaces made from templates by maker, which Detect picked; a nil

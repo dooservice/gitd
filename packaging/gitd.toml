@@ -42,6 +42,16 @@ known_hosts = []
 # prefix = ""                    # any repository, e.g. a deploy key for everything public
 # ssh_key = "/etc/gitd/keys/id_ed25519"
 
+[publish]
+# Every published branch must start with this; empty allows any new branch. Publishing never
+# pushes over a branch that exists, so a prefix keeps agents off every branch people use.
+branch_prefix = ""               # e.g. "agents/"
+
+# Every publish, done or refused, one JSON line each in <state>/audit/publishes.jsonl.
+[audit]
+rotate_bytes = 16777216          # the file is rotated at this size (16 MiB)
+keep = "8760h"                   # a rotated file is deleted after this long (a year)
+
 [limits]
 fetches = 4
 writes = 8

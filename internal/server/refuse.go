@@ -50,7 +50,7 @@ func codeOf(reason git.Reason) connect.Code {
 	switch reason {
 	case git.AuthRequired:
 		return connect.CodeUnauthenticated
-	case git.AuthRefused, git.PathRefused:
+	case git.AuthRefused, git.PathRefused, git.BranchRefused:
 		return connect.CodePermissionDenied
 	case git.NotFound:
 		return connect.CodeNotFound

@@ -72,3 +72,19 @@ func TestAStrategyIsOneGitdKnows(t *testing.T) {
 		}
 	}
 }
+
+func TestABranchPrefixCanStartABranchName(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "gitd.toml")
+	prefixes := map[string]bool{
+		"": true, "agents/": true, "bot-": true, "team/agents/": true,
+		"-x/": false, "/agents/": false, "a..b/": false, "a//b": false, "agents /": false, "agents~": false,
+	}
+	for prefix, valid := range prefixes {
+		if err := os.WriteFile(path, []byte("[publish]\nbranch_prefix = \""+prefix+"\"\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := Load(path); (err == nil) != valid {
+			t.Errorf("branch_prefix %q: %v; valid %v", prefix, err, valid)
+		}
+	}
+}

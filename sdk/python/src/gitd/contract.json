@@ -1,8 +1,46 @@
 {
   "file": [
     {
+      "name": "google/protobuf/timestamp.proto",
+      "package": "google.protobuf",
+      "messageType": [
+        {
+          "name": "Timestamp",
+          "field": [
+            {
+              "name": "seconds",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_INT64",
+              "jsonName": "seconds"
+            },
+            {
+              "name": "nanos",
+              "number": 2,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_INT32",
+              "jsonName": "nanos"
+            }
+          ]
+        }
+      ],
+      "options": {
+        "javaPackage": "com.google.protobuf",
+        "javaOuterClassname": "TimestampProto",
+        "javaMultipleFiles": true,
+        "goPackage": "google.golang.org/protobuf/types/known/timestamppb",
+        "ccEnableArenas": true,
+        "objcClassPrefix": "GPB",
+        "csharpNamespace": "Google.Protobuf.WellKnownTypes"
+      },
+      "syntax": "proto3"
+    },
+    {
       "name": "gitd/v1/gitd.proto",
       "package": "gitd.v1",
+      "dependency": [
+        "google/protobuf/timestamp.proto"
+      ],
       "messageType": [
         {
           "name": "Credential",
@@ -229,6 +267,10 @@
                 {
                   "name": "REASON_NOTHING_NEW",
                   "number": 10
+                },
+                {
+                  "name": "REASON_BRANCH_REFUSED",
+                  "number": 11
                 }
               ]
             }
@@ -1017,6 +1059,104 @@
               "jsonName": "templatesBytes"
             }
           ]
+        },
+        {
+          "name": "AuditRequest",
+          "field": [
+            {
+              "name": "since",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".google.protobuf.Timestamp",
+              "jsonName": "since"
+            },
+            {
+              "name": "url",
+              "number": 2,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "url"
+            },
+            {
+              "name": "limit",
+              "number": 3,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_INT32",
+              "jsonName": "limit"
+            }
+          ]
+        },
+        {
+          "name": "AuditResponse",
+          "field": [
+            {
+              "name": "entries",
+              "number": 1,
+              "label": "LABEL_REPEATED",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".gitd.v1.AuditEntry",
+              "jsonName": "entries"
+            }
+          ]
+        },
+        {
+          "name": "AuditEntry",
+          "field": [
+            {
+              "name": "time",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".google.protobuf.Timestamp",
+              "jsonName": "time"
+            },
+            {
+              "name": "workspace",
+              "number": 2,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "workspace"
+            },
+            {
+              "name": "url",
+              "number": 3,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "url"
+            },
+            {
+              "name": "branch",
+              "number": 4,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "branch"
+            },
+            {
+              "name": "repository",
+              "number": 5,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".gitd.v1.PublishedRepository",
+              "jsonName": "repository"
+            },
+            {
+              "name": "submodules",
+              "number": 6,
+              "label": "LABEL_REPEATED",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".gitd.v1.PublishedRepository",
+              "jsonName": "submodules"
+            },
+            {
+              "name": "refusal",
+              "number": 7,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".gitd.v1.GitFailure",
+              "jsonName": "refusal"
+            }
+          ]
         }
       ],
       "enumType": [
@@ -1115,6 +1255,11 @@
               "name": "Retire",
               "inputType": ".gitd.v1.RetireRequest",
               "outputType": ".gitd.v1.RetireResponse"
+            },
+            {
+              "name": "Audit",
+              "inputType": ".gitd.v1.AuditRequest",
+              "outputType": ".gitd.v1.AuditResponse"
             }
           ]
         }

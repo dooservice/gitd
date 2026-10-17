@@ -12,16 +12,17 @@ import (
 type Reason = gitdv1.GitFailure_Reason
 
 const (
-	AuthRequired = gitdv1.GitFailure_REASON_AUTH_REQUIRED
-	AuthRefused  = gitdv1.GitFailure_REASON_AUTH_REFUSED
-	NotFound     = gitdv1.GitFailure_REASON_NOT_FOUND
-	BadAddress   = gitdv1.GitFailure_REASON_BAD_ADDRESS
-	PathRefused  = gitdv1.GitFailure_REASON_PATH_REFUSED
-	Busy         = gitdv1.GitFailure_REASON_BUSY
-	Timeout      = gitdv1.GitFailure_REASON_TIMEOUT
-	Corrupt      = gitdv1.GitFailure_REASON_CORRUPT
-	Failed       = gitdv1.GitFailure_REASON_GIT_FAILED
-	NothingNew   = gitdv1.GitFailure_REASON_NOTHING_NEW
+	AuthRequired  = gitdv1.GitFailure_REASON_AUTH_REQUIRED
+	AuthRefused   = gitdv1.GitFailure_REASON_AUTH_REFUSED
+	NotFound      = gitdv1.GitFailure_REASON_NOT_FOUND
+	BadAddress    = gitdv1.GitFailure_REASON_BAD_ADDRESS
+	PathRefused   = gitdv1.GitFailure_REASON_PATH_REFUSED
+	Busy          = gitdv1.GitFailure_REASON_BUSY
+	Timeout       = gitdv1.GitFailure_REASON_TIMEOUT
+	Corrupt       = gitdv1.GitFailure_REASON_CORRUPT
+	Failed        = gitdv1.GitFailure_REASON_GIT_FAILED
+	NothingNew    = gitdv1.GitFailure_REASON_NOTHING_NEW
+	BranchRefused = gitdv1.GitFailure_REASON_BRANCH_REFUSED
 )
 
 // Failure is an operation that did not go through: why, what git said about it, and the

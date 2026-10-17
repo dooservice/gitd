@@ -15,18 +15,28 @@ import (
 // change anybody can review. Then the submodules go, each to a branch of the same name in
 // its own repository — its commit has to be there before the superproject's points at it —
 // and the superproject last. A submodule that cannot be published stops it all, saying which.
+//
+// The branch must start with the prefix publishing is limited to, if there is one, and every
+// publish, done or refused, is recorded.
 func (workspaces *Workspaces) Publish(
 	ctx context.Context, request *gitdv1.PublishRequest,
-) (*gitdv1.PublishResponse, error) {
+) (answer *gitdv1.PublishResponse, err error) {
+	branch := request.GetBranch()
+	entry := &gitdv1.AuditEntry{Workspace: request.GetPath(), Branch: branch}
+	defer func() { workspaces.record(entry, answer, err) }()
+
 	path, repository, release, err := workspaces.open(ctx, request.GetPath())
 	if err != nil {
 		return nil, err
 	}
 	defer release()
-	branch := request.GetBranch()
+	entry.Url = repository.HTTPS()
 	validated := git.Cmd{Dir: "/", Args: []string{"check-ref-format", "--branch", branch}}
 	if _, err := workspaces.runner.Run(ctx, validated); err != nil {
 		return nil, git.Fail(git.BadAddress, "%q is not a branch name", branch)
+	}
+	if err := workspaces.branchAllowed(branch); err != nil {
+		return nil, err
 	}
 	commit, subjects, err := workspaces.pools.Stage(ctx, repository, path, branch)
 	if err != nil {
@@ -43,7 +53,7 @@ func (workspaces *Workspaces) Publish(
 	}
 
 	given := credentials.FromProto(request.GetCredentials())
-	answer := &gitdv1.PublishResponse{Branch: branch}
+	answer = &gitdv1.PublishResponse{Branch: branch}
 	for _, submodule := range changed {
 		if err := workspaces.pools.Push(ctx, submodule.repository, branch, given); err != nil {
 			return nil, err

@@ -35,6 +35,8 @@ type Config struct {
 	Credentials []Credential `toml:"credentials"`
 
 	Workspaces   Workspaces   `toml:"workspaces"`
+	Publish      Publish      `toml:"publish"`
+	Audit        Audit        `toml:"audit"`
 	Limits       Limits       `toml:"limits"`
 	Housekeeping Housekeeping `toml:"housekeeping"`
 }
@@ -60,6 +62,21 @@ type Workspaces struct {
 	// MountHelper is the socket of gitd-mount, which mounts overlays for a gitd that may
 	// not; the default is used when it exists.
 	MountHelper string `toml:"mount_helper"`
+}
+
+// Publish is the rules of publishing. BranchPrefix, when set, is what every published
+// branch must start with, e.g. "agents/": with publishing already limited to new branches
+// and never forced, it keeps agents off every branch people use.
+type Publish struct {
+	BranchPrefix string `toml:"branch_prefix"`
+}
+
+// Audit is how the audit log, every publish done or refused, is kept under the state
+// directory: its file is rotated when it reaches RotateBytes, and a rotated file is deleted
+// once older than Keep.
+type Audit struct {
+	RotateBytes int64         `toml:"rotate_bytes"`
+	Keep        time.Duration `toml:"keep"`
 }
 
 // DefaultMountHelper is where gitd-mount answers unless the configuration says otherwise.
@@ -102,6 +119,10 @@ func Default() Config {
 		State:  "/var/lib/gitd",
 		Roots:  []string{"/var/lib/gitd/workspaces"},
 		Git:    "git",
+		Audit: Audit{
+			RotateBytes: 16 << 20,
+			Keep:        365 * 24 * time.Hour,
+		},
 		Limits: Limits{
 			Fetches:   4,
 			Writes:    8,
@@ -127,6 +148,10 @@ func Load(path string) (Config, error) {
 	}
 	return settings, settings.normalize()
 }
+
+// branchPrefix is what a branch prefix may be: the start of a branch name git accepts, in
+// letters, digits and . _ - /, never starting with one that reads as an option or a path.
+var branchPrefix = regexp.MustCompile(`^[A-Za-z0-9_][A-Za-z0-9._/-]*$`)
 
 // name is what a host or an SSH user may be: nothing that reads as an option, or as part
 // of an address or of a shell word.
@@ -160,6 +185,13 @@ func (settings *Config) normalize() error {
 	default:
 		return fmt.Errorf("workspaces: strategy %q is none of auto, overlay, copy and reflink", settings.Workspaces.Strategy)
 	}
+	if prefix := settings.Publish.BranchPrefix; prefix != "" &&
+		(!branchPrefix.MatchString(prefix) || strings.Contains(prefix, "..") || strings.Contains(prefix, "//")) {
+		return fmt.Errorf("publish: branch_prefix %q cannot start a branch name", prefix)
+	}
+	if settings.Audit.RotateBytes <= 0 || settings.Audit.Keep <= 0 {
+		return fmt.Errorf("audit: rotate_bytes and keep must be more than zero")
+	}
 	for index, credential := range settings.Credentials {
 		set := 0
 		for _, source := range []string{credential.TokenFile, credential.TokenEnv, credential.SSHKey} {
@@ -185,6 +217,11 @@ func (settings Config) Pools() string {
 // Templates is where the templates copy-on-write workspaces are made from live.
 func (settings Config) Templates() string {
 	return filepath.Join(settings.State, "templates")
+}
+
+// AuditLog is where the audit log is kept.
+func (settings Config) AuditLog() string {
+	return filepath.Join(settings.State, "audit")
 }
 
 // Locks is where the lock files live.

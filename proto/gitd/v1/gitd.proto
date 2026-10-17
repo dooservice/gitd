@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package gitd.v1;
 
+import "google/protobuf/timestamp.proto";
+
 option go_package = "github.com/dooservice/gitd/gen/go/gitd/v1;gitdv1";
 
 // The copies of git repositories on one server: a pool per repository, which is the only
@@ -28,7 +30,8 @@ service WorkspaceService {
   rpc Adopt(AdoptRequest) returns (stream AdoptResponse);
   // Push what was committed in a workspace to a new branch, with a token, so a pull or merge
   // request can be opened from it. New commits of its submodules go first, each to a
-  // branch of the same name in its own repository.
+  // branch of the same name in its own repository. The branch must start with the
+  // configured prefix, if there is one; every publish, done or refused, is in the audit log.
   rpc Publish(PublishRequest) returns (PublishResponse);
 }
 
@@ -43,6 +46,8 @@ service ServerService {
   // Remove now the pools no workspace borrows from and nothing has used for at least
   // `unused_for_seconds`, as the maintenance round does after `retire_after`.
   rpc Retire(RetireRequest) returns (RetireResponse);
+  // The audit log: every publish, done or refused, newest first.
+  rpc Audit(AuditRequest) returns (AuditResponse);
 }
 
 // What opens repositories whose address starts with `url_prefix`, on any host:
@@ -109,6 +114,8 @@ message GitFailure {
     REASON_CORRUPT = 8;
     REASON_GIT_FAILED = 9;
     REASON_NOTHING_NEW = 10;
+    // The branch is outside the prefix publishing is limited to.
+    REASON_BRANCH_REFUSED = 11;
   }
   Reason reason = 1;
   // The last useful line git wrote, e.g. "remote: Repository not found.".
@@ -264,7 +271,8 @@ message AdoptResult {
 
 message PublishRequest {
   string path = 1;
-  // A branch that does not exist yet: nothing is ever pushed over one that does.
+  // A branch that does not exist yet: nothing is ever pushed over one that does. It must
+  // start with `[publish] branch_prefix`, when the configuration sets one.
   string branch = 2;
   repeated Credential credentials = 3;
 }
@@ -333,4 +341,33 @@ message InfoResponse {
   // How many templates there are and the disk they take, as of the last maintenance round.
   int32 templates = 7;
   int64 templates_bytes = 8;
+}
+
+message AuditRequest {
+  // Only the entries from this time on; all of them when unset.
+  google.protobuf.Timestamp since = 1;
+  // Only the publishes of this repository, as its URL is written in the entries.
+  string url = 2;
+  // At most this many, newest first: 100 when unset, never more than 1000.
+  int32 limit = 3;
+}
+
+message AuditResponse {
+  repeated AuditEntry entries = 1;
+}
+
+// One publish, done or refused, as the audit log keeps it: one per line of the log file,
+// in this message's JSON form.
+message AuditEntry {
+  google.protobuf.Timestamp time = 1;
+  // The workspace's path, as the caller gave it.
+  string workspace = 2;
+  // The workspace's repository; empty when the workspace could not be opened.
+  string url = 3;
+  string branch = 4;
+  // What was pushed: the workspace's repository, then each submodule. Unset when refused.
+  PublishedRepository repository = 5;
+  repeated PublishedRepository submodules = 6;
+  // Why it was refused. Unset when it was published.
+  GitFailure refusal = 7;
 }

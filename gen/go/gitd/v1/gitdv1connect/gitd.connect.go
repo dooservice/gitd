@@ -64,6 +64,8 @@ const (
 	ServerServiceInfoProcedure = "/gitd.v1.ServerService/Info"
 	// ServerServiceRetireProcedure is the fully-qualified name of the ServerService's Retire RPC.
 	ServerServiceRetireProcedure = "/gitd.v1.ServerService/Retire"
+	// ServerServiceAuditProcedure is the fully-qualified name of the ServerService's Audit RPC.
+	ServerServiceAuditProcedure = "/gitd.v1.ServerService/Audit"
 )
 
 // WorkspaceServiceClient is a client for the gitd.v1.WorkspaceService service.
@@ -84,7 +86,8 @@ type WorkspaceServiceClient interface {
 	Adopt(context.Context, *connect.Request[v1.AdoptRequest]) (*connect.ServerStreamForClient[v1.AdoptResponse], error)
 	// Push what was committed in a workspace to a new branch, with a token, so a pull or merge
 	// request can be opened from it. New commits of its submodules go first, each to a
-	// branch of the same name in its own repository.
+	// branch of the same name in its own repository. The branch must start with the
+	// configured prefix, if there is one; every publish, done or refused, is in the audit log.
 	Publish(context.Context, *connect.Request[v1.PublishRequest]) (*connect.Response[v1.PublishResponse], error)
 }
 
@@ -220,7 +223,8 @@ type WorkspaceServiceHandler interface {
 	Adopt(context.Context, *connect.Request[v1.AdoptRequest], *connect.ServerStream[v1.AdoptResponse]) error
 	// Push what was committed in a workspace to a new branch, with a token, so a pull or merge
 	// request can be opened from it. New commits of its submodules go first, each to a
-	// branch of the same name in its own repository.
+	// branch of the same name in its own repository. The branch must start with the
+	// configured prefix, if there is one; every publish, done or refused, is in the audit log.
 	Publish(context.Context, *connect.Request[v1.PublishRequest]) (*connect.Response[v1.PublishResponse], error)
 }
 
@@ -417,6 +421,8 @@ type ServerServiceClient interface {
 	// Remove now the pools no workspace borrows from and nothing has used for at least
 	// `unused_for_seconds`, as the maintenance round does after `retire_after`.
 	Retire(context.Context, *connect.Request[v1.RetireRequest]) (*connect.Response[v1.RetireResponse], error)
+	// The audit log: every publish, done or refused, newest first.
+	Audit(context.Context, *connect.Request[v1.AuditRequest]) (*connect.Response[v1.AuditResponse], error)
 }
 
 // NewServerServiceClient constructs a client for the gitd.v1.ServerService service. By default, it
@@ -442,6 +448,12 @@ func NewServerServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			connect.WithSchema(serverServiceMethods.ByName("Retire")),
 			connect.WithClientOptions(opts...),
 		),
+		audit: connect.NewClient[v1.AuditRequest, v1.AuditResponse](
+			httpClient,
+			baseURL+ServerServiceAuditProcedure,
+			connect.WithSchema(serverServiceMethods.ByName("Audit")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -449,6 +461,7 @@ func NewServerServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 type serverServiceClient struct {
 	info   *connect.Client[v1.InfoRequest, v1.InfoResponse]
 	retire *connect.Client[v1.RetireRequest, v1.RetireResponse]
+	audit  *connect.Client[v1.AuditRequest, v1.AuditResponse]
 }
 
 // Info calls gitd.v1.ServerService.Info.
@@ -461,6 +474,11 @@ func (c *serverServiceClient) Retire(ctx context.Context, req *connect.Request[v
 	return c.retire.CallUnary(ctx, req)
 }
 
+// Audit calls gitd.v1.ServerService.Audit.
+func (c *serverServiceClient) Audit(ctx context.Context, req *connect.Request[v1.AuditRequest]) (*connect.Response[v1.AuditResponse], error) {
+	return c.audit.CallUnary(ctx, req)
+}
+
 // ServerServiceHandler is an implementation of the gitd.v1.ServerService service.
 type ServerServiceHandler interface {
 	// Which gitd answers, and on which git, so a client can tell whether it may use it.
@@ -468,6 +486,8 @@ type ServerServiceHandler interface {
 	// Remove now the pools no workspace borrows from and nothing has used for at least
 	// `unused_for_seconds`, as the maintenance round does after `retire_after`.
 	Retire(context.Context, *connect.Request[v1.RetireRequest]) (*connect.Response[v1.RetireResponse], error)
+	// The audit log: every publish, done or refused, newest first.
+	Audit(context.Context, *connect.Request[v1.AuditRequest]) (*connect.Response[v1.AuditResponse], error)
 }
 
 // NewServerServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -489,12 +509,20 @@ func NewServerServiceHandler(svc ServerServiceHandler, opts ...connect.HandlerOp
 		connect.WithSchema(serverServiceMethods.ByName("Retire")),
 		connect.WithHandlerOptions(opts...),
 	)
+	serverServiceAuditHandler := connect.NewUnaryHandler(
+		ServerServiceAuditProcedure,
+		svc.Audit,
+		connect.WithSchema(serverServiceMethods.ByName("Audit")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/gitd.v1.ServerService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case ServerServiceInfoProcedure:
 			serverServiceInfoHandler.ServeHTTP(w, r)
 		case ServerServiceRetireProcedure:
 			serverServiceRetireHandler.ServeHTTP(w, r)
+		case ServerServiceAuditProcedure:
+			serverServiceAuditHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -510,4 +538,8 @@ func (UnimplementedServerServiceHandler) Info(context.Context, *connect.Request[
 
 func (UnimplementedServerServiceHandler) Retire(context.Context, *connect.Request[v1.RetireRequest]) (*connect.Response[v1.RetireResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("gitd.v1.ServerService.Retire is not implemented"))
+}
+
+func (UnimplementedServerServiceHandler) Audit(context.Context, *connect.Request[v1.AuditRequest]) (*connect.Response[v1.AuditResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("gitd.v1.ServerService.Audit is not implemented"))
 }
