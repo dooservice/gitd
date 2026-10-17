@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strings"
 
+	gitdv1 "github.com/dooservice/gitd/gen/go/gitd/v1"
 	"github.com/dooservice/gitd/internal/publishing"
 )
 
@@ -16,6 +17,7 @@ const maxSubjects = 10
 // Account is what a body tells of a publish.
 type Account struct {
 	RequestedBy string
+	Provenance  *gitdv1.Provenance
 	Subjects    []string
 	Files       int
 	Added       int
@@ -33,6 +35,9 @@ func Body(platform string, account Account) string {
 	}
 	if account.RequestedBy != "" {
 		body.WriteString("Requested by @" + account.RequestedBy + "\n\n")
+	}
+	if origin := provenance(account.Provenance); origin != "" {
+		body.WriteString(origin + "\n\n")
 	}
 	body.WriteString("---\n**Checked by gitd**\n")
 	body.WriteString(fmt.Sprintf("- Commits: %d — %s\n", len(account.Subjects), subjects(account.Subjects)))
@@ -57,6 +62,27 @@ func subjects(listed []string) string {
 		return strings.Join(listed, " · ")
 	}
 	return fmt.Sprintf("%s · and %d more", strings.Join(listed[:maxSubjects], " · "), len(listed)-maxSubjects)
+}
+
+// provenance says where the work came from, as the publish said: the agent, its model,
+// the session and the task.
+func provenance(origin *gitdv1.Provenance) string {
+	var parts []string
+	if agent := origin.GetAgent(); agent != "" {
+		if model := origin.GetModel(); model != "" {
+			agent += " (" + model + ")"
+		}
+		parts = append(parts, "Agent: "+agent)
+	} else if model := origin.GetModel(); model != "" {
+		parts = append(parts, "Model: "+model)
+	}
+	if session := origin.GetSession(); session != "" {
+		parts = append(parts, "session "+session)
+	}
+	if task := origin.GetTaskUrl(); task != "" {
+		parts = append(parts, "task "+task)
+	}
+	return strings.Join(parts, " · ")
 }
 
 // groupRules says what one setting's rules asked of the publish.

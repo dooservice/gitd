@@ -23,9 +23,14 @@ func (workspaces *Workspaces) Publish(
 	ctx context.Context, request *gitdv1.PublishRequest,
 ) (answer *gitdv1.PublishResponse, err error) {
 	branch := request.GetBranch()
-	entry := &gitdv1.AuditEntry{Workspace: request.GetPath(), Branch: branch, RequestedBy: request.GetRequestedBy()}
+	entry := &gitdv1.AuditEntry{
+		Workspace: request.GetPath(), Branch: branch, RequestedBy: request.GetRequestedBy(), Provenance: request.GetProvenance(),
+	}
 	defer func() { workspaces.record(entry, answer, err) }()
 	if err := validRequester(request.GetRequestedBy()); err != nil {
+		return nil, err
+	}
+	if err := validProvenance(request.GetProvenance()); err != nil {
 		return nil, err
 	}
 

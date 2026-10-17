@@ -84,7 +84,7 @@ func (workspaces *Workspaces) openPullRequest(
 func (workspaces *Workspaces) accountOf(
 	ctx context.Context, repository repo.Repo, request *gitdv1.PublishRequest, rules publishing.Effective,
 ) (pullrequests.Account, error) {
-	account := pullrequests.Account{RequestedBy: request.GetRequestedBy(), Rules: rules}
+	account := pullrequests.Account{RequestedBy: request.GetRequestedBy(), Provenance: request.GetProvenance(), Rules: rules}
 	if !wantsPullRequest(rules.PullRequests, request.GetPullRequest()) {
 		return account, nil
 	}

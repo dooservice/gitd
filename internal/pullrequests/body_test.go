@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	gitdv1 "github.com/dooservice/gitd/gen/go/gitd/v1"
 	"github.com/dooservice/gitd/internal/publishing"
 )
 
@@ -37,5 +38,15 @@ func TestABodyWithoutRulesOrRequesterSaysSo(t *testing.T) {
 	if strings.Contains(body, "Requested by") || !strings.Contains(body, "- Rules: none set") ||
 		!strings.Contains(body, "1 file,") || strings.HasPrefix(body, "\n") {
 		t.Errorf("body:\n%s", body)
+	}
+}
+
+func TestABodySaysWhereTheWorkCameFrom(t *testing.T) {
+	body := Body("", Account{Subjects: []string{"one"}, Files: 1, Provenance: &gitdv1.Provenance{
+		Agent: "openhands", Model: "claude-opus-5-5", Session: "run-42", TaskUrl: "https://github.com/acme/web/issues/7",
+	}})
+	want := "Agent: openhands (claude-opus-5-5) · session run-42 · task https://github.com/acme/web/issues/7\n"
+	if !strings.Contains(body, want) {
+		t.Errorf("the body lacks %q:\n%s", want, body)
 	}
 }

@@ -125,3 +125,22 @@ func TestTheCommitAWorkspaceIsPutOnIsNotedAndForgottenOnRemove(t *testing.T) {
 		t.Error("a removed workspace's base is still noted")
 	}
 }
+
+func TestAProvenanceIsKeptAsToldAndCheckedFirst(t *testing.T) {
+	repository := repo.Repo{Host: "github.com", Path: "acme/web"}
+	workspaces, roots := newTestWorkspaces(t, repository)
+	recorded := &entries{}
+	workspaces.UsePublishing(Publishing{Recorder: recorded})
+	path := made(t, workspaces, roots, "agent", repository)
+	origin := &gitdv1.Provenance{Agent: "openhands", Model: "claude-opus-5-5", TaskUrl: "https://github.com/acme/web/issues/7"}
+	_, _ = workspaces.Publish(context.Background(), &gitdv1.PublishRequest{Path: path, Branch: "agents/x", Provenance: origin})
+	if got := recorded.kept[0].GetProvenance(); got.GetAgent() != "openhands" || got.GetTaskUrl() != origin.GetTaskUrl() {
+		t.Errorf("recorded provenance = %v", got)
+	}
+	for _, bad := range []*gitdv1.Provenance{{TaskUrl: "http://example.com/1"}, {Agent: "two\nlines"}, {Model: strings.Repeat("m", 201)}} {
+		_, err := workspaces.Publish(context.Background(), &gitdv1.PublishRequest{Path: path, Branch: "agents/x", Provenance: bad})
+		if failure, ok := git.AsFailure(err); !ok || failure.Reason != git.BadAddress {
+			t.Errorf("%v: %v", bad, err)
+		}
+	}
+}
