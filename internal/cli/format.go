@@ -3,6 +3,7 @@ package cli
 import (
 	"fmt"
 	"io"
+	"path/filepath"
 	"strings"
 
 	gitdv1 "github.com/dooservice/gitd/gen/go/gitd/v1"
@@ -15,6 +16,9 @@ func workspaceLine(out io.Writer, path string, result *gitdv1.WorkspaceResult) {
 		on = "on " + result.GetBranch()
 	}
 	fmt.Fprintf(out, "%s at %s, %s, made by %s\n", path, short(result.GetCommit()), on, strategyName(result.GetStrategy()))
+	if warm := result.GetLayers().GetWarm(); warm != "" {
+		fmt.Fprintf(out, "  on the warm layer %s\n", filepath.Base(warm))
+	}
 	pending(out, result.GetPendingSubmodules())
 	lfsNote(out, result.GetLfsPatterns())
 }

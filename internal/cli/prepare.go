@@ -11,7 +11,7 @@ import (
 )
 
 func prepareCommand(app *app) *cobra.Command {
-	var branch, commit, made string
+	var branch, commit, made, warm string
 	var submodules, fullHistory bool
 	command := &cobra.Command{
 		Use:   "prepare URL PATH",
@@ -25,6 +25,7 @@ func prepareCommand(app *app) *cobra.Command {
 	command.Flags().BoolVar(&submodules, "submodules", false, "check the submodules out too")
 	command.Flags().BoolVar(&fullHistory, "full-history", false, "bring the whole history, for git log and git blame")
 	command.Flags().StringVar(&made, "strategy", "", "how to make it: copy, overlay or reflink (default: the fastest here)")
+	command.Flags().StringVar(&warm, "warm", "", "stand on this warm layer, its dependencies installed already (see gitd seal)")
 	command.MarkFlagsMutuallyExclusive("branch", "commit")
 	credentials := addCredentialFlags(command)
 	command.RunE = func(cmd *cobra.Command, args []string) error {
@@ -34,6 +35,7 @@ func prepareCommand(app *app) *cobra.Command {
 		}
 		request := &gitdv1.PrepareRequest{
 			Url: args[0], Path: args[1], WithSubmodules: submodules, FullHistory: fullHistory, Credentials: given,
+			Warm: warm,
 		}
 		switch made {
 		case "":

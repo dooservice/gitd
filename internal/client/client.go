@@ -228,6 +228,16 @@ func (client *Client) Compare(ctx context.Context, request *gitdv1.CompareReques
 	return unary(ctx, client.Workspaces.Compare, request)
 }
 
+// Seal makes an overlay workspace's own layer a warm layer of its repository.
+func (client *Client) Seal(ctx context.Context, request *gitdv1.SealRequest) (*gitdv1.SealResponse, error) {
+	return unary(ctx, client.Workspaces.Seal, request)
+}
+
+// ListWarm lists the warm layers of a repository.
+func (client *Client) ListWarm(ctx context.Context, request *gitdv1.ListWarmRequest) (*gitdv1.ListWarmResponse, error) {
+	return unary(ctx, client.Workspaces.ListWarm, request)
+}
+
 // Conflicts says which pairs of works do not merge cleanly.
 func (client *Client) Conflicts(ctx context.Context, request *gitdv1.ConflictsRequest) (*gitdv1.ConflictsResponse, error) {
 	return unary(ctx, client.Workspaces.Conflicts, request)
