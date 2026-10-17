@@ -20,6 +20,7 @@ import (
 	gitdv1 "github.com/dooservice/gitd/gen/go/gitd/v1"
 	"github.com/dooservice/gitd/gen/go/gitd/v1/gitdv1connect"
 	"github.com/dooservice/gitd/internal/audit"
+	"github.com/dooservice/gitd/internal/connections"
 	"github.com/dooservice/gitd/internal/git"
 	"github.com/dooservice/gitd/internal/metrics"
 	"github.com/dooservice/gitd/internal/pool"
@@ -43,8 +44,13 @@ type Server struct {
 	Strategy       gitdv1.Strategy
 	StrategyReason string
 	TemplateTotals func() (int, int64)
-	// AuditLog is every publish, done or refused.
+	// AuditLog is every publish, done or refused, and every change to connections and
+	// publishing settings.
 	AuditLog *audit.Log
+	// Connections are the credentials kept through the API, and FileConnections those the
+	// configuration file declares, as the API shows them.
+	Connections     *connections.Store
+	FileConnections []*gitdv1.Connection
 }
 
 // Serve answers on the Unix socket until ctx ends, and serves the metrics at
@@ -55,6 +61,9 @@ func (server *Server) Serve(ctx context.Context, socket, metricsAddress string) 
 	routes.Handle(gitdv1connect.NewWorkspaceServiceHandler(server, options))
 	routes.Handle(gitdv1connect.NewRepositoryServiceHandler(server, options))
 	routes.Handle(gitdv1connect.NewServerServiceHandler(server, options))
+	if server.Connections != nil {
+		routes.Handle(gitdv1connect.NewConnectionServiceHandler(&connectionHandlers{server: server}, options))
+	}
 
 	listener, err := listen(socket)
 	if err != nil {
