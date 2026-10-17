@@ -111,3 +111,12 @@ func TestCreatingAGitHubAppStartsThroughTheAPIAndAStateIsNeverGuessed(t *testing
 		t.Errorf("a guessed state: %v", err)
 	}
 }
+
+func TestSigningInWithoutGitdsPublicAppIsRefusedPlainly(t *testing.T) {
+	handlers := &connectionHandlers{server: connectionsServer(t)}
+	var refused *connect.Error
+	if _, err := handlers.StartGitHubLogin(context.Background(), connect.NewRequest(&gitdv1.StartGitHubLoginRequest{})); !errors.As(err, &refused) ||
+		refused.Code() != connect.CodeFailedPrecondition {
+		t.Errorf("err = %v", err)
+	}
+}

@@ -99,3 +99,27 @@ func (handlers *connectionHandlers) CompleteGitHubApp(
 	handlers.server.recordChange(gitdv1.ConfigurationChange_ACTION_CONNECTION_ADDED, record.ID, record.URLPrefix)
 	return connect.NewResponse(&gitdv1.CompleteGitHubAppResponse{Connection: record.Shown(), InstallUrl: install}), nil
 }
+
+func (handlers *connectionHandlers) StartGitHubLogin(
+	ctx context.Context, request *connect.Request[gitdv1.StartGitHubLoginRequest],
+) (*connect.Response[gitdv1.StartGitHubLoginResponse], error) {
+	started, err := handlers.server.Connections.StartLogin(ctx, request.Msg.GetHost())
+	if err != nil {
+		return nil, refuseChange(err)
+	}
+	return connect.NewResponse(&gitdv1.StartGitHubLoginResponse{
+		UserCode: started.UserCode, VerificationUrl: started.VerificationURL, LoginId: started.LoginID,
+		ExpiresInSeconds: int32(started.ExpiresIn.Seconds()),
+	}), nil
+}
+
+func (handlers *connectionHandlers) FinishGitHubLogin(
+	ctx context.Context, request *connect.Request[gitdv1.FinishGitHubLoginRequest],
+) (*connect.Response[gitdv1.FinishGitHubLoginResponse], error) {
+	record, install, err := handlers.server.Connections.FinishLogin(ctx, request.Msg.GetLoginId())
+	if err != nil {
+		return nil, refuseChange(err)
+	}
+	handlers.server.recordChange(gitdv1.ConfigurationChange_ACTION_CONNECTION_ADDED, record.ID, record.URLPrefix)
+	return connect.NewResponse(&gitdv1.FinishGitHubLoginResponse{Connection: record.Shown(), InstallUrl: install}), nil
+}

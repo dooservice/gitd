@@ -38,6 +38,7 @@ type Config struct {
 	// systemd credential. Without one they are kept in files only gitd's user reads.
 	SecretsKeyFile string `toml:"secrets_key_file"`
 
+	GitHub       GitHub       `toml:"github"`
 	Workspaces   Workspaces   `toml:"workspaces"`
 	Publish      Publish      `toml:"publish"`
 	Audit        Audit        `toml:"audit"`
@@ -57,6 +58,18 @@ type Credential struct {
 	TokenUser string `toml:"token_user"`
 	SSHKey    string `toml:"ssh_key"`
 }
+
+// GitHub is gitd's public GitHub App, which people sign in through: its client ID, which
+// is not a secret, and its name in addresses. A GitHub Enterprise Server needs an App of
+// its own, registered there.
+type GitHub struct {
+	LoginClientID string `toml:"login_client_id"`
+	LoginApp      string `toml:"login_app"`
+}
+
+// DefaultGitHubLoginClientID is gitd's public App on github.com; empty until it is
+// registered, which leaves signing in unoffered.
+const DefaultGitHubLoginClientID = ""
 
 // Workspaces is how new workspaces are made. Strategy "" (or "auto") lets gitd pick: an
 // overlay on a shared template when one can be mounted, else every file written; "overlay"
@@ -149,6 +162,7 @@ func Default() Config {
 		State:  "/var/lib/gitd",
 		Roots:  []string{"/var/lib/gitd/workspaces"},
 		Git:    "git",
+		GitHub: GitHub{LoginClientID: DefaultGitHubLoginClientID, LoginApp: "gitd"},
 		Audit: Audit{
 			RotateBytes: 16 << 20,
 			Keep:        365 * 24 * time.Hour,
