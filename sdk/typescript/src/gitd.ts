@@ -10,6 +10,8 @@ import {
   WorkspaceService,
 } from "./gen/gitd/v1/gitd_pb.js";
 import { call, drain } from "./calls.js";
+import { sideProto, toEvent, toSide } from "./compare-convert.js";
+import { refusal } from "./errors.js";
 import { Credentials } from "./credentials.js";
 import { pullRequestOptionsProto } from "./publishing-convert.js";
 import { Publishing } from "./publishing.js";
@@ -21,6 +23,7 @@ import {
   strategyName,
   strategyProto,
   toAuditEntry,
+  toChangedFiles,
   toChanges,
   toWorkspace,
 } from "./convert.js";
@@ -29,6 +32,9 @@ import type {
   AuditOptions,
   Changes,
   CheckoutOptions,
+  CompareOptions,
+  Comparison,
+  Conflict,
   Description,
   Diff,
   DiffOptions,
@@ -36,6 +42,8 @@ import type {
   PrepareOptions,
   Probe,
   Published,
+  Side,
+  WorkspaceEvent,
   UpdateOptions,
   Workspace,
 } from "./types.js";
@@ -188,6 +196,45 @@ export class Gitd {
       }),
     );
     return { base: answer.base, diff: answer.diff, truncated: answer.truncated };
+  }
+
+  /** How two works of one repository differ, from first to second. */
+  async compare(first: Side, second: Side, options: CompareOptions = {}): Promise<Comparison> {
+    const answer = await call(() =>
+      this.workspaces.compare({
+        first: sideProto(first),
+        second: sideProto(second),
+        url: options.url ?? "",
+        withDiff: options.withDiff ?? false,
+        maxBytes: BigInt(options.maxBytes ?? 0),
+        includeIgnored: options.includeIgnored ?? false,
+      }),
+    );
+    return { files: toChangedFiles(answer.files), diff: answer.diff, truncated: answer.truncated };
+  }
+
+  /** Which pairs of works do not merge cleanly; a workspace stands for what it committed. */
+  async conflicts(sides: Side[], url = ""): Promise<Conflict[]> {
+    const answer = await call(() => this.workspaces.conflicts({ sides: sides.map(sideProto), url }));
+    return answer.conflicts.map((conflict) => ({
+      first: toSide(conflict.first),
+      second: toSide(conflict.second),
+      paths: conflict.paths,
+    }));
+  }
+
+  /** What happens to the workspaces at paths, or to every one, as it happens. */
+  async *watch(paths: string[] = [], signal?: AbortSignal): AsyncGenerator<WorkspaceEvent> {
+    try {
+      for await (const event of this.workspaces.watch({ paths }, { signal })) {
+        yield toEvent(event);
+      }
+    } catch (error) {
+      if (signal?.aborted) {
+        return;
+      }
+      throw refusal(error);
+    }
   }
 
   /** Deletes a workspace; its pool stays. */

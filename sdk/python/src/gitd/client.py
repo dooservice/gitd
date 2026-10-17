@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from datetime import datetime
 from typing import Any
 
 from . import messages, methods
 from .changes import Changes, Diff
+from .comparison import Comparison, Conflict, Event, Side
 from .connection import Connection, OnProgress
 from .credentials_calls import Credentials
 from .models import AuditEntry, Description, Info, Probe, Published, Strategy, Workspace
@@ -141,6 +143,41 @@ class Gitd:
             path=path, files=files or [], max_bytes=max_bytes, include_ignored=include_ignored
         )
         return Diff.from_message(self.connection.call(methods.DIFF, request))
+
+    def compare(
+        self,
+        first: Side,
+        second: Side,
+        *,
+        url: str = "",
+        with_diff: bool = False,
+        max_bytes: int = 0,
+        include_ignored: bool = False,
+    ) -> Comparison:
+        """How two works of one repository differ, from first to second; url is the
+        repository when both are branches."""
+        request = messages.CompareRequest(
+            first=first.to_message(),
+            second=second.to_message(),
+            url=url,
+            with_diff=with_diff,
+            max_bytes=max_bytes,
+            include_ignored=include_ignored,
+        )
+        return Comparison.from_message(self.connection.call(methods.COMPARE, request))
+
+    def conflicts(self, sides: list[Side], *, url: str = "") -> list[Conflict]:
+        """Which pairs of works do not merge cleanly, and on which files; a workspace stands
+        for what it committed."""
+        request = messages.ConflictsRequest(sides=[side.to_message() for side in sides], url=url)
+        response = self.connection.call(methods.CONFLICTS, request)
+        return [Conflict.from_message(conflict) for conflict in response.conflicts]
+
+    def watch(self, paths: list[str] | None = None) -> Iterator[Event]:
+        """What happens to the workspaces at paths, or to every one, as it happens."""
+        request = messages.WatchRequest(paths=paths or [])
+        for event in self.connection.stream(methods.WATCH, request):
+            yield Event.from_message(event)
 
     def remove(self, path: str) -> None:
         """Deletes a workspace; its pool stays."""

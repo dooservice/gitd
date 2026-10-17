@@ -2,6 +2,7 @@
 
 from .changes import ChangedFile, ChangeKind, Changes, Diff
 from .client import Gitd
+from .comparison import Comparison, Conflict, Event, EventKind, Side
 from .connection import DEFAULT_SOCKET, SOCKET_VARIABLE
 from .errors import GitdError
 from .kept_credentials import AppToCreate, Connected, CredentialKind, KeptCredential, SignIn
@@ -33,6 +34,11 @@ from .publishing_settings import (
 )
 
 __all__ = [
+    "Comparison",
+    "Conflict",
+    "Event",
+    "EventKind",
+    "Side",
     "ChangeKind",
     "ChangedFile",
     "Changes",

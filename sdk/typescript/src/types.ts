@@ -113,6 +113,40 @@ export interface DiffOptions {
   includeIgnored?: boolean;
 }
 
+/** One work: a workspace by its path, or a branch gitd published or its pool holds. */
+export type Side = { workspace: string } | { branch: string };
+
+export interface CompareOptions {
+  /** The repository, when both sides are branches. */
+  url?: string;
+  withDiff?: boolean;
+  maxBytes?: number;
+  includeIgnored?: boolean;
+}
+
+/** How two works differ, from the first to the second. */
+export interface Comparison {
+  files: ChangedFile[];
+  diff: string;
+  truncated: boolean;
+}
+
+/** Two works that do not merge cleanly, and the files they conflict on. */
+export interface Conflict {
+  first: Side;
+  second: Side;
+  paths: string[];
+}
+
+/** What happened to a workspace. */
+export interface WorkspaceEvent {
+  kind: "made" | "changed" | "published" | "refused" | "removed";
+  path: string;
+  time: Date;
+  branch: string;
+  detail: string;
+}
+
 /** Which gitd answers, and how it makes workspaces on its machine. */
 export interface Info {
   version: string;

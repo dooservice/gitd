@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import os
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from typing import Any
 
 import grpc
@@ -44,6 +44,18 @@ class Connection:
         )
         try:
             return invoke(request, timeout=self.timeout)
+        except grpc.RpcError as error:
+            raise GitdError.from_rpc_error(error) from None
+
+    def stream(self, method: Method, request: Message) -> Iterator[Any]:
+        """Makes a call that streams messages until gitd or the caller ends it."""
+        invoke: grpc.UnaryStreamMultiCallable[Message, Any] = self.channel.unary_stream(
+            method.path,
+            request_serializer=self.serialize,
+            response_deserializer=method.response.FromString,
+        )
+        try:
+            yield from invoke(request, timeout=self.timeout)
         except grpc.RpcError as error:
             raise GitdError.from_rpc_error(error) from None
 

@@ -8,6 +8,7 @@ import {
   ProbeResponse_Access,
   Strategy,
   type AuditEntry as AuditEntryMessage,
+  type ChangedFile as ChangedFileMessage,
   type ChangesResponse,
   type GitFailure,
   type OpenedPullRequest as OpenedPullRequestMessage,
@@ -19,6 +20,7 @@ import {
 import type { OpenedPullRequest } from "./publishing-types.js";
 import type {
   AuditEntry,
+  ChangedFile,
   ChangeKind,
   Changes,
   Probe,
@@ -144,17 +146,17 @@ function refusalOf(failure: GitFailure | undefined): Refusal | undefined {
 }
 
 export function toChanges(answer: ChangesResponse): Changes {
-  return {
-    base: answer.base,
-    fromLayer: answer.fromLayer,
-    files: answer.files.map((file) => ({
-      path: file.path,
-      kind: kindName(file.kind),
-      addedLines: file.addedLines,
-      removedLines: file.removedLines,
-      binary: file.binary,
-    })),
-  };
+  return { base: answer.base, fromLayer: answer.fromLayer, files: toChangedFiles(answer.files) };
+}
+
+export function toChangedFiles(files: ChangedFileMessage[]): ChangedFile[] {
+  return files.map((file) => ({
+    path: file.path,
+    kind: kindName(file.kind),
+    addedLines: file.addedLines,
+    removedLines: file.removedLines,
+    binary: file.binary,
+  }));
 }
 
 function kindName(kind: ChangedFile_Kind): ChangeKind {
