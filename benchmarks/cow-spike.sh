@@ -81,7 +81,7 @@ first_status() {
   local dir=$1 start
   start=$(now)
   git -C "$dir" status --porcelain >/dev/null
-  since "$start"
+  echo "$(since "$start")s"
 }
 
 echo "| Strategy | New workspace | Disk per workspace | First git status (default / tuned) | git |"
@@ -102,7 +102,7 @@ configure overlay/2/merged
 tuned_status=$(first_status overlay/2/merged)
 overlay_git=$(check overlay/3/merged 2>&1 | tail -1)
 overlay_mb=$(mb overlay/*/upper | awk -v n="$agents" '{printf "%.2f", $1 / n}')
-row "overlay (kernel)" "${overlay_each}s (${agents} in ${overlay_total}s)" "${overlay_mb} MB" "${default_status}s / ${tuned_status}s" "$overlay_git"
+row "overlay (kernel)" "${overlay_each}s (${agents} in ${overlay_total}s)" "${overlay_mb} MB" "${default_status} / ${tuned_status}" "$overlay_git"
 for i in $(seq "$agents"); do umount "overlay/$i/merged"; done
 
 # --- fuse-overlayfs, unprivileged ---------------------------------------------------------
@@ -116,10 +116,14 @@ if command -v fuse-overlayfs >/dev/null; then
     done' _ "$agents" "$base"
   fuse_total=$(since "$start")
   fuse_each=$(awk -v total="$fuse_total" -v n="$agents" 'BEGIN {printf "%.3f", total / n}')
-  fuse_status=$(sudo -u "$user" -E bash -c "$(declare -f now since first_status configure); configure fuse/2/merged; first_status fuse/2/merged")
-  fuse_git=$(sudo -u "$user" -E bash -c "$(declare -f check); check fuse/3/merged" 2>&1 | tail -1)
+  # A strategy that fails is reported, not fatal: the next one is still measured.
+  fuse_status=$(sudo -u "$user" -E bash -c "$(declare -f now since first_status configure); configure fuse/2/merged; first_status fuse/2/merged" 2>"$base/fuse.err") \
+    || fuse_status="failed: $(tail -1 "$base/fuse.err")"
+  fuse_git=$(sudo -u "$user" -E bash -c "$(declare -f check); check fuse/3/merged" 2>&1 | tail -1) || true
+  # What fuse-overlayfs refuses, and where, for the record.
+  fuse_diagnosis=$(sudo -u "$user" bash -c 'touch fuse/4/merged/probe-root 2>&1 && echo "root: writable"; touch fuse/4/merged/.git/probe-git 2>&1 && echo ".git: writable"; mkdir fuse/4/merged/.git/probe-dir 2>&1 && echo ".git: mkdir ok"' 2>&1 | tr '\n' ';')
   fuse_mb=$(mb fuse/*/upper | awk -v n="$agents" '{printf "%.2f", $1 / n}')
-  row "fuse-overlayfs (no privilege)" "${fuse_each}s (${agents} in ${fuse_total}s)" "${fuse_mb} MB" "– / ${fuse_status}s" "$fuse_git"
+  row "fuse-overlayfs (no privilege)" "${fuse_each}s (${agents} in ${fuse_total}s)" "${fuse_mb} MB" "– / ${fuse_status}" "$fuse_git"
   for i in $(seq "$agents"); do sudo -u "$user" fusermount3 -u "fuse/$i/merged" 2>/dev/null || fusermount -u "fuse/$i/merged"; done
 fi
 
@@ -136,14 +140,14 @@ if command -v mkfs.xfs >/dev/null; then
   reflink_each=$(awk -v total="$reflink_total" -v n="$agents" 'BEGIN {printf "%.3f", total / n}')
   used_after=$(df -m --output=used xfs | tail -1)
   reflink_mb=$(awk -v a="$used_after" -v b="$used_before" -v n="$agents" 'BEGIN {printf "%.2f", (a - b) / n}')
-  default_status=$(first_status xfs/1)
-  configure xfs/2
-  tuned_status=$(first_status xfs/2)
-  reflink_git=$(check xfs/3 2>&1 | tail -1)
-  row "reflink (XFS)" "${reflink_each}s (${agents} in ${reflink_total}s)" "${reflink_mb} MB" "${default_status}s / ${tuned_status}s" "$reflink_git"
+  default_status=$(first_status xfs/1) || default_status="failed"
+  { configure xfs/2 && tuned_status=$(first_status xfs/2); } || tuned_status="failed"
+  reflink_git=$(check xfs/3 2>&1 | tail -1) || true
+  row "reflink (XFS)" "${reflink_each}s (${agents} in ${reflink_total}s)" "${reflink_mb} MB" "${default_status} / ${tuned_status}" "$reflink_git"
   umount xfs
 fi
 
 echo
+[ -n "${fuse_diagnosis:-}" ] && echo "fuse-overlayfs probe: ${fuse_diagnosis}"
 echo "The template is untouched: $( [ -z "$(git -C template status --porcelain)" ] && echo yes || echo NO )."
 echo "Copy (today) per workspace: ${copy_time}s and ${copy_mb} MB, for ${files} files."
