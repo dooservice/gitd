@@ -34,6 +34,13 @@ jobs:
                 -o "dist/${command}-linux-${arch}" "./cmd/${command}"
               sha256sum "dist/${command}-linux-${arch}" | cut -d' ' -f1 > "dist/${command}-linux-${arch}.sha256"
             done
+            # macOS: gitd only; gitd-mount and gitd-csi are Linux's.
+            CGO_ENABLED=0 GOOS=darwin GOARCH="${arch}" go build -trimpath \
+              -ldflags "-s -w -X main.version=${GITHUB_REF_NAME} \
+                -X github.com/dooservice/gitd/internal/config.loginClientID=${GITD_LOGIN_CLIENT_ID} \
+                -X github.com/dooservice/gitd/internal/config.loginApp=${GITD_LOGIN_APP}" \
+              -o "dist/gitd-darwin-${arch}" ./cmd/gitd
+            sha256sum "dist/gitd-darwin-${arch}" | cut -d' ' -f1 > "dist/gitd-darwin-${arch}.sha256"
           done
       # The notes are docs/releases/<version>.md, written with the release.
       - name: Release notes
