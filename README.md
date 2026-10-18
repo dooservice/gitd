@@ -107,7 +107,8 @@ instance in Claude Code's `.mcp.json` or Cursor's `mcp.json`:
 | `describe_workspace` | Its repository, commit, branch, uncommitted changes and submodules |
 | `list_changes` | Each file added, modified or deleted since gitd put it on its commit, with its lines |
 | `show_diff` | The unified diff of those changes, of some files or all, cut short at a size |
-| `publish_branch` | Its commits pushed to a new branch, for a pull request |
+| `publish_branch` | Its commits pushed to a new branch, for a pull request; or what a sandbox pushed through the endpoint |
+| `open_endpoint_access` | An address and a secret of gitd's own for a sandbox elsewhere to clone one repository from |
 | `remove_workspace` | Deleted; its pool stays |
 | `probe_repository` | Whether it can be read, its default branch and branches |
 | `read_audit_log` | The publishes done or refused, newest first |
@@ -128,7 +129,8 @@ gitd info                            gitd retire [--unused 720h]
 gitd changes PATH [--ignored]        gitd diff PATH [FILE…] [--max-bytes N]
 gitd compare FIRST SECOND [--diff]   gitd conflicts WORK WORK…
 gitd watch [PATH…]                   gitd seal PATH NAME
-gitd warm URL
+gitd warm URL                        gitd token issue URL [--for 1h] | list | revoke ID
+gitd publish --sandbox ID BRANCH
 gitd audit [--since 24h] [--repository URL] [--limit N]
 gitd publish PATH BRANCH [--requested-by LOGIN] [--pull-request] [--title T] [--draft]
 gitd connect github | github-app --name N [--org O]
@@ -139,7 +141,9 @@ gitd mcp
 ```
 
 Every command takes `--socket` (default `$GITD_SOCKET`, then `/run/gitd/gitd.sock`) and
-`--json`. Progress shows on a terminal only.
+`--json`; `--url`, `--key-file` and `--ca-file` (or `$GITD_URL`, `$GITD_KEY_FILE`,
+`$GITD_CA_FILE`) call a gitd on the network instead, naming the caller's tenant. Progress
+shows on a terminal only.
 
 ## Credentials
 
@@ -269,6 +273,48 @@ in the workspace: with one file changed in kubernetes, 0.012 s against 0.130 s f
 branches alike; conflicts are read with `git merge-tree` in the pool. The clients have
 each call, and `list_changes` and `show_diff` let an agent review its own work over MCP.
 
+## Sandboxes elsewhere: the endpoint
+
+A sandbox that cannot mount gitd's directories — a Firecracker microVM (E2B, Fly), a remote
+sandbox (Modal, Daytona, Runloop), a CI runner on another machine — clones from gitd over
+HTTP instead, with a token of gitd's own:
+
+```sh
+gitd token issue https://github.com/acme/web --for 2h     # a token, and the address to clone from
+# in the sandbox:
+git clone https://x:$TOKEN@gitd.internal:9420/git/github.com/acme/web.git
+git push origin HEAD:agents/fix
+# back on the platform:
+gitd publish --sandbox sbx_… agents/fix
+```
+
+The token opens one repository for reading and one sandbox repository for writing, for an
+hour unless told and a day at most; it is never the git host's credential, and gitd keeps
+only its hash. Pushes land in the sandbox repository, never in the pool; publishing takes the
+branch from there with gitd's credential, under the same branch prefix, rules, pull request
+and audit log as a workspace. gitd serves it with git's own `git http-backend`, over TLS
+when given a certificate. [`examples/network`](examples/network) runs it in CI, with a
+sandbox on a network of its own and nothing mounted.
+
+## Many tenants on one gitd
+
+A platform hosting many customers runs one gitd for all of them, each a `[[tenants]]` entry
+with its own key, roots, credentials and limits:
+
+```toml
+[[tenants]]
+name = "acme"
+api_key_file = "/run/credentials/gitd.service/acme"
+roots = ["/var/lib/gitd/tenants-roots/acme"]
+limits = { workspaces = 200, disk = "50GB", fetches = 2 }
+```
+
+Each tenant's pools, templates, workspaces, credentials, tokens and audit log live apart,
+under `<state>/tenants/<name>`; nothing is shared, public repositories included. Every call
+names its tenant with its key — `Authorization: Bearer`, or `--key-file` — and an endpoint
+token belongs to one tenant. A test runs two tenants and finds every reach into the other's
+refused. Without `[[tenants]]`, gitd is one implicit tenant and behaves as before.
+
 ## Dependencies ready: warm layers
 
 Each new workspace usually starts without `node_modules` or `.venv`, and each agent
@@ -354,6 +400,9 @@ Every key has a default; [`packaging/gitd.toml`](packaging/gitd.toml) shows them
 | `metrics` | empty (off) | Where Prometheus metrics are served, e.g. `127.0.0.1:9419` |
 | `known_hosts` | `[]` | Files of SSH host keys trusted besides the built-in ones |
 | `[[credentials]]` | none | Credentials gitd keeps, by URL prefix: a token, an SSH key or a GitHub App |
+| `[endpoint]` | off | gitd's network address: the git endpoint for sandboxes elsewhere, and the API, over TLS when given |
+| `api_key_file` | empty | Without tenants, the key the network address asks callers for |
+| `[[tenants]]` | none | Customers on one gitd, each with its key, roots, credentials and limits |
 | `secrets_key_file` | empty | The key that encrypts the secrets of connections made through the API |
 | `[github]` | gitd's public App | The App people sign in through with `gitd connect github` |
 | `[publish]` | `branch_prefix = ""` (any new branch) | What every published branch must start with |
@@ -374,8 +423,9 @@ ssh_port = 2222       # its key goes in known_hosts as [git.example.com]:2222 ss
 
 ## API
 
-gitd speaks ConnectRPC (gRPC, gRPC-Web and Connect over HTTP) on its Unix socket; the
-contract is [`proto/gitd/v1/gitd.proto`](proto/gitd/v1/gitd.proto). Any language with a
+gitd speaks ConnectRPC (gRPC, gRPC-Web and Connect over HTTP) on its Unix socket, and on
+its network address when `[endpoint]` sets one, there with a key; the contract is
+[`proto/gitd/v1/gitd.proto`](proto/gitd/v1/gitd.proto). Any language with a
 Connect or gRPC client can call it, and `buf curl` can too. There are clients for
 [Python](sdk/python) (`pip install gitd`) and [TypeScript](sdk/typescript)
 (`npm install gitd-client`).
