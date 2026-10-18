@@ -65,14 +65,23 @@ func (workspaces *Workspaces) Prepare(
 	if err := workspaces.canStandOnWarm(work, held != nil); err != nil {
 		return Result{}, err
 	}
+	if request.GetPoolInside() && (held != nil || work.submodules) {
+		return Result{}, git.Fail(git.Unsupported, "a workspace carries its pool when it is made, and without submodules")
+	}
 	if err := workspaces.pools.Sync(ctx, repository, work.given, work.want(), reporter(report, repository)); err != nil {
 		return Result{}, err
 	}
 	if held != nil {
 		return workspaces.moveTo(ctx, work)
 	}
+	var result Result
 	if workspaces.fromTemplate(work) {
-		return workspaces.createFromTemplate(ctx, work)
+		result, err = workspaces.createFromTemplate(ctx, work)
+	} else {
+		result, err = workspaces.create(ctx, work)
 	}
-	return workspaces.create(ctx, work)
+	if err == nil && request.GetPoolInside() {
+		result.PoolObjects, err = workspaces.carryPool(ctx, path, repository)
+	}
+	return result, err
 }

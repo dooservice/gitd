@@ -34,7 +34,7 @@ var allowedKeyGroups = []keyGroup{
 	{
 		why: "written by gitd itself: what the workspace is, and how its files are compared",
 		keys: []string{
-			"gitd.url", "gitd.pool", "gitd.history", "gitd.strategy", "gitd.branch",
+			"gitd.url", "gitd.pool", "gitd.history", "gitd.strategy", "gitd.branch", "gitd.poolinside",
 			"core.checkstat", "core.trustctime",
 		},
 	},

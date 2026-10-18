@@ -74,6 +74,9 @@ func (workspaces *Workspaces) Remove(ctx context.Context, request *gitdv1.Remove
 	if held == nil {
 		return git.Fail(git.PathRefused, "%s is not a workspace gitd made", path)
 	}
+	if err := poolStillMounted(path); err != nil {
+		return err
+	}
 	if workspaces.madeByMaker(path) {
 		if err := workspaces.unmake(ctx, path); err != nil {
 			return err

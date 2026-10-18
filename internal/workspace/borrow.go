@@ -24,6 +24,9 @@ func (workspaces *Workspaces) borrow(gitDir string, repository repo.Repo) error 
 	}
 	defer dir.Close()
 	objects := filepath.Join(workspaces.pools.Path(repository), "objects") + "\n"
+	if workspaces.carriesPool(gitDir) {
+		objects = PoolInside + "\n"
+	}
 	if err := writeInside(dir, filepath.Join("objects", "info", "alternates"), []byte(objects)); err != nil {
 		return err
 	}

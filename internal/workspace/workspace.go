@@ -79,13 +79,15 @@ type Result struct {
 	Layers   *gitdv1.Layers
 	// LFS are the patterns sent to git LFS, whose files are pointers in the workspace.
 	LFS []string
+	// PoolObjects is the pool's objects directory, for a workspace carrying its pool.
+	PoolObjects string
 }
 
 // Proto is the result as the contract carries it.
 func (result Result) Proto() *gitdv1.WorkspaceResult {
 	return &gitdv1.WorkspaceResult{
 		Commit: result.Commit, Branch: result.Branch, PendingSubmodules: result.Pending,
-		Strategy: result.Strategy, Layers: result.Layers, LfsPatterns: result.LFS,
+		Strategy: result.Strategy, Layers: result.Layers, LfsPatterns: result.LFS, PoolObjects: result.PoolObjects,
 	}
 }
 

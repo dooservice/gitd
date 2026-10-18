@@ -67,6 +67,12 @@ func (workspaces *Workspaces) checkAlternates(workspace, alternates string) erro
 		if line == "" {
 			continue
 		}
+		if line == PoolInside {
+			if !workspaces.mountedPool(workspace, filepath.Dir(filepath.Dir(filepath.Dir(alternates)))) {
+				return git.Fail(git.ConfigRefused, "%s names %s, where no pool lending to the workspace is mounted", alternates, line)
+			}
+			continue
+		}
 		if !workspaces.lendingPool(workspace, line) {
 			return git.Fail(git.ConfigRefused, "%s names %s, which is not a pool lending to the workspace", alternates, line)
 		}

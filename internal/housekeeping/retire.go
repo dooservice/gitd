@@ -98,6 +98,28 @@ func borrows(path, objects string) bool {
 	})
 	return slices.ContainsFunc(alternates, func(file string) bool {
 		data, err := os.ReadFile(file)
-		return err == nil && slices.Contains(strings.Fields(string(data)), objects)
+		if err != nil {
+			return false
+		}
+		for _, line := range strings.Fields(string(data)) {
+			if line == objects || carried(file, line, objects) {
+				return true
+			}
+		}
+		return false
 	})
+}
+
+// carried says whether a relative alternates line — a workspace carrying its pool inside
+// itself, as a pod's does — reaches the pool's objects, mounted where it says.
+func carried(alternates, line, objects string) bool {
+	if filepath.IsAbs(line) {
+		return false
+	}
+	mounted, err := os.Stat(filepath.Join(filepath.Dir(filepath.Dir(alternates)), line))
+	if err != nil {
+		return false
+	}
+	pool, err := os.Stat(objects)
+	return err == nil && os.SameFile(mounted, pool)
 }
