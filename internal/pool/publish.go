@@ -19,6 +19,12 @@ import (
 // configuration is gitd's, and never in the workspace, which others may write: an `http.proxy`
 // or an `insteadOf` left there must not get to see where the token goes.
 func (pools *Pools) Stage(ctx context.Context, repository repo.Repo, source, branch string) (string, []string, error) {
+	return pools.StageRef(ctx, repository, source, "HEAD", branch)
+}
+
+// StageRef is Stage of the commit ref names in the git directory source rather than the
+// one it is on: a branch a sandbox pushed to its sandbox repository.
+func (pools *Pools) StageRef(ctx context.Context, repository repo.Repo, source, ref, branch string) (string, []string, error) {
 	release, err := pools.Lock(ctx, repository)
 	if err != nil {
 		return "", nil, err
@@ -27,7 +33,7 @@ func (pools *Pools) Stage(ctx context.Context, repository repo.Repo, source, bra
 	dir := pools.Path(repository)
 	staged := "refs/gitd/staging/" + branch
 	if _, err := pools.runner.Run(ctx, git.Cmd{Dir: dir, Local: true, Args: []string{
-		"fetch", "--no-prune", "--update-shallow", "--end-of-options", source, "+HEAD:" + staged,
+		"fetch", "--no-prune", "--update-shallow", "--end-of-options", source, "+" + ref + ":" + staged,
 	}}); err != nil {
 		return "", nil, git.About(err, repository.HTTPS())
 	}
