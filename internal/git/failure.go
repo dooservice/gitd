@@ -26,6 +26,7 @@ const (
 	ConfigRefused = gitdv1.GitFailure_REASON_CONFIG_REFUSED
 	PolicyRefused = gitdv1.GitFailure_REASON_POLICY_REFUSED
 	Unsupported   = gitdv1.GitFailure_REASON_UNSUPPORTED
+	LimitReached  = gitdv1.GitFailure_REASON_LIMIT_REACHED
 )
 
 // Failure is an operation that did not go through: why, what git said about it, and the

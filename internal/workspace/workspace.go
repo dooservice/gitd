@@ -42,6 +42,8 @@ type Workspaces struct {
 	maker     strategy.Maker
 	// events, when set, are told what happens to each workspace.
 	events *events.Bus
+	// limits hold a tenant's part to its share; zero values are no limit.
+	limits Limits
 	// publishing is the rules publishes follow.
 	publishing Publishing
 }

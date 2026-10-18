@@ -53,3 +53,16 @@ func RecordOwners(dir string, paths []string) error {
 func ownersOf(dir string) string {
 	return filepath.Join(dir, "gitd-owned")
 }
+
+// OwnedCount is how many workspaces the pools under Dir own that are still on disk.
+func (pools *Pools) OwnedCount() int {
+	seen := map[string]bool{}
+	for _, dir := range pools.All() {
+		for _, path := range readList(ownersOf(dir)) {
+			if _, err := os.Stat(path); err == nil {
+				seen[path] = true
+			}
+		}
+	}
+	return len(seen)
+}

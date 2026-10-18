@@ -99,3 +99,9 @@ func (keeper *Keeper) Remount(ctx context.Context) int {
 	}
 	return remounted
 }
+
+// DiskUsed is the disk pools and templates took, as of the last round: what a tenant's disk
+// limit is held to.
+func (keeper *Keeper) DiskUsed() int64 {
+	return keeper.poolBytes.Load() + keeper.templateBytes.Load()
+}

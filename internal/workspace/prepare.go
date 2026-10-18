@@ -42,6 +42,11 @@ func (workspaces *Workspaces) Prepare(
 			return Result{}, err
 		}
 	}
+	if held == nil {
+		if err := workspaces.withinLimits(); err != nil {
+			return Result{}, err
+		}
+	}
 	if held == nil && !vacant(path) {
 		return Result{}, git.Fail(git.PathRefused,
 			"%s already holds something gitd did not make; adopt it or remove it first", path)
