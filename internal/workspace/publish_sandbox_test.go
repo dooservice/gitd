@@ -50,6 +50,9 @@ func TestWhatASandboxPushedIsPublishedUnderTheSameRules(t *testing.T) {
 			t.Errorf("%s: %v; want %v", branch, err, reason)
 		}
 	}
+	if staged := run(t, workspaces.pools.Path(repository), "for-each-ref", "refs/gitd/staging/"); staged != "" {
+		t.Errorf("refused publishes left their commits staged in the pool:\n%s", staged)
+	}
 	if len(recorded.kept) != 5 || recorded.kept[0].GetSandbox() != "sbx_0123456789abcdef" || recorded.kept[0].GetUrl() != repository.HTTPS() {
 		t.Errorf("recorded = %v", recorded.kept)
 	}

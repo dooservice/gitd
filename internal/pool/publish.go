@@ -97,3 +97,16 @@ func (pools *Pools) Push(
 	slog.Info("not published", "repository", failure.Repository, "via", access.Via, "git_said", failure.GitSaid)
 	return failure
 }
+
+// Unstage forgets what Stage staged for branch, once the publish is refused or fails: what
+// it held is no one else's to see.
+func (pools *Pools) Unstage(ctx context.Context, repository repo.Repo, branch string) {
+	release, err := pools.Lock(context.WithoutCancel(ctx), repository)
+	if err != nil {
+		return
+	}
+	defer release()
+	_, _ = pools.runner.Run(context.WithoutCancel(ctx), git.Cmd{Dir: pools.Path(repository), Args: []string{
+		"update-ref", "-d", "refs/gitd/staging/" + branch,
+	}})
+}

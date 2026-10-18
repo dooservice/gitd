@@ -45,6 +45,11 @@ func (workspaces *Workspaces) PublishPushed(
 	if err != nil {
 		return nil, err
 	}
+	defer func() {
+		if err != nil {
+			workspaces.pools.Unstage(ctx, repository, branch)
+		}
+	}()
 	if len(subjects) == 0 {
 		failure := git.Fail(git.NothingNew, "there is nothing new to publish: the sandbox pushed no new commit")
 		failure.Repository = repository.HTTPS()

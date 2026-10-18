@@ -51,6 +51,11 @@ func (workspaces *Workspaces) Publish(
 	if err != nil {
 		return nil, err
 	}
+	defer func() {
+		if err != nil {
+			workspaces.pools.Unstage(ctx, repository, branch)
+		}
+	}()
 	if len(subjects) == 0 {
 		failure := git.Fail(git.NothingNew, "there is nothing new to publish: commit in the workspace first")
 		failure.Repository = repository.HTTPS()
@@ -60,6 +65,13 @@ func (workspaces *Workspaces) Publish(
 	if err != nil {
 		return nil, err
 	}
+	defer func() {
+		if err != nil {
+			for _, submodule := range changed {
+				workspaces.pools.Unstage(ctx, submodule.repository, branch)
+			}
+		}
+	}()
 	for _, submodule := range changed {
 		if err := workspaces.checkRules(ctx, submodule.repository, branch, workspaces.rulesFor(submodule.repository)); err != nil {
 			return nil, err
