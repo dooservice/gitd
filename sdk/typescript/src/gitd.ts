@@ -1,9 +1,11 @@
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
-import { createClient, type Client, type Transport } from "@connectrpc/connect";
+import { createClient, type Client, type Interceptor, type Transport } from "@connectrpc/connect";
+import { readFileSync } from "node:fs";
 import { createConnectTransport } from "@connectrpc/connect-node";
 
 import {
   ConnectionService,
+  EndpointService,
   PublishingService,
   RepositoryService,
   ServerService,
@@ -14,6 +16,7 @@ import { sideProto, toEvent, toSide } from "./compare-convert.js";
 import { toWarmLayer } from "./warm-convert.js";
 import { refusal } from "./errors.js";
 import { Credentials } from "./credentials.js";
+import { Endpoint } from "./endpoint.js";
 import { pullRequestOptionsProto } from "./publishing-convert.js";
 import { Publishing } from "./publishing.js";
 import type { PublishOptions } from "./publishing-types.js";
@@ -53,6 +56,15 @@ import type {
 export interface GitdOptions {
   /** gitd's Unix socket; default $GITD_SOCKET, then /run/gitd/gitd.sock. */
   socket?: string;
+  /**
+   * A gitd on the network instead, e.g. `https://gitd.internal:9420` (or http:// on a private
+   * network); default $GITD_URL.
+   */
+  url?: string;
+  /** The key naming your tenant; default the file $GITD_KEY_FILE names, then $GITD_KEY. */
+  key?: string;
+  /** The PEM of a certificate authority the system does not trust; default $GITD_CA_FILE's. */
+  ca?: string;
   /** A transport of your own instead, e.g. for tests. */
   transport?: Transport;
 }
@@ -69,17 +81,20 @@ export class Gitd {
   readonly credentials: Credentials;
   /** The rules publishing follows, per repository prefix. */
   readonly publishing: Publishing;
+  /** Tokens of gitd's endpoint, for sandboxes elsewhere. */
+  readonly endpoint: Endpoint;
   private readonly workspaces: Client<typeof WorkspaceService>;
   private readonly repositories: Client<typeof RepositoryService>;
   private readonly server: Client<typeof ServerService>;
 
   constructor(options: GitdOptions = {}) {
-    const transport = options.transport ?? socketTransport(options.socket);
+    const transport = options.transport ?? transportFor(options);
     this.workspaces = createClient(WorkspaceService, transport);
     this.repositories = createClient(RepositoryService, transport);
     this.server = createClient(ServerService, transport);
     this.credentials = new Credentials(createClient(ConnectionService, transport));
     this.publishing = new Publishing(createClient(PublishingService, transport));
+    this.endpoint = new Endpoint(createClient(EndpointService, transport));
   }
 
   /** Which gitd answers, and how it makes workspaces here and why. */
@@ -166,6 +181,7 @@ export class Gitd {
         path,
         branch,
         requestedBy: options.requestedBy ?? "",
+        sandbox: options.sandbox ?? "",
         pullRequest: pullRequestOptionsProto(options.pullRequest),
         provenance: options.provenance && {
           agent: options.provenance.agent ?? "",
@@ -268,10 +284,40 @@ export class Gitd {
   }
 }
 
-function socketTransport(socket?: string): Transport {
+/** The way to the gitd options name: its network address, else its socket, with the key. */
+function transportFor(options: GitdOptions): Transport {
+  const key = options.key ?? keyFromEnvironment();
+  const interceptors: Interceptor[] = key
+    ? [
+        (next) => async (request) => {
+          request.header.set("Authorization", `Bearer ${key}`);
+          return next(request);
+        },
+      ]
+    : [];
+  const url = options.url ?? process.env.GITD_URL;
+  if (url) {
+    const caFile = process.env.GITD_CA_FILE;
+    const ca = options.ca ?? (caFile ? readFileSync(caFile, "utf8") : undefined);
+    return createConnectTransport({
+      baseUrl: url.replace(/\/$/, ""),
+      httpVersion: "1.1",
+      interceptors,
+      nodeOptions: ca ? { ca } : {},
+    });
+  }
   return createConnectTransport({
     baseUrl: "http://gitd",
     httpVersion: "1.1",
-    nodeOptions: { socketPath: socket ?? process.env.GITD_SOCKET ?? defaultSocket },
+    interceptors,
+    nodeOptions: { socketPath: options.socket ?? process.env.GITD_SOCKET ?? defaultSocket },
   });
+}
+
+function keyFromEnvironment(): string | undefined {
+  const file = process.env.GITD_KEY_FILE;
+  if (file) {
+    return readFileSync(file, "utf8").trim();
+  }
+  return process.env.GITD_KEY?.trim() || undefined;
 }

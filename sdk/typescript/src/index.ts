@@ -2,6 +2,8 @@ export { Gitd, type GitdOptions } from "./gitd.js";
 export { GitdError } from "./errors.js";
 export { Credentials } from "./credentials.js";
 export { Publishing } from "./publishing.js";
+export { Endpoint } from "./endpoint.js";
+export type * from "./endpoint-types.js";
 export type * from "./types.js";
 export type * from "./credential-types.js";
 export type * from "./publishing-types.js";

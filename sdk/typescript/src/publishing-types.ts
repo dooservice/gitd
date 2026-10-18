@@ -69,6 +69,8 @@ export interface PublishOptions {
   requestedBy?: string;
   pullRequest?: PullRequestOptions;
   provenance?: Provenance;
+  /** Publish what a sandbox pushed through the endpoint instead of a workspace; path is then "". */
+  sandbox?: string;
 }
 
 /** A pull request gitd opened. */
