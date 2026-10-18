@@ -57,6 +57,10 @@ type Server struct {
 	Publishing *publishing.Store
 	// Events carry what happens to workspaces to Watch.
 	Events *events.Bus
+	// Endpoint is the git endpoint's tokens and sandbox repositories, when one is served,
+	// and Network the address it is served at.
+	Endpoint *Endpoint
+	Network  *Network
 }
 
 // Serve answers on the Unix socket until ctx ends, and serves the metrics at
@@ -73,6 +77,9 @@ func (server *Server) Serve(ctx context.Context, socket, metricsAddress string) 
 	if server.Publishing != nil {
 		routes.Handle(gitdv1connect.NewPublishingServiceHandler(&publishingHandlers{server: server}, options))
 	}
+	if server.Endpoint != nil {
+		routes.Handle(gitdv1connect.NewEndpointServiceHandler(&endpointHandlers{server: server}, options))
+	}
 
 	listener, err := listen(socket)
 	if err != nil {
@@ -85,6 +92,18 @@ func (server *Server) Serve(ctx context.Context, socket, metricsAddress string) 
 
 	if metricsAddress != "" {
 		go server.serveMetrics(metricsAddress)
+	}
+	if server.Network != nil {
+		failed := make(chan error, 1)
+		go func() { failed <- server.serveNetwork(ctx, server.Network) }()
+		select {
+		case err := <-failed:
+			if err != nil {
+				_ = listener.Close()
+				return err
+			}
+		case <-time.After(100 * time.Millisecond):
+		}
 	}
 	go func() {
 		<-ctx.Done()

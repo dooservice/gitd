@@ -12,6 +12,7 @@ import (
 	"github.com/dooservice/gitd/internal/config"
 	"github.com/dooservice/gitd/internal/connections"
 	"github.com/dooservice/gitd/internal/credentials"
+	"github.com/dooservice/gitd/internal/endpoint"
 	"github.com/dooservice/gitd/internal/events"
 	"github.com/dooservice/gitd/internal/git"
 	"github.com/dooservice/gitd/internal/housekeeping"
@@ -138,7 +139,26 @@ func Run(ctx context.Context, path, socket, version string) error {
 		Publishing:      publishingSettings,
 		Events:          bus,
 	}
+	if listen := settings.Endpoint; listen.Listen != "" {
+		served.Endpoint, served.Network = endpointOf(ctx, settings, runner, pools)
+	}
 	return served.Serve(ctx, settings.Socket, settings.Metrics)
+}
+
+// endpointOf is the git endpoint the configuration asks for: its tokens, its sandbox
+// repositories, retired once nothing has pushed to them or held a token of them for
+// retire_after, and the network address it is served at.
+func endpointOf(ctx context.Context, settings config.Config, runner *git.Runner, pools *pool.Pools) (*server.Endpoint, *server.Network) {
+	tokens := endpoint.NewTokens()
+	sandboxes := endpoint.NewSandboxes(settings.Sandboxes(), runner, pools)
+	go sandboxes.RetireEvery(ctx, settings.Housekeeping.Every, settings.Housekeeping.RetireAfter, tokens)
+	network := &server.Network{
+		Listen:      settings.Endpoint.Listen,
+		TLSCertFile: settings.Endpoint.TLSCertFile,
+		TLSKeyFile:  settings.Endpoint.TLSKeyFile,
+		Git:         endpoint.NewHandler(runner, tokens, sandboxes, settings.Endpoint.MaxPushBytes),
+	}
+	return &server.Endpoint{Tokens: tokens, Sandboxes: sandboxes, URL: settings.Endpoint.URL}, network
 }
 
 // mounters are who may mount an overlay, in the order they are tried: the kernel itself,

@@ -90,7 +90,7 @@ func (endpoint served) address(secret, repositoryPath string) string {
 func TestASandboxClonesWithItsTokenAndPushesToItsSandboxRepositoryOnly(t *testing.T) {
 	ctx := context.Background()
 	endpoint := serve(t)
-	sandbox, err := endpoint.sandboxes.Make(ctx, endpoint.repository)
+	sandbox, err := endpoint.sandboxes.Make(ctx, endpoint.repository, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -128,7 +128,7 @@ func TestASandboxClonesWithItsTokenAndPushesToItsSandboxRepositoryOnly(t *testin
 func TestATokenOpensOnlyItsRepositoryWhileAliveAndAsItWasIssued(t *testing.T) {
 	ctx := context.Background()
 	endpoint := serve(t)
-	sandbox, err := endpoint.sandboxes.Make(ctx, endpoint.repository)
+	sandbox, err := endpoint.sandboxes.Make(ctx, endpoint.repository, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -181,5 +181,36 @@ func TestATokenOpensOnlyItsRepositoryWhileAliveAndAsItWasIssued(t *testing.T) {
 	}
 	if _, _, err := endpoint.tokens.Issue(endpoint.repository, sandbox.ID, true, 48*time.Hour); err == nil {
 		t.Error("a token was issued for two days")
+	}
+}
+
+func TestASandboxRepositoryIsRetiredOnlyWhenNoTokenHoldsItAndNothingPushed(t *testing.T) {
+	ctx := context.Background()
+	endpoint := serve(t)
+	held, err := endpoint.sandboxes.Make(ctx, endpoint.repository, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	left, err := endpoint.sandboxes.Make(ctx, endpoint.repository, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := endpoint.tokens.Issue(endpoint.repository, held.ID, true, 0); err != nil {
+		t.Fatal(err)
+	}
+	if retired := endpoint.sandboxes.Retire(ctx, time.Hour, endpoint.tokens); retired != 0 {
+		t.Errorf("retired %d sandboxes used just now", retired)
+	}
+	if retired := endpoint.sandboxes.Retire(ctx, 0, endpoint.tokens); retired != 1 {
+		t.Errorf("retired %d; want the one no token holds", retired)
+	}
+	if _, err := endpoint.sandboxes.Get(ctx, left.ID); err == nil {
+		t.Error("the retired sandbox is still there")
+	}
+	if _, err := endpoint.sandboxes.Get(ctx, held.ID); err != nil {
+		t.Errorf("the held sandbox is gone: %v", err)
+	}
+	if _, err := endpoint.sandboxes.Get(ctx, "../etc"); err == nil {
+		t.Error("a sandbox was looked for outside the sandboxes")
 	}
 }
