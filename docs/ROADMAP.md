@@ -562,13 +562,13 @@ limits = { workspaces = 200, disk = "50GB", fetches = 2 }
 
 | Task | What | Done when |
 |---|---|---|
-| **0.9 · 0 Endpoint** | Smart HTTP over the pools with `git http-backend`; upload only | `git clone http://gitd/…` works with a token, fails without one |
-| **0.9 · 1 Tokens** | Issue, check and revoke; an RPC, a CLI command and an MCP tool | Expired and revoked tokens refused; a token opens only its repository |
-| **0.9 · 2 Sandbox repositories** | Receive into a repository per token; publish from it, with the prefix and the audit log | A push from a sandbox becomes a branch on the git host through gitd |
-| **0.9 · 3 Tenants** | `[[tenants]]`: keys, roots, credentials, limits; every call scoped; per-tenant pools, templates, workspaces, tokens and audit | Isolation tests pass; no tenants configured behaves as 0.8 |
-| **0.9 · 4 Network** | Listen address, TLS, limits; gitd's API served there too (ConnectRPC over TLS, a tenant's key on every call), so a platform on another machine calls it as it calls the socket | Tests with TLS and without; refused when unconfigured; the SDKs reach a remote gitd |
-| **0.9 · 5 Examples** | E2B and Modal (or any microVM) cloning from gitd; a two-tenant setup | Each example runs end to end |
-| **0.9 · 6 Outside review** | A person outside the project reviews the endpoint, tokens, tenants and the threat model before the network service ships; sandbox repositories also retire 0.7's rule to pause a sandbox while gitd runs git in its workspace | Findings fixed or recorded; THREAT_MODEL.md updated |
+| **0.9 · 0 Endpoint** ✓ | Smart HTTP over the pools with `git http-backend`; upload only | `git clone http://gitd/…` works with a token, fails without one. **Done**: over per-token sandbox repositories borrowing the pools, with git's own `http-backend`, its closed environment and no hooks; only the three smart requests; partial clones from pools with the whole history (against a shallow one git's own client loops) |
+| **0.9 · 1 Tokens** ✓ | Issue, check and revoke; an RPC, a CLI command and an MCP tool | Expired and revoked tokens refused; a token opens only its repository. **Done**: `EndpointService`, `gitd token issue/list/revoke`, `open_endpoint_access`, both clients; hashed, in memory, an hour by default and a day at most; issuing and revoking in the audit log |
+| **0.9 · 2 Sandbox repositories** ✓ | Receive into a repository per token; publish from it, with the prefix and the audit log | A push from a sandbox becomes a branch on the git host through gitd. **Done**: `Publish` with `sandbox`, under the same prefix, rules, pull request and audit log; github-e2e runs a container on its own network that clones and pushes with a token, and gitd opens its pull request from the App's bot, on every push |
+| **0.9 · 3 Tenants** ✓ | `[[tenants]]`: keys, roots, credentials, limits; every call scoped; per-tenant pools, templates, workspaces, tokens and audit | Isolation tests pass; no tenants configured behaves as 0.8. **Done**: each tenant a part of gitd of its own under `<state>/tenants/<name>`; a gateway sends each call to the part its key names; limits on workspaces, disk, fetches and sandbox repositories; gitd-mount takes each tenant's directories; tests try every reach into another tenant's and find it refused |
+| **0.9 · 4 Network** ✓ | Listen address, TLS, limits; gitd's API served there too (ConnectRPC over TLS, a tenant's key on every call), so a platform on another machine calls it as it calls the socket | Tests with TLS and without; refused when unconfigured; the SDKs reach a remote gitd. **Done**: `[endpoint]`, a certificate reread when renewed, `api_key_file` without tenants; `--url`, `--key-file`, `--ca-file`; CI calls a gitd over TLS from the command line and both clients |
+| **0.9 · 5 Examples** ✓ | E2B and Modal (or any microVM) cloning from gitd; a two-tenant setup | Each example runs end to end. **Done**: `examples/network`, two tenants and a sandbox on its own network with nothing mounted, in CI; E2B and Modal versions written, not run: CI has no accounts |
+| **0.9 · 6 Outside review** (AI review done; a person's still due) | A person outside the project reviews the endpoint, tokens, tenants and the threat model before the network service ships; sandbox repositories also retire 0.7's rule to pause a sandbox while gitd runs git in its workspace | Findings fixed or recorded; THREAT_MODEL.md updated. **Done so far**: an AI agent's review, named as such; its findings fixed — a writable token could read others' staged commits through the pool's refs, and a tenant fill the disk through sandbox repositories — or recorded in the threat model; the owner chose to release 0.9.0 before a person's review, which stays due |
 
 ---
 
@@ -705,7 +705,7 @@ benchmark, its docs and a release (principle 7).
 | 13 | 0.8 · 0–2 ✓ | GitHub App and connections through the API, publishing settings, pull requests | 12 |
 | 14 | 0.8 · 3–5 ✓ | Changes, Diff, Compare, Conflicts, Watch, provenance | 12 |
 | 15 | 0.8 · 6–8 ✓ | Warm layers, OpenHands, proof and docs; **release 0.8.0** | 13, 14 |
-| 16 | 0.9 · 0–6 | Endpoint, tokens, sandbox repositories, tenants, network, examples, outside review; release 0.9.0 | 15 |
+| 16 | 0.9 · 0–6 ✓ | Endpoint, tokens, sandbox repositories, tenants, network, examples, AI review (a person's still due); **release 0.9.0** | 15 |
 | 17 | 0.10 · 0–2 | CSI node plugin, Helm chart, examples; release 0.10.0 | 16 |
 | 18 | 1.0 · 0–2 | macOS, guides, stability; release 1.0.0 | 16, 17 |
 
