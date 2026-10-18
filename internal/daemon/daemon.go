@@ -8,29 +8,21 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/dooservice/gitd/internal/audit"
+	"github.com/dooservice/gitd/internal/apikeys"
 	"github.com/dooservice/gitd/internal/config"
-	"github.com/dooservice/gitd/internal/connections"
-	"github.com/dooservice/gitd/internal/credentials"
-	"github.com/dooservice/gitd/internal/endpoint"
-	"github.com/dooservice/gitd/internal/events"
 	"github.com/dooservice/gitd/internal/git"
-	"github.com/dooservice/gitd/internal/housekeeping"
-	"github.com/dooservice/gitd/internal/lock"
 	"github.com/dooservice/gitd/internal/metrics"
 	"github.com/dooservice/gitd/internal/mounthelper"
-	"github.com/dooservice/gitd/internal/pool"
-	"github.com/dooservice/gitd/internal/publishing"
-	"github.com/dooservice/gitd/internal/pullrequests"
-	"github.com/dooservice/gitd/internal/secrets"
 	"github.com/dooservice/gitd/internal/server"
 	"github.com/dooservice/gitd/internal/strategy"
-	"github.com/dooservice/gitd/internal/template"
-	"github.com/dooservice/gitd/internal/workspace"
 )
 
 // Run serves with the configuration at path until ctx ends. A socket, when given, wins
 // over the configuration's.
+//
+// Without tenants gitd is one part, as it always was. With tenants, each is a part of its
+// own — pools, templates, workspaces, credentials, tokens and audit log under its own
+// directory — and the gateway sends every call to the part its key names.
 func Run(ctx context.Context, path, socket, version string) error {
 	settings, err := config.Load(path)
 	if err != nil {
@@ -44,121 +36,44 @@ func Run(ctx context.Context, path, socket, version string) error {
 	if _, err := runner.Version(ctx); err != nil {
 		return fmt.Errorf("running %s: %w", settings.Git, err)
 	}
-	stored, err := credentials.Stored(settings.Credentials)
-	if err != nil {
-		return err
-	}
-	keys, err := credentials.NewKeys(settings.State, settings.KnownHosts, settings.Hosts, stored)
-	if err != nil {
-		return err
-	}
-	box, err := secrets.Open(settings.SecretsKeyFile)
-	if err != nil {
-		return err
-	}
-	kept, err := connections.Open(settings.Connections(), box)
-	if err != nil {
-		return err
-	}
-	github := connections.GitHub{
-		UserAgent: "gitd/" + version, Hosts: settings.Hosts,
-		LoginClientID: settings.GitHub.LoginClientID, LoginAppSlug: settings.GitHub.LoginApp,
-	}
-	kept.UseGitHub(github)
-	fileApps, err := connections.NewFileApps(settings.Credentials, github)
-	if err != nil {
-		return err
-	}
-	keys.AlsoKeep(fileApps)
-	keys.AlsoKeep(kept)
-	fileSettings, err := publishing.FromFile(settings.Publish)
-	if err != nil {
-		return err
-	}
-	publishingSettings, err := publishing.Open(settings.PublishingSettings(), fileSettings)
-	if err != nil {
-		return err
-	}
-	locks, err := lock.NewLocks(settings.Locks(), settings.Limits.QueueWait)
-	if err != nil {
-		return err
-	}
-	limits := settings.Limits
-	fetches := lock.NewQueue(limits.Fetches, limits.Queued, limits.QueueWait)
-	writes := lock.NewQueue(limits.Writes, limits.Queued, limits.QueueWait)
 	measured := metrics.New(func() float64 { return float64(runner.Running()) })
-
-	pools := pool.New(settings.Pools(), runner, keys, locks, fetches, settings.Housekeeping.StaleLock)
-	workspaces := workspace.New(settings.Roots, runner, pools, locks, writes, settings.Housekeeping.StaleLock)
-	auditLog, err := audit.New(settings.AuditLog(), settings.Audit.RotateBytes, settings.Audit.Keep)
-	if err != nil {
-		return err
-	}
-	bus := events.NewBus()
-	workspaces.UseEvents(bus)
-	workspaces.UsePublishing(workspace.Publishing{
-		Settings: publishingSettings, PullRequests: pullrequests.New(keys, github), Recorder: auditLog,
-	})
-
-	templates := template.New(settings.Templates(), locks, workspaces)
-	want := strategy.Name(settings.Workspaces.Strategy)
-	if want == "auto" {
-		want = ""
-	}
-	maker, why := strategy.Detect(want, settings.State, settings.Roots, mounters(settings.Workspaces.MountHelper)...)
-	workspaces.UseTemplates(templates, maker)
-	workspaces.RecordOwners(ctx)
-	made := strategy.Copy
-	if maker != nil {
-		made = maker.Name()
-	}
-	slog.Info("workspaces are made by "+string(made), "why", why)
-	overlay, _ := maker.(*strategy.OverlayMaker)
-	keeper := housekeeping.New(pools, templates, overlay, runner, settings.Roots, settings.Housekeeping, measured)
-	keeper.Sweep()
-	keeper.Remount(ctx)
-	go keeper.Run(ctx)
-	go workspaces.WatchLayers(ctx)
-
-	served := &server.Server{
-		Version:        version,
-		Workspaces:     workspaces,
-		Pools:          pools,
-		Runner:         runner,
-		Metrics:        measured,
-		Operation:      limits.Operation,
-		Totals:         keeper.Totals,
-		RetirePools:    keeper.Retire,
-		Strategy:       made.Proto(),
-		StrategyReason: why,
-		TemplateTotals: keeper.TemplateTotals,
-		AuditLog:       auditLog,
-
-		Connections:     kept,
-		FileConnections: connections.ShownFromFile(settings.Credentials),
-		Publishing:      publishingSettings,
-		Events:          bus,
+	gateway := &server.Gateway{
+		Version: version, Socket: settings.Socket, MetricsAddress: settings.Metrics, Metrics: measured,
 	}
 	if listen := settings.Endpoint; listen.Listen != "" {
-		served.Endpoint, served.Network = endpointOf(ctx, settings, runner, pools)
+		gateway.Network = &server.Network{Listen: listen.Listen, TLSCertFile: listen.TLSCertFile, TLSKeyFile: listen.TLSKeyFile}
 	}
-	return served.Serve(ctx, settings.Socket, settings.Metrics)
+	shared := shared{runner: runner, metrics: measured, version: version}
+	if !settings.HasTenants() {
+		implicit, err := shared.part(ctx, settings, "")
+		if err != nil {
+			return err
+		}
+		if settings.APIKeyFile != "" {
+			implicit.Key = apikeys.NewFile(settings.APIKeyFile)
+		}
+		gateway.Implicit = implicit.Tenant
+		return gateway.Serve(ctx)
+	}
+	for _, tenant := range settings.Tenants {
+		part, err := shared.part(ctx, settings.ForTenant(tenant), tenant.Name)
+		if err != nil {
+			return fmt.Errorf("tenant %s: %w", tenant.Name, err)
+		}
+		part.Key = apikeys.NewFile(tenant.APIKeyFile)
+		if err := part.limit(tenant); err != nil {
+			return fmt.Errorf("tenant %s: %w", tenant.Name, err)
+		}
+		gateway.Tenants = append(gateway.Tenants, part.Tenant)
+	}
+	return gateway.Serve(ctx)
 }
 
-// endpointOf is the git endpoint the configuration asks for: its tokens, its sandbox
-// repositories, retired once nothing has pushed to them or held a token of them for
-// retire_after, and the network address it is served at.
-func endpointOf(ctx context.Context, settings config.Config, runner *git.Runner, pools *pool.Pools) (*server.Endpoint, *server.Network) {
-	tokens := endpoint.NewTokens()
-	sandboxes := endpoint.NewSandboxes(settings.Sandboxes(), runner, pools)
-	go sandboxes.RetireEvery(ctx, settings.Housekeeping.Every, settings.Housekeeping.RetireAfter, tokens)
-	network := &server.Network{
-		Listen:      settings.Endpoint.Listen,
-		TLSCertFile: settings.Endpoint.TLSCertFile,
-		TLSKeyFile:  settings.Endpoint.TLSKeyFile,
-		Git:         endpoint.NewHandler(runner, tokens, sandboxes, settings.Endpoint.MaxPushBytes),
-	}
-	return &server.Endpoint{Tokens: tokens, Sandboxes: sandboxes, URL: settings.Endpoint.URL}, network
+// shared is what every part of gitd uses alike: the git it runs and the metrics it keeps.
+type shared struct {
+	runner  *git.Runner
+	metrics *metrics.Metrics
+	version string
 }
 
 // mounters are who may mount an overlay, in the order they are tried: the kernel itself,
@@ -172,4 +87,12 @@ func mounters(helper string) []strategy.Mounter {
 		tried = append(tried, mounthelper.Client{Socket: helper})
 	}
 	return tried
+}
+
+// logged is the logger of a tenant's part, or gitd's own for the implicit one.
+func logged(tenant string) *slog.Logger {
+	if tenant == "" {
+		return slog.Default()
+	}
+	return slog.Default().With("tenant", tenant)
 }
