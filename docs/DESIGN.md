@@ -424,6 +424,36 @@ workspace is forgotten as by `Remove`. `Prepare` with `warm` makes a new overlay
 on the layer, at the commit it was sealed at only; it is never written instead, as it
 would then lack what the layer installed.
 
+### The endpoint (`EndpointService`)
+For sandboxes that cannot mount gitd's directories. `IssueToken` syncs the repository's
+pool, makes a **sandbox repository** — a bare repository under `<state>/sandboxes`,
+borrowing the pool's objects and where its history stops, holding the pool's branches and
+tags — and issues a token for it: `gitd_` and 32 random bytes, kept as its SHA-256 in
+memory only, opening that repository for reading and the sandbox repository for writing,
+for an hour unless told and a day at most. The network address answers git's smart HTTP at
+`/git/<host>/<path>.git` by running `git http-backend` (CGI) with gitd's closed environment
+and no hooks; only the three smart requests are served, the repository in the address must
+be the token's, a read-only token never reaches `git-receive-pack`, and pushes refuse
+deletes and forced updates, check objects and stop at `max_push_bytes`. Partial clones are
+offered by sandbox repositories of pools with the whole history: against a shallow one,
+git's own client loops. `Publish` with `sandbox` stages the pushed branch into the pool
+(`pool.StageRef`) and goes on as a workspace's publish does — prefix, rules, pull request,
+audit — without the checks of a workspace's `.git`, which a sandbox repository's has no way
+to need: smart HTTP writes no configuration. Tokens issued and revoked are in the audit log;
+sandbox repositories no token holds and nothing pushed to for `retire_after` are removed.
+
+### Tenants and the gateway
+With `[[tenants]]`, each tenant is a **part** of gitd of its own, put together from the
+tenant's configuration: its state under `<state>/tenants/<name>` — pools, templates,
+layers, sandboxes, connections, publishing settings, audit log, locks — its roots and
+credentials, its own maintenance, and its limits on workspaces, disk and fetches. Only the
+git binary and the metrics are shared. The **gateway** answers the socket, the network
+address and the metrics: a call reaches the part whose key it brings
+(`Authorization: Bearer`, compared in constant time with the hash of the key file, read
+again when the file changes), an endpoint token the part that issued it; anything else is
+refused. Without tenants there is one implicit part: the socket answers it with no key, as
+before, and the network address only with `api_key_file`'s.
+
 ### What a workspace may not do
 
 Whoever works in a workspace writes its `.git`, so gitd trusts nothing there it has not
