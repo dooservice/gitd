@@ -107,7 +107,8 @@ func (sandboxes *Sandboxes) borrow(dir string, repository repo.Repo) error {
 	}
 	from := sandboxes.pools.Shallow(repository)
 	if from == "" {
-		return nil
+		// The whole history: partial clones work, files arriving as they are read.
+		return appendConfig(dir, "[uploadpack]\n\tallowFilter = true\n\tallowReachableSHA1InWant = true\n")
 	}
 	data, err := os.ReadFile(from)
 	if err != nil {
@@ -224,4 +225,17 @@ func lastPush(dir string) time.Time {
 		return nil
 	})
 	return latest
+}
+
+// appendConfig adds lines to a repository's configuration, which only gitd writes.
+func appendConfig(dir, lines string) error {
+	file, err := os.OpenFile(filepath.Join(dir, "config"), os.O_APPEND|os.O_WRONLY, 0)
+	if err != nil {
+		return err
+	}
+	if _, err := file.WriteString(lines); err != nil {
+		_ = file.Close()
+		return err
+	}
+	return file.Close()
 }

@@ -33,13 +33,9 @@ func NewHandler(runner *git.Runner, tokens *Tokens, sandboxes *Sandboxes, maxPus
 	if maxPush <= 0 {
 		maxPush = DefaultMaxPush
 	}
-	common := []string{
-		"http.uploadpack=true",
-		// Partial clones: files arrive as they are read, and fetching one later asks for it
-		// by name.
-		"uploadpack.allowFilter=true",
-		"uploadpack.allowReachableSHA1InWant=true",
-	}
+	// Partial clones are offered by each sandbox repository whose pool has the whole
+	// history (Sandboxes.Make): against a shallow one git's client loops fetching.
+	common := []string{"http.uploadpack=true"}
 	return &Handler{
 		tokens:    tokens,
 		sandboxes: sandboxes,
