@@ -201,3 +201,61 @@ jobs:
         run: |
           gh pr close --repo dooservice/gitd-e2e "agents/endpoint-$RUN" --delete-branch 2>/dev/null \
             || gh api -X DELETE "repos/dooservice/gitd-e2e/git/refs/heads/agents/endpoint-$RUN" 2>/dev/null || true
+
+  # Kubernetes (examples/kubernetes): on a kind cluster, a pod gets a workspace as a gitd.dev
+  # CSI volume, commits with no credential in it, and gitd publishes what it committed.
+  kubernetes:
+    runs-on: ubuntu-latest
+    needs: endpoint
+    env:
+      GITD_E2E_APP_ID: ${{ secrets.GITD_E2E_APP_ID }}
+      GITD_E2E_APP_KEY: ${{ secrets.GITD_E2E_APP_KEY }}
+    steps:
+      - name: the App's secrets and client ID are set
+        id: secrets
+        env:
+          GITD_E2E_CLIENT_ID: ${{ vars.GITD_E2E_CLIENT_ID }}
+        run: |
+          if [ -n "$GITD_E2E_APP_ID" ] && [ -n "$GITD_E2E_APP_KEY" ] && [ -n "$GITD_E2E_CLIENT_ID" ]; then
+            echo "set=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v7
+        if: steps.secrets.outputs.set
+      - uses: helm/kind-action@v1
+        if: steps.secrets.outputs.set
+        with:
+          cluster_name: gitd
+      - name: a pod's workspace, published
+        if: steps.secrets.outputs.set
+        env:
+          RUN: ${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          set -o pipefail
+          mkdir -p "$RUNNER_TEMP/credentials"
+          printf '%s\n' "$GITD_E2E_APP_KEY" > "$RUNNER_TEMP/credentials/app.pem"
+          export CREDENTIALS_DIR="$RUNNER_TEMP/credentials" BRANCH="agents/kubernetes-$RUN" \
+            REPOSITORY=https://github.com/dooservice/gitd-e2e \
+            CONFIG="$(printf '[[credentials]]\nprefix = "https://github.com/dooservice/gitd-e2e"\ngithub_app = { app_id = %s, private_key_file = "/etc/gitd/credentials/app.pem" }\n' "$GITD_E2E_APP_ID")"
+          examples/kubernetes/demo.sh | tee demo.log
+          grep -q "no credential in the pod" demo.log
+          grep -q '"branch": "agents/kubernetes-' examples/kubernetes/published.json
+          grep -qx "removed" demo.log
+      - uses: actions/create-github-app-token@v3
+        if: always() && steps.secrets.outputs.set
+        id: cleanup
+        with:
+          client-id: ${{ vars.GITD_E2E_CLIENT_ID }}
+          private-key: ${{ secrets.GITD_E2E_APP_KEY }}
+          repositories: gitd-e2e
+      - name: the branch is on GitHub, with the pod's commit
+        if: steps.secrets.outputs.set
+        env:
+          GH_TOKEN: ${{ steps.cleanup.outputs.token }}
+          RUN: ${{ github.run_id }}-${{ github.run_attempt }}
+        run: gh api "repos/dooservice/gitd-e2e/commits/agents/kubernetes-$RUN" --jq .commit.message | grep -F "kubernetes: run $RUN"
+      - name: remove what the run pushed
+        if: always() && steps.secrets.outputs.set
+        env:
+          GH_TOKEN: ${{ steps.cleanup.outputs.token }}
+          RUN: ${{ github.run_id }}-${{ github.run_attempt }}
+        run: gh api -X DELETE "repos/dooservice/gitd-e2e/git/refs/heads/agents/kubernetes-$RUN" 2>/dev/null || true

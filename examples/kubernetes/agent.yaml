@@ -1,0 +1,38 @@
+# An agent's pod with a workspace of gitd as a volume: a copy-on-write checkout made by the
+# gitd on its node, with no credential in the pod. It runs as gitd's user (1000), whose the
+# workspace's files are, commits, and waits for the platform to publish.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: agent-1
+  namespace: agents
+spec:
+  restartPolicy: Never
+  securityContext:
+    runAsUser: 1000
+    runAsGroup: 1000
+  containers:
+    - name: agent
+      image: alpine/git:2.47.2
+      workingDir: /work
+      command: ["sh", "-c"]
+      args:
+        - |
+          set -e
+          git log --oneline -1
+          echo "written in a pod, run ${RUN}" > "kubernetes-${RUN}.txt"
+          git add -A
+          git -c user.name=agent -c user.email=agent@example.com commit -q -m "kubernetes: run ${RUN}"
+          env | grep -ciE 'github_token|gh_token|gitd_' || echo "no credential in the pod"
+          echo committed
+          sleep 3600
+      env:
+        - {name: RUN, value: "local"}
+      volumeMounts:
+        - {name: repo, mountPath: /work}
+  volumes:
+    - name: repo
+      csi:
+        driver: gitd.dev
+        volumeAttributes:
+          repository: https://github.com/octocat/Hello-World
