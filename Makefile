@@ -9,6 +9,7 @@ LDFLAGS := -s -w -X main.version=$(VERSION) -X $(CONFIG).loginClientID=$(GITD_LO
 build:
 	CGO_ENABLED=0 go build -trimpath -ldflags "$(LDFLAGS)" -o bin/gitd ./cmd/gitd
 	CGO_ENABLED=0 go build -trimpath -ldflags "$(LDFLAGS)" -o bin/gitd-mount ./cmd/gitd-mount
+	CGO_ENABLED=0 go build -trimpath -ldflags "$(LDFLAGS)" -o bin/gitd-csi ./cmd/gitd-csi
 
 # gen/ for Go, and the contract the Python client reads at run time, as indented JSON.
 generate:

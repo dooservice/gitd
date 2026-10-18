@@ -10,7 +10,8 @@ ARG VERSION=dev TARGETOS TARGETARCH GITD_LOGIN_CLIENT_ID GITD_LOGIN_APP
 RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -ldflags "-s -w -X main.version=${VERSION} \
       -X github.com/dooservice/gitd/internal/config.loginClientID=${GITD_LOGIN_CLIENT_ID} \
       -X github.com/dooservice/gitd/internal/config.loginApp=${GITD_LOGIN_APP}" -o /gitd ./cmd/gitd \
- && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -ldflags "-s -w -X main.version=${VERSION}" -o /gitd-mount ./cmd/gitd-mount
+ && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -ldflags "-s -w -X main.version=${VERSION}" -o /gitd-mount ./cmd/gitd-mount \
+ && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -ldflags "-s -w -X main.version=${VERSION}" -o /gitd-csi ./cmd/gitd-csi
 
 FROM debian:12-slim
 RUN apt-get update \
@@ -19,7 +20,7 @@ RUN apt-get update \
  && useradd --system --uid 1000 --user-group --home-dir /var/lib/gitd gitd \
  && mkdir -p /var/lib/gitd/workspaces /run/gitd /etc/gitd \
  && chown -R gitd:gitd /var/lib/gitd /run/gitd
-COPY --from=build /gitd /gitd-mount /usr/local/bin/
+COPY --from=build /gitd /gitd-mount /gitd-csi /usr/local/bin/
 USER gitd
 ENV GITD_SOCKET=/run/gitd/gitd.sock
 VOLUME ["/var/lib/gitd", "/run/gitd"]

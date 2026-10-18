@@ -31,7 +31,7 @@ jobs:
       - run: make build
       # Mounting takes root; these tests skip without it.
       - name: overlay tests, as root
-        run: sudo -E env "PATH=$PATH" go test -count=1 ./internal/strategy/ ./internal/mounthelper/ ./internal/workspace/
+        run: sudo -E env "PATH=$PATH" go test -count=1 ./internal/strategy/ ./internal/mounthelper/ ./internal/workspace/ ./internal/csi/
 
   # Both clients reach a gitd on the network, over TLS, with its key (e2e/remote-sdks.sh).
   remote-sdks:
