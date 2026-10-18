@@ -45,6 +45,12 @@ type Config struct {
 	Limits       Limits       `toml:"limits"`
 	Housekeeping Housekeeping `toml:"housekeeping"`
 	Endpoint     Endpoint     `toml:"endpoint"`
+	// Tenants are the customers of a platform hosting many on one gitd, each isolated from
+	// the others; without any, gitd is one implicit tenant, as before 0.9.
+	Tenants []Tenant `toml:"tenants"`
+	// APIKeyFile is the key a caller on the network brings when there are no tenants; its
+	// network address answers the API only with one.
+	APIKeyFile string `toml:"api_key_file"`
 }
 
 // Credential is one credential gitd keeps for the repositories under Prefix (empty for
@@ -265,6 +271,14 @@ func (settings *Config) normalize() error {
 	if settings.Audit.RotateBytes <= 0 || settings.Audit.Keep <= 0 {
 		return fmt.Errorf("audit: rotate_bytes and keep must be more than zero")
 	}
+	if err := settings.normalizeCredentials(); err != nil {
+		return err
+	}
+	return settings.normalizeTenants()
+}
+
+// normalizeCredentials checks that each credential names exactly one secret.
+func (settings *Config) normalizeCredentials() error {
 	for index, credential := range settings.Credentials {
 		set := 0
 		for _, source := range []string{credential.TokenFile, credential.TokenEnv, credential.SSHKey} {
