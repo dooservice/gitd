@@ -1,0 +1,25 @@
+# One gitd, two tenants. Each tenant's pools, templates, workspaces, credentials, tokens
+# and audit log live under /var/lib/gitd/tenants/<name>; a call names its tenant by its key.
+socket = "/var/lib/gitd/gitd.sock"
+state = "/var/lib/gitd"
+roots = []
+
+[endpoint]
+listen = "0.0.0.0:9420"
+url = "http://gitd:9420"   # what sandboxes are told to clone from
+
+[[tenants]]
+name = "acme"
+api_key_file = "/keys/acme"
+roots = ["/var/lib/gitd/roots/acme"]
+limits = { workspaces = 50, fetches = 2 }
+# To publish, give acme its own credential, e.g. its GitHub App:
+# [[tenants.credentials]]
+# prefix = "https://github.com/acme"
+# github_app = { app_id = 123, private_key_file = "/keys/acme-app.pem" }
+
+[[tenants]]
+name = "globex"
+api_key_file = "/keys/globex"
+roots = ["/var/lib/gitd/roots/globex"]
+limits = { workspaces = 50, fetches = 2 }

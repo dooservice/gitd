@@ -1,0 +1,36 @@
+# gitd on the network, for sandboxes that mount nothing: a microVM, a remote sandbox, a CI
+# runner elsewhere. Two tenants, acme and globex, share one gitd and see nothing of each
+# other.
+#
+# - gitd serves its endpoint on the `sandboxes` network at http://gitd:9420. A sandbox
+#   clones and pushes there with a token of gitd's own, for one repository of one tenant.
+# - The platform calls gitd's API with each tenant's key (./keys, made by demo.sh).
+# - The sandbox shares nothing with gitd but that network: no socket, no volume, no
+#   credential of the git host.
+#
+# Run ./demo.sh; ./demo.sh down removes it all.
+
+services:
+  gitd:
+    build: ../..
+    image: ghcr.io/dooservice/gitd:latest
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+    command: ["serve", "--config", "/etc/gitd/gitd.toml"]
+    volumes:
+      - ./gitd.toml:/etc/gitd/gitd.toml:ro
+      - ./keys:/keys:ro
+      - ./state:/var/lib/gitd
+    environment:
+      GITD_SOCKET: /var/lib/gitd/gitd.sock
+    networks: [sandboxes]
+
+  sandbox:
+    image: alpine/git:2.47.2
+    profiles: [sandbox]
+    entrypoint: ["sh", "-c"]
+    environment:
+      CLONE: ${CLONE:-}
+    networks: [sandboxes]
+
+networks:
+  sandboxes:

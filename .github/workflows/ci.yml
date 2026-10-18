@@ -51,6 +51,24 @@ jobs:
       - run: cd sdk/typescript && npm ci && npm run build
       - run: e2e/remote-sdks.sh
 
+  # The network example: two tenants on one gitd, and a sandbox on its own network that
+  # clones and pushes with a token of gitd's, nothing mounted.
+  network:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - name: Run the example
+        run: |
+          set -o pipefail
+          examples/network/demo.sh | tee demo.log
+          grep -q "unauthenticated" demo.log
+          grep -q "no credential of the git host in the sandbox" demo.log
+          grep -qx "refused" demo.log
+          grep -q "no tokens alive" demo.log
+      - name: Clean up
+        if: always()
+        run: examples/network/demo.sh down
+
   # Every strategy gitd may pick, under what an agent does with git (roadmap D5): copy, the
   # kernel's overlay (root) and reflink (an XFS disk made for it).
   conformance:
