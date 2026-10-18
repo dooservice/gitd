@@ -26,8 +26,12 @@ kind load docker-image gitd:kind --name "$CLUSTER"
 helm_args=(--set image.repository=gitd --set image.tag=kind --set image.pullPolicy=Never)
 if [ -n "${CREDENTIALS_DIR:-}" ]; then
   kubectl create secret generic gitd-credentials --from-file="$CREDENTIALS_DIR" --dry-run=client -o yaml | kubectl apply -f -
-  helm_args+=(--set credentialsSecret=gitd-credentials --set-string "config=${CONFIG:-}")
+  # From a file: --set would split the TOML at its commas.
+  printf '%s\n' "${CONFIG:-}" > gitd-config.toml
+  helm_args+=(--set credentialsSecret=gitd-credentials --set-file config=gitd-config.toml)
 fi
+# When anything fails, show what gitd and its plugin said.
+trap 'kubectl logs daemonset/gitd --all-containers --tail=40 2>/dev/null || true; kubectl describe pod -l app.kubernetes.io/name=gitd 2>/dev/null | tail -20 || true' ERR
 helm upgrade --install gitd ../../charts/gitd "${helm_args[@]}" --wait --timeout 3m
 kubectl rollout status daemonset/gitd --timeout 3m
 
