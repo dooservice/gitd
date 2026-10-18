@@ -49,16 +49,17 @@ func TestNoToolEverAsksTheAgentForACredential(t *testing.T) {
 
 func TestEveryToolSaysWhetherItReadsOrDestroys(t *testing.T) {
 	want := map[string]struct{ readOnly, destructive bool }{
-		"prepare_workspace":  {false, false},
-		"update_workspace":   {false, true},
-		"checkout_commit":    {false, true},
-		"describe_workspace": {true, false},
-		"list_changes":       {true, false},
-		"show_diff":          {true, false},
-		"publish_branch":     {false, false},
-		"remove_workspace":   {false, true},
-		"probe_repository":   {true, false},
-		"read_audit_log":     {true, false},
+		"prepare_workspace":    {false, false},
+		"update_workspace":     {false, true},
+		"checkout_commit":      {false, true},
+		"describe_workspace":   {true, false},
+		"list_changes":         {true, false},
+		"show_diff":            {true, false},
+		"publish_branch":       {false, false},
+		"remove_workspace":     {false, true},
+		"probe_repository":     {true, false},
+		"open_endpoint_access": {false, false},
+		"read_audit_log":       {true, false},
 	}
 	got := listed(t)
 	if len(got) != len(want) {

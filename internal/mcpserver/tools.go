@@ -66,6 +66,12 @@ func (tools *tools) register(server *mcp.Server) {
 		Annotations: &mcp.ToolAnnotations{DestructiveHint: no(), OpenWorldHint: yes()},
 	}, tools.publish)
 	mcp.AddTool(server, &mcp.Tool{
+		Name:        "open_endpoint_access",
+		Title:       "Open access to gitd's git endpoint",
+		Description: "Give a sandbox that cannot mount gitd's workspaces — a microVM, a remote sandbox — what it clones a repository from over HTTP: an address and a secret of gitd's own, valid for one repository and one sandbox repository it may push to, for an hour unless told, never the git host's credential. Publish what it pushes with publish_branch and its sandbox.",
+		Annotations: &mcp.ToolAnnotations{DestructiveHint: no(), OpenWorldHint: yes()},
+	}, tools.openEndpoint)
+	mcp.AddTool(server, &mcp.Tool{
 		Name:        "remove_workspace",
 		Title:       "Remove a workspace",
 		Description: "Delete a workspace and everything in it, committed or not. Its repository's pool stays for the next workspace.",
@@ -142,12 +148,28 @@ type diffOutput struct {
 }
 
 type publishInput struct {
-	Path        string `json:"path" jsonschema:"absolute path of the workspace"`
+	Path        string `json:"path,omitempty" jsonschema:"absolute path of the workspace; leave empty to publish from a sandbox instead"`
+	Sandbox     string `json:"sandbox,omitempty" jsonschema:"the sandbox repository a sandbox pushed to through gitd's endpoint, instead of a workspace; branch is then the branch it pushed"`
 	Branch      string `json:"branch" jsonschema:"the new branch to push to, which must not exist yet"`
 	PullRequest bool   `json:"pull_request,omitempty" jsonschema:"open a pull request even when gitd opens them only when asked"`
 	Title       string `json:"title,omitempty" jsonschema:"the pull request's title; default: the newest commit's subject"`
 	Body        string `json:"body,omitempty" jsonschema:"what the pull request is about, before what gitd checked"`
 	Draft       *bool  `json:"draft,omitempty" jsonschema:"open it as a draft; default: as gitd's settings say"`
+}
+
+type endpointInput struct {
+	URL      string `json:"url" jsonschema:"the repository, as https://host/owner/name, git@host:owner/name or ssh://"`
+	Branch   string `json:"branch,omitempty" jsonschema:"the branch the sandbox starts from; default: the repository's default branch"`
+	Minutes  int64  `json:"minutes,omitempty" jsonschema:"how long the access lasts, in minutes; 60 when unset, 1440 at most"`
+	ReadOnly bool   `json:"read_only,omitempty" jsonschema:"clone and fetch only, never push"`
+}
+
+type endpointOutput struct {
+	CloneURL string `json:"clone_url" jsonschema:"where the sandbox clones from"`
+	Secret   string `json:"secret" jsonschema:"the password to clone with: git clone https://x:<secret>@<host>/…; shown this once"`
+	ID       string `json:"id" jsonschema:"what to revoke it by"`
+	Sandbox  string `json:"sandbox" jsonschema:"the sandbox repository pushes land in, to publish from"`
+	Expires  string `json:"expires"`
 }
 
 type probeInput struct {
@@ -295,7 +317,7 @@ func (tools *tools) diff(ctx context.Context, _ *mcp.CallToolRequest, in diffInp
 }
 
 func (tools *tools) publish(ctx context.Context, _ *mcp.CallToolRequest, in publishInput) (*mcp.CallToolResult, publishOutput, error) {
-	request := &gitdv1.PublishRequest{Path: in.Path, Branch: in.Branch}
+	request := &gitdv1.PublishRequest{Path: in.Path, Branch: in.Branch, Sandbox: in.Sandbox}
 	if in.PullRequest || in.Title != "" || in.Body != "" || in.Draft != nil {
 		request.PullRequest = &gitdv1.PullRequestOptions{Open: in.PullRequest, Title: in.Title, Body: in.Body, Draft: in.Draft}
 	}
@@ -309,6 +331,20 @@ func (tools *tools) publish(ctx context.Context, _ *mcp.CallToolRequest, in publ
 		out.NoPull = strings.TrimPrefix(failure.GetReason().String(), "REASON_") + ": " + failure.GetGitSaid()
 	}
 	return nil, out, nil
+}
+
+func (tools *tools) openEndpoint(ctx context.Context, _ *mcp.CallToolRequest, in endpointInput) (*mcp.CallToolResult, endpointOutput, error) {
+	answer, err := tools.gitd.IssueToken(ctx, &gitdv1.IssueTokenRequest{
+		Url: in.URL, Branch: in.Branch, LifetimeSeconds: in.Minutes * 60, ReadOnly: in.ReadOnly,
+	})
+	if err != nil {
+		return nil, endpointOutput{}, refusal(err)
+	}
+	info := answer.GetInfo()
+	return nil, endpointOutput{
+		CloneURL: answer.GetCloneUrl(), Secret: answer.GetToken(), ID: info.GetId(), Sandbox: info.GetSandbox(),
+		Expires: info.GetExpiresAt().AsTime().UTC().Format(time.RFC3339),
+	}, nil
 }
 
 func (tools *tools) remove(ctx context.Context, _ *mcp.CallToolRequest, in pathInput) (*mcp.CallToolResult, removeOutput, error) {
