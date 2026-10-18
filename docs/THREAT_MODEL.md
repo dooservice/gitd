@@ -4,7 +4,9 @@ What gitd protects, from whom, and how; and what it leaves to whoever deploys it
 claim here names the code or the test that makes it true. Reviewed against the code at
 version 0.7, and extended for what 0.8 adds — connections, GitHub Apps, publishing settings,
 pull requests, reading and comparing what agents changed, watching, provenance and warm
-layers — which awaits the outside review of 0.9 (see [Review](#review)).
+layers — and for what 0.9 adds: the network endpoint and its tokens, sandbox repositories,
+tenants and the API on the network. 0.9 shipped after an AI review, not a person's; a
+review by a person outside the project is still due (see [Review](#review)).
 
 ## 1. What gitd protects
 
@@ -23,7 +25,9 @@ layers — which awaits the outside review of 0.9 (see [Review](#review)).
 | **An agent or a sandbox** | Write anything in its own workspace, `.git` included; run any program there; choose what it commits, `.gitmodules` included | Nothing but its workspace |
 | **A repository's contents** | Name submodules, their paths and URLs; hold any file | Nothing |
 | **An MCP client** (an agent's model) | Call the ten MCP tools, with any arguments | Nothing beyond what the tools do |
-| **A caller on the socket** (the platform, the command line) | Every call of the API: credentials in requests, connecting GitHub, adding and removing credentials, setting publishing rules | Everything gitd does: see §5 |
+| **A sandbox on the network** with an endpoint token | Clone its token's repository from its sandbox repository, push there, for the token's life | That repository and its own sandbox repository, nothing else |
+| **A tenant** (one customer of a platform hosting many) | Every call of the API with its key, on the socket or the network | Its own part of gitd only: nothing of another tenant's |
+| **A caller on the socket** (the platform, the command line) | Every call of the API: credentials in requests, connecting GitHub, adding and removing credentials, setting publishing rules | Without tenants, everything gitd does; with tenants, everything its key's tenant has: see §5 |
 | **gitd's own user** | Everything gitd can | Not with root: see gitd-mount |
 | **The network and the git hosts** | Answer anything, redirect | Hosts' identities are checked (SSH host keys, TLS) |
 | **A browser on gitd's machine** | Open the page `gitd connect github-app` serves on 127.0.0.1 while it waits | Nothing: the page takes back only the code that comes with its own state |
@@ -169,6 +173,47 @@ changes, diff, compare and conflicts — are made while its sandbox is stopped o
   caller on the socket. A watcher too slow to read is dropped, not waited for, and a
   workspace's layer is looked at only while someone watches it.
 
+### The endpoint opens one repository, with a token of gitd's, never the host's
+
+Sandboxes that cannot mount gitd's directories clone over HTTP
+([`internal/endpoint`](../internal/endpoint)):
+
+- **A token of gitd's own.** `gitd_` and 32 random bytes, kept as its SHA-256 in memory,
+  lost on restart, alive an hour unless told and a day at most, revocable; it opens one
+  repository for reading and one sandbox repository for writing. The git host's credential
+  never leaves gitd. Issuing and revoking are in the audit log.
+- **Only git's smart HTTP, through git itself.** `git http-backend` runs with gitd's closed
+  environment, no hooks, and its settings on the command line where no repository can
+  change them; the address must name the token's repository, only the three smart requests
+  are served, a service is named once, and a read-only token never reaches receive-pack
+  (`TestATokenOpensOnlyItsRepositoryWhileAliveAndAsItWasIssued`).
+- **Pushes land in the sandbox repository, never the pool.** Deletes and forced pushes are
+  refused, objects checked, a push bounded (`max_push_bytes`), and none taken once the
+  tenant's disk is full. **The pool's refs are never shown** to a sandbox: receive-pack
+  would offer them, and with them the commits other sandboxes and workspaces staged and did
+  not publish (`TestASandboxIsNeverShownWhatThePoolHoldsForOthers`); what a refused publish
+  staged is forgotten.
+- **Publishing from a sandbox repository** goes through the same branch prefix, rules, pull
+  request and audit log as a workspace's (`TestWhatASandboxPushedIsPublishedUnderTheSameRules`).
+  gitd runs no git in a sandbox's files: what it publishes it fetches from the sandbox
+  repository, whose configuration only gitd writes. **For sandboxes on the endpoint, the rule
+  to pause a sandbox while gitd runs git in its workspace does not apply.**
+- **Bounded:** sixteen git processes at once per tenant, requests bounded in size, idle
+  connections closed.
+
+### Tenants share nothing
+
+With `[[tenants]]` each tenant is a part of gitd of its own
+([`internal/daemon`](../internal/daemon), [`internal/server/gateway.go`](../internal/server/gateway.go)):
+its state under `<state>/tenants/<name>` — pools, templates, layers, sandbox repositories,
+credentials, connections, publishing settings, tokens, audit log — its roots, and limits on
+workspaces, disk (sandbox repositories counted), fetches and sandbox repositories. A call
+reaches the part whose key it brings, compared in constant time with the hash of a key file
+read again when it changes; an endpoint token reaches the part that issued it; anything else
+is refused, on the socket too. `TestTwoTenantsOnOneGitdSeeNothingOfEachOther` and
+`TestOnTheNetworkATokenOrAKeyOpensItsOwnTenantOnly` try each tenant's key and token on the
+other's. Without tenants, the network address answers the API only with `api_key_file`'s key.
+
 ### Warm layers carry what a sandbox installed, and only that
 
 A warm layer is an overlay workspace's own layer, sealed for later workspaces to stand on
@@ -271,7 +316,12 @@ Known, and left to the deployment or to a later version:
 
 | Gap | Why | What to do |
 |---|---|---|
-| **A caller on the socket is fully trusted** | The socket has no authentication in 0.8: whoever can open it may prepare, remove or publish any workspace, send credentials, connect GitHub, add or remove credentials and change the publishing rules | Give the socket's group to the platform only. 0.9 adds tokens and tenants, and an administrator key for connections and settings |
+| **A caller on the socket is fully trusted** | Without tenants the socket has no authentication: whoever can open it does anything gitd does. With tenants, a key opens all of its tenant, connections and settings included: there is no key for less | Give the socket's group to the platform only, and each tenant's key to that tenant's part of the platform |
+| **No person has reviewed 0.9 yet** | The endpoint, tokens and tenants were reviewed by an AI agent (see Review); a review by a person outside the project is still due | Keep the network address on a private network or behind TLS, and read this section before exposing it |
+| **An endpoint token in the sandbox** | A sandbox clones with the token in its URL, which stays in its `.git/config`; whatever runs in the sandbox can read it | It opens one repository and one sandbox repository for its life: issue it short (`--for`), read-only when the sandbox only reads, and revoke it when the sandbox ends |
+| **A push may create many refs** | A push is bounded in bytes, not in how many refs it creates in the sandbox repository | Keep tokens short-lived; `limits.sandboxes` and the disk limit bound a tenant's sandbox repositories |
+| **Endpoint tokens are lost on restart** | They are kept in memory only; a sandbox repository stays, a token for it must be issued again | Issue tokens again after a restart; publishing from a sandbox repository needs no token |
+| **The metrics are shared between tenants** | One registry; `gitd_pool_bytes` names repositories, of every tenant | Serve the metrics address to the operator only |
 | **Kept secrets are on gitd's disk** | Without `secrets_key_file`, connections' secrets are files only gitd's user reads; with it, whoever reads the key and the files reads them | Set `secrets_key_file` from a systemd credential, and keep the key out of backups of the state directory |
 | **Publishing rules see paths, not intent** | They refuse changes to protected paths, deleted kept paths and too many files; harmful code in any other file passes them | Keep reviewing pull requests; protect the branches they merge into on the host |
 | **The CI runs what an agent changed** | Rules by path cannot know which files the CI executes: a test, a `Makefile`, `package.json`'s scripts. GitHub gives repository and organisation secrets to the workflows of every branch of the same repository, an agent's included | Keep secrets in environments agents' branches cannot use, make the workflow token read only, and run nothing privileged for `agents/*` ([GITHUB.md](GITHUB.md)) |
@@ -315,6 +365,10 @@ Known, and left to the deployment or to a later version:
    and roots; it is the only part that runs as root.
 8. Keep gitd's state and roots on a `nosuid,nodev` filesystem, limit gitd's outbound
    network to the git hosts it serves, and ship the audit log elsewhere.
+9. Serve the network address (`[endpoint]`) over TLS, or on a private network only; never
+   send a key over plain `http://` off the machine. Give each tenant its own key, from a
+   systemd credential, and limits; with tenants, give gitd-mount each tenant's templates,
+   layers and roots.
 
 ## Review
 
@@ -364,5 +418,23 @@ CI runs the example on every push.
 
 It also showed that no check before git runs can stand against a sandbox changing `.git`
 at the same time: §4 now says to pause the sandbox for those operations, until 0.9. It
-added §4's rows on what submodules let a token read and on container root. **A review by a
-person outside the project is still due before 0.9 opens a network service.**
+added §4's rows on what submodules let a token read and on container root.
+
+**AI review of 0.9 (0.9 · 6).** 0.9 was released after a review by an AI agent given this
+document and the code since 0.8.0 — not by a person; the project's owner chose to release
+without waiting for one. It found, and these were fixed:
+
+- **A writable token could read other sandboxes' and workspaces' unpublished commits**:
+  receive-pack offered the tips of the pool's refs as `.have` lines, staged commits of
+  refused publishes among them, and a push naming one took it. Reproduced in a test; the
+  pool's refs are now never shown, and what a refused publish staged is forgotten.
+- **One tenant could fill the shared disk through sandbox repositories**, which no limit
+  counted: they now count toward the disk limit, are capped per tenant, and no push is
+  taken once the disk is full.
+- **No idle timeout, no bound on request bodies or git processes** on the network address:
+  now bounded. A service named twice in a request, which Go and git read differently, is
+  refused; a sandbox's branch is checked; a key file is reread on any change; the command
+  line warns when a key would travel unencrypted.
+
+It recorded as acceptable, in §4: shared metrics, refs per push, tokens in a sandbox's
+`.git/config`. **A review by a person outside the project is still due.**
