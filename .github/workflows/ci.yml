@@ -33,6 +33,24 @@ jobs:
       - name: overlay tests, as root
         run: sudo -E env "PATH=$PATH" go test -count=1 ./internal/strategy/ ./internal/mounthelper/ ./internal/workspace/
 
+  # Both clients reach a gitd on the network, over TLS, with its key (e2e/remote-sdks.sh).
+  remote-sdks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+      - run: make build && pip install ./sdk/python
+      - run: cd sdk/typescript && npm ci && npm run build
+      - run: e2e/remote-sdks.sh
+
   # Every strategy gitd may pick, under what an agent does with git (roadmap D5): copy, the
   # kernel's overlay (root) and reflink (an XFS disk made for it).
   conformance:
