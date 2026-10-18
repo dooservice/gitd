@@ -80,18 +80,18 @@ func checkMount(config Config, uid int, request Request) (mountLayers, error) {
 		return mountLayers{}, fmt.Errorf("%w: at most %d lower layers", errRefused, maxLowers)
 	}
 	for _, lower := range lowers {
-		pinned, err := pin(config.Templates, lower, uid)
+		pinned, err := pinUnderAny(config.Templates, "templates", lower, uid)
 		if err != nil {
 			layers.close()
 			return mountLayers{}, err
 		}
 		layers.lowers = append(layers.lowers, pinned)
 	}
-	if layers.upper, err = pin(config.Layers, request.Upper, uid); err != nil {
+	if layers.upper, err = pinUnderAny(config.Layers, "layers", request.Upper, uid); err != nil {
 		layers.close()
 		return mountLayers{}, err
 	}
-	if layers.work, err = pin(config.Layers, request.Work, uid); err != nil {
+	if layers.work, err = pinUnderAny(config.Layers, "layers", request.Work, uid); err != nil {
 		layers.close()
 		return mountLayers{}, err
 	}

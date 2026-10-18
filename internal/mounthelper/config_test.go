@@ -20,7 +20,7 @@ root /srv/agents
 	if err != nil {
 		t.Fatal(err)
 	}
-	if config.UID != 1500 || config.Templates != "/var/lib/gitd/templates" || config.Layers != "/var/lib/gitd/layers" || len(config.Roots) != 2 {
+	if config.UID != 1500 || len(config.Templates) != 1 || config.Templates[0] != "/var/lib/gitd/templates" || config.Layers[0] != "/var/lib/gitd/layers" || len(config.Roots) != 2 {
 		t.Errorf("config = %+v", config)
 	}
 	for _, text := range []string{
@@ -76,5 +76,21 @@ func TestAConfigurationInADirectoryOthersCanWriteIsRefused(t *testing.T) {
 	}
 	if _, err := Load(path); err == nil {
 		t.Error("a configuration in a directory anyone may write was accepted")
+	}
+}
+
+func TestEachTenantsDirectoriesMayBeNamed(t *testing.T) {
+	config, err := parse(bufio.NewScanner(strings.NewReader(
+		"user 1500\ntemplates /var/lib/gitd/tenants/acme/templates\ntemplates /var/lib/gitd/tenants/globex/templates\n" +
+			"layers /var/lib/gitd/tenants/acme/layers\nlayers /var/lib/gitd/tenants/globex/layers\n" +
+			"root /srv/acme\nroot /srv/globex\n")))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(config.Templates) != 2 || len(config.Layers) != 2 || len(config.Roots) != 2 {
+		t.Errorf("config = %+v", config)
+	}
+	if _, err := pinUnderAny(config.Templates, "templates", "/var/lib/gitd/tenants/other/templates/x", 1500); err == nil {
+		t.Error("a template outside every tenant's was pinned")
 	}
 }

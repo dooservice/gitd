@@ -52,7 +52,7 @@ func TestOnlyADirectoryBeneathItsBaseReachedWithoutSymlinksIsPinned(t *testing.T
 }
 
 func TestARequestFromAnotherUserOrForAnythingElseIsRefused(t *testing.T) {
-	config := Config{UID: 1500, Templates: "/t", Layers: "/l", Roots: []string{"/r"}}
+	config := Config{UID: 1500, Templates: []string{"/t"}, Layers: []string{"/l"}, Roots: []string{"/r"}}
 	if err := Do(config, 1501, Request{Op: "mount"}); !errors.Is(err, errRefused) {
 		t.Errorf("another user: %v", err)
 	}
@@ -66,19 +66,19 @@ func TestARequestFromAnotherUserOrForAnythingElseIsRefused(t *testing.T) {
 
 func FuzzAMountIsNeverCheckedOutsideItsDirectories(f *testing.F) {
 	base := f.TempDir()
-	config := Config{UID: os.Getuid(), Templates: filepath.Join(base, "t"), Layers: filepath.Join(base, "l"), Roots: []string{filepath.Join(base, "r")}}
-	for _, dir := range []string{filepath.Join(config.Templates, "web"), filepath.Join(config.Layers, "u"), filepath.Join(config.Layers, "w"), filepath.Join(config.Roots[0], "agent")} {
+	config := Config{UID: os.Getuid(), Templates: []string{filepath.Join(base, "t")}, Layers: []string{filepath.Join(base, "l")}, Roots: []string{filepath.Join(base, "r")}}
+	for _, dir := range []string{filepath.Join(config.Templates[0], "web"), filepath.Join(config.Layers[0], "u"), filepath.Join(config.Layers[0], "w"), filepath.Join(config.Roots[0], "agent")} {
 		if err := os.MkdirAll(dir, 0o755); err != nil {
 			f.Fatal(err)
 		}
 	}
-	if err := os.Symlink("/etc", filepath.Join(config.Templates, "out")); err != nil {
+	if err := os.Symlink("/etc", filepath.Join(config.Templates[0], "out")); err != nil {
 		f.Fatal(err)
 	}
-	f.Add(filepath.Join(config.Templates, "web"), filepath.Join(config.Layers, "u"), filepath.Join(config.Layers, "w"), filepath.Join(config.Roots[0], "agent"))
+	f.Add(filepath.Join(config.Templates[0], "web"), filepath.Join(config.Layers[0], "u"), filepath.Join(config.Layers[0], "w"), filepath.Join(config.Roots[0], "agent"))
 	f.Add("/etc", "/l/u", "/l/w", "/r/x")
-	f.Add(filepath.Join(config.Templates, "out"), filepath.Join(config.Layers, "u"), filepath.Join(config.Layers, "w"), filepath.Join(config.Roots[0], "agent"))
-	f.Add(config.Templates+"/../../etc", config.Layers+"/u", config.Layers+"/w", config.Roots[0]+"/agent")
+	f.Add(filepath.Join(config.Templates[0], "out"), filepath.Join(config.Layers[0], "u"), filepath.Join(config.Layers[0], "w"), filepath.Join(config.Roots[0], "agent"))
+	f.Add(config.Templates[0]+"/../../etc", config.Layers[0]+"/u", config.Layers[0]+"/w", config.Roots[0]+"/agent")
 	beneath := func(base, path string) bool {
 		relative, err := filepath.Rel(base, path)
 		return err == nil && relative != "." && relative != ".." && !strings.HasPrefix(relative, "../") && !filepath.IsAbs(relative)
@@ -90,7 +90,7 @@ func FuzzAMountIsNeverCheckedOutsideItsDirectories(f *testing.F) {
 		}
 		defer layers.close()
 		for _, check := range []struct{ base, path string }{
-			{config.Templates, lower}, {config.Layers, upper}, {config.Layers, work}, {config.Roots[0], target},
+			{config.Templates[0], lower}, {config.Layers[0], upper}, {config.Layers[0], work}, {config.Roots[0], target},
 		} {
 			if !beneath(check.base, check.path) {
 				t.Fatalf("%q was accepted outside %s", check.path, check.base)

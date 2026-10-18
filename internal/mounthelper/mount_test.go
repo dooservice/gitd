@@ -16,9 +16,9 @@ func TestGitdMountMountsAndUnmountsAnOverlayAndNothingElse(t *testing.T) {
 		t.Skip("mounting needs root")
 	}
 	base := t.TempDir()
-	config := Config{UID: 0, Templates: filepath.Join(base, "templates"), Layers: filepath.Join(base, "layers"), Roots: []string{filepath.Join(base, "workspaces")}}
-	lower := filepath.Join(config.Templates, "web")
-	upper, work := filepath.Join(config.Layers, "1", "upper"), filepath.Join(config.Layers, "1", "work")
+	config := Config{UID: 0, Templates: []string{filepath.Join(base, "templates")}, Layers: []string{filepath.Join(base, "layers")}, Roots: []string{filepath.Join(base, "workspaces")}}
+	lower := filepath.Join(config.Templates[0], "web")
+	upper, work := filepath.Join(config.Layers[0], "1", "upper"), filepath.Join(config.Layers[0], "1", "work")
 	target := filepath.Join(config.Roots[0], "agent-1")
 	for _, dir := range []string{lower, upper, work, target} {
 		if err := os.MkdirAll(dir, 0o755); err != nil {
@@ -57,7 +57,7 @@ func TestGitdMountMountsAndUnmountsAnOverlayAndNothingElse(t *testing.T) {
 	}
 
 	// A warm layer stands between the template and the workspace's own layer, and wins.
-	warm := filepath.Join(config.Templates, ".warm", "web")
+	warm := filepath.Join(config.Templates[0], ".warm", "web")
 	if err := os.MkdirAll(warm, 0o755); err != nil {
 		t.Fatal(err)
 	}

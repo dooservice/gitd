@@ -22,10 +22,12 @@ import (
 
 // Config is who may ask, and where: templates are the only lower layers, layers the only
 // place for upper and work directories, and roots the only places a workspace is mounted.
+// Each may be given more than once: a gitd with tenants has templates, layers and roots for
+// each.
 type Config struct {
 	UID       int
-	Templates string
-	Layers    string
+	Templates []string
+	Layers    []string
 	Roots     []string
 }
 
@@ -102,9 +104,9 @@ func parse(lines *bufio.Scanner) (Config, error) {
 		}
 		switch key {
 		case "templates":
-			config.Templates = value
+			config.Templates = append(config.Templates, value)
 		case "layers":
-			config.Layers = value
+			config.Layers = append(config.Layers, value)
 		case "root":
 			config.Roots = append(config.Roots, value)
 		default:
@@ -114,7 +116,7 @@ func parse(lines *bufio.Scanner) (Config, error) {
 	if err := lines.Err(); err != nil {
 		return Config{}, err
 	}
-	if config.UID <= 0 || config.Templates == "" || config.Layers == "" || len(config.Roots) == 0 {
+	if config.UID <= 0 || len(config.Templates) == 0 || len(config.Layers) == 0 || len(config.Roots) == 0 {
 		return Config{}, fmt.Errorf("want a user other than root, templates, layers and at least one root")
 	}
 	return config, nil

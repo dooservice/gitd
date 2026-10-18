@@ -57,12 +57,18 @@ func pin(base, path string, uid int) (pinned, error) {
 
 // pinUnderRoots pins path beneath whichever root holds it.
 func pinUnderRoots(roots []string, path string, uid int) (pinned, error) {
-	for _, root := range roots {
-		if path != root && strings.HasPrefix(path, root+"/") {
-			return pin(root, path, uid)
+	return pinUnderAny(roots, "roots", path, uid)
+}
+
+// pinUnderAny pins path beneath whichever of bases it lies under: one tenant's templates or
+// layers among every tenant's.
+func pinUnderAny(bases []string, what, path string, uid int) (pinned, error) {
+	for _, base := range bases {
+		if path != base && strings.HasPrefix(path, base+"/") {
+			return pin(base, path, uid)
 		}
 	}
-	return pinned{}, fmt.Errorf("%w: %s is in none of the roots", errRefused, path)
+	return pinned{}, fmt.Errorf("%w: %s is in none of the %s", errRefused, path, what)
 }
 
 // empty says whether the pinned directory has nothing in it.
