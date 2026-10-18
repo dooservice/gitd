@@ -26,6 +26,11 @@ func (workspaces *Workspaces) allowed(path string) (string, error) {
 	}
 	resolved = filepath.Join(resolved, strings.TrimPrefix(path, existing))
 	for _, root := range workspaces.roots {
+		// A root reached through a link — /tmp and /var are links on macOS — is compared as
+		// it resolves, as the path is.
+		if real, err := filepath.EvalSymlinks(root); err == nil && !inside(resolved, root) {
+			root = real
+		}
 		if !inside(resolved, root) {
 			continue
 		}

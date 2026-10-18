@@ -30,6 +30,21 @@ func TestOnlyWhatLiesUnderARootIsAllowed(t *testing.T) {
 	}
 }
 
+func TestARootReachedThroughALinkStillHoldsItsWorkspaces(t *testing.T) {
+	real := t.TempDir()
+	linked := filepath.Join(t.TempDir(), "linked")
+	if err := os.Symlink(real, linked); err != nil {
+		t.Fatal(err)
+	}
+	workspaces := &Workspaces{roots: []string{linked}}
+	if _, err := workspaces.allowed(filepath.Join(linked, "agent-1")); err != nil {
+		t.Errorf("a workspace under a root that is a link: %v", err)
+	}
+	if _, err := workspaces.allowed(filepath.Join(real, "..", "elsewhere")); err == nil {
+		t.Error("a path beside the root's target was allowed")
+	}
+}
+
 func TestOnlyNothingOrAnEmptyDirectoryIsVacant(t *testing.T) {
 	dir := t.TempDir()
 	if !vacant(filepath.Join(dir, "missing")) || !vacant(dir) {
