@@ -23,6 +23,7 @@ type File struct {
 	hashed   [sha256.Size]byte
 	loaded   bool
 	modified time.Time
+	size     int64
 }
 
 // NewFile returns the key in the file at path; it is read on first use.
@@ -51,7 +52,7 @@ func (file *File) current() ([sha256.Size]byte, bool) {
 	if err != nil {
 		return [sha256.Size]byte{}, false
 	}
-	if file.loaded && info.ModTime().Equal(file.modified) {
+	if file.loaded && info.ModTime().Equal(file.modified) && info.Size() == file.size {
 		return file.hashed, true
 	}
 	data, err := os.ReadFile(file.path)
@@ -59,7 +60,7 @@ func (file *File) current() ([sha256.Size]byte, bool) {
 	if err != nil || key == "" {
 		return [sha256.Size]byte{}, false
 	}
-	file.hashed, file.loaded, file.modified = sha256.Sum256([]byte(key)), true, info.ModTime()
+	file.hashed, file.loaded, file.modified, file.size = sha256.Sum256([]byte(key)), true, info.ModTime(), info.Size()
 	return file.hashed, true
 }
 

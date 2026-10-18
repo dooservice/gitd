@@ -135,7 +135,10 @@ func (gateway *Gateway) serveNetwork(ctx context.Context) error {
 	protocols.SetHTTP1(true)
 	protocols.SetHTTP2(true)
 	protocols.SetUnencryptedHTTP2(true)
-	answering := &http.Server{Handler: http.HandlerFunc(gateway.network), Protocols: protocols, ReadHeaderTimeout: 10 * time.Second}
+	answering := &http.Server{
+		Handler: http.HandlerFunc(gateway.network), Protocols: protocols,
+		ReadHeaderTimeout: 10 * time.Second, IdleTimeout: 2 * time.Minute,
+	}
 	listener, err := net.Listen("tcp", network.Listen)
 	if err != nil {
 		return err

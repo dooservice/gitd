@@ -11,6 +11,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
+	"net/url"
 	"os"
 	"strings"
 
@@ -52,6 +54,9 @@ func (app *app) client() *client.Client {
 		options.CAFile = os.Getenv("GITD_CA_FILE")
 	}
 	options.Key = app.key()
+	if plaintextKey(options) {
+		fmt.Fprintf(app.stderr, "gitd: warning: the key travels unencrypted to %s; use https:// off this machine\n", options.URL)
+	}
 	built, err := client.Open(options)
 	if err != nil {
 		fmt.Fprintf(app.stderr, "gitd: %s\n", err)
@@ -163,4 +168,18 @@ func describe(err error) string {
 		return strings.TrimPrefix(reason, "REASON_") + ": " + said
 	}
 	return err.Error()
+}
+
+// plaintextKey says whether a key would travel unencrypted beyond this machine.
+func plaintextKey(options client.Options) bool {
+	parsed, err := url.Parse(options.URL)
+	if err != nil || options.Key == "" || parsed.Scheme != "http" {
+		return false
+	}
+	host := parsed.Hostname()
+	if host == "localhost" {
+		return false
+	}
+	ip := net.ParseIP(host)
+	return ip == nil || !ip.IsLoopback()
 }
