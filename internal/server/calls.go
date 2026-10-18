@@ -67,6 +67,9 @@ func (server *Server) Retire(
 func (server *Server) Publish(
 	ctx context.Context, request *connect.Request[gitdv1.PublishRequest],
 ) (*connect.Response[gitdv1.PublishResponse], error) {
+	if request.Msg.GetSandbox() != "" {
+		return server.publishPushed(ctx, request.Msg)
+	}
 	published, err := server.Workspaces.Publish(ctx, request.Msg)
 	if err != nil {
 		return nil, server.refuse(err)
