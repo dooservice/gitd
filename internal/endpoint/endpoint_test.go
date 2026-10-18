@@ -2,6 +2,9 @@ package endpoint
 
 import (
 	"context"
+	"errors"
+	"io"
+	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"os"
@@ -212,5 +215,78 @@ func TestASandboxRepositoryIsRetiredOnlyWhenNoTokenHoldsItAndNothingPushed(t *te
 	}
 	if _, err := endpoint.sandboxes.Get(ctx, "../etc"); err == nil {
 		t.Error("a sandbox was looked for outside the sandboxes")
+	}
+}
+
+// TestASandboxIsNeverShownWhatThePoolHoldsForOthers stages, in the pool, a commit of another
+// sandbox's refused publish, and looks for it in what a writing token is shown: receive-pack
+// would offer the pool's refs as ".have" lines, and a push naming one would take it.
+func TestASandboxIsNeverShownWhatThePoolHoldsForOthers(t *testing.T) {
+	ctx := context.Background()
+	endpoint := serve(t)
+	poolDir := filepath.Join(endpoint.root, "pools", "github.com", "acme", "web.git")
+	tree := must(t, poolDir, "rev-parse", "main^{tree}")
+	secret := must(t, poolDir, "commit-tree", "-m", "another sandbox's refused work", tree)
+	must(t, poolDir, "update-ref", "refs/gitd/staging/agents/other", secret)
+
+	sandbox, err := endpoint.sandboxes.Make(ctx, endpoint.repository, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	writing, _, err := endpoint.tokens.Issue(endpoint.repository, sandbox.ID, true, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	advertised := func(query string) (int, string) {
+		request, _ := http.NewRequest(http.MethodGet, endpoint.server.URL+Prefix+"github.com/acme/web.git/info/refs?"+query, nil)
+		request.SetBasicAuth("x", writing)
+		response, err := http.DefaultClient.Do(request)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer response.Body.Close()
+		body, _ := io.ReadAll(response.Body)
+		return response.StatusCode, string(body)
+	}
+	status, body := advertised("service=git-receive-pack")
+	if status != http.StatusOK {
+		t.Fatalf("receive-pack's refs: %d %s", status, body)
+	}
+	if strings.Contains(body, secret) || strings.Contains(body, ".have") {
+		t.Errorf("a sandbox was shown the pool's refs:\n%s", body)
+	}
+	if status, _ := advertised("service=git-upload-pack&service=git-receive-pack"); status != http.StatusNotFound {
+		t.Errorf("a service named twice was answered: %d", status)
+	}
+}
+
+type fullDisk struct{}
+
+func (fullDisk) WithinDisk() error { return errors.New("the disk limit is reached") }
+
+func TestNoPushIsTakenOnceTheTenantsDiskIsFull(t *testing.T) {
+	ctx := context.Background()
+	endpoint := serve(t)
+	sandbox, err := endpoint.sandboxes.Make(ctx, endpoint.repository, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	secret, _, err := endpoint.tokens.Issue(endpoint.repository, sandbox.ID, true, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	work := filepath.Join(endpoint.root, "full")
+	must(t, endpoint.root, "clone", "-q", endpoint.address(secret, "acme/web"), work)
+	must(t, work, "commit", "-q", "--allow-empty", "-m", "more")
+	endpoint.server.Config.Handler.(*Handler).UseLimits(fullDisk{})
+	if out, err := run(t, work, "push", "origin", "HEAD:refs/heads/agents/more"); err == nil {
+		t.Errorf("pushed with the disk full: %s", out)
+	}
+	if _, err := endpoint.sandboxes.Make(ctx, endpoint.repository, "-evil"); err == nil {
+		t.Error("a sandbox started on a branch named like an option")
+	}
+	endpoint.sandboxes.Measure()
+	if endpoint.sandboxes.Used() <= 0 {
+		t.Error("the sandboxes' disk was not measured")
 	}
 }

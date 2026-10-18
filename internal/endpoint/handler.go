@@ -25,7 +25,19 @@ type Handler struct {
 	sandboxes *Sandboxes
 	reading   *cgi.Handler
 	writing   *cgi.Handler
+	maxPush   int64
+	// slots bound how many git processes the endpoint runs at once; a request finding none
+	// free is told to come back.
+	slots chan struct{}
+	// limits, when set, refuse a push once the tenant's disk is full.
+	limits interface{ WithinDisk() error }
 }
+
+// concurrent is how many git processes one tenant's endpoint runs at once.
+const concurrent = 16
+
+// maxFetchRequest bounds what a clone or fetch may send: its wants and haves.
+const maxFetchRequest = 16 << 20
 
 // NewHandler returns the endpoint over these sandboxes, opened by these tokens, taking
 // pushes of at most maxPush bytes.
@@ -35,14 +47,26 @@ func NewHandler(runner *git.Runner, tokens *Tokens, sandboxes *Sandboxes, maxPus
 	}
 	// Partial clones are offered by each sandbox repository whose pool has the whole
 	// history (Sandboxes.Make): against a shallow one git's client loops fetching.
-	common := []string{"http.uploadpack=true"}
+	//
+	// No ref of the pool is ever shown: receive-pack would offer the tips of every ref of the
+	// repositories a sandbox repository borrows from, the pool's own among them — commits of
+	// other sandboxes and workspaces staged and not published — and a push naming one would
+	// take it.
+	common := []string{"http.uploadpack=true", "core.alternateRefsCommand=true"}
 	return &Handler{
 		tokens:    tokens,
 		sandboxes: sandboxes,
 		reading:   runner.HTTPBackend(sandboxes.Dir, append(common, "http.receivepack=false")),
 		writing: runner.HTTPBackend(sandboxes.Dir, append(common, "http.receivepack=true",
 			"receive.maxInputSize="+strconv.FormatInt(maxPush, 10))),
+		maxPush: maxPush,
+		slots:   make(chan struct{}, concurrent),
 	}
+}
+
+// UseLimits refuses pushes once limits say the tenant's disk is full.
+func (handler *Handler) UseLimits(limits interface{ WithinDisk() error }) {
+	handler.limits = limits
 }
 
 // Opens says whether secret is a token of this endpoint, so that one listener can serve the
@@ -70,14 +94,29 @@ func (handler *Handler) ServeHTTP(writer http.ResponseWriter, request *http.Requ
 		http.NotFound(writer, request)
 		return
 	}
-	backend := handler.reading
+	backend, most := handler.reading, int64(maxFetchRequest)
 	if service == "git-receive-pack" {
 		if !token.Writable {
 			http.Error(writer, "this token only reads", http.StatusForbidden)
 			return
 		}
-		backend = handler.writing
+		if handler.limits != nil {
+			if err := handler.limits.WithinDisk(); err != nil {
+				http.Error(writer, err.Error(), http.StatusInsufficientStorage)
+				return
+			}
+		}
+		backend, most = handler.writing, handler.maxPush+maxFetchRequest
 	}
+	select {
+	case handler.slots <- struct{}{}:
+		defer func() { <-handler.slots }()
+	default:
+		writer.Header().Set("Retry-After", "5")
+		http.Error(writer, "too many git requests at once: try again", http.StatusServiceUnavailable)
+		return
+	}
+	request.Body = http.MaxBytesReader(writer, request.Body, most)
 	slog.Info("endpoint", "token", token.ID, "repository", token.Repository.HTTPS(), "service", service)
 	forwarded := request.Clone(request.Context())
 	forwarded.Header.Del("Authorization")
@@ -100,7 +139,12 @@ func split(request *http.Request) (string, string, bool) {
 	case "git-upload-pack", "git-receive-pack":
 		return address, rest, request.Method == http.MethodPost
 	case "info/refs":
-		service := request.URL.Query().Get("service")
+		// One service, named once: git's http-backend reads the last of several, Go the first.
+		services := request.URL.Query()["service"]
+		if len(services) != 1 {
+			return "", "", false
+		}
+		service := services[0]
 		return address, service, request.Method == http.MethodGet && (service == "git-upload-pack" || service == "git-receive-pack")
 	}
 	return "", "", false
