@@ -214,6 +214,18 @@ is refused, on the socket too. `TestTwoTenantsOnOneGitdSeeNothingOfEachOther` an
 `TestOnTheNetworkATokenOrAKeyOpensItsOwnTenantOnly` try each tenant's key and token on the
 other's. Without tenants, the network address answers the API only with `api_key_file`'s key.
 
+### A pod gets its workspace, never a credential
+
+On Kubernetes ([`internal/csi`](../internal/csi), [`charts/gitd`](../charts/gitd)), gitd runs
+unprivileged on every node with its credentials from a Secret mounted into it only; the CSI
+plugin, privileged as CSI node plugins are, holds only the tenants' keys and mounts. A pod
+gets its workspace and its pool's objects read-only inside it, nothing else: no socket, no
+credential. A workspace carrying its pool is accepted only while the pool is truly mounted
+there — a link or a copy at `.git/gitd-pool` is refused
+(`TestAWorkspaceCarryingItsPoolIsAcceptedOnlyWithThePoolTrulyMountedInside`) — and is never
+removed while it is mounted, so removing cannot reach into the pool. A pod's volume
+attributes cannot make a path: namespace, pod and name must be Kubernetes names.
+
 ### Warm layers carry what a sandbox installed, and only that
 
 A warm layer is an overlay workspace's own layer, sealed for later workspaces to stand on
@@ -321,6 +333,8 @@ Known, and left to the deployment or to a later version:
 | **An endpoint token in the sandbox** | A sandbox clones with the token in its URL, which stays in its `.git/config`; whatever runs in the sandbox can read it | It opens one repository and one sandbox repository for its life: issue it short (`--for`), read-only when the sandbox only reads, and revoke it when the sandbox ends |
 | **A push may create many refs** | A push is bounded in bytes, not in how many refs it creates in the sandbox repository | Keep tokens short-lived; `limits.sandboxes` and the disk limit bound a tenant's sandbox repositories |
 | **Endpoint tokens are lost on restart** | They are kept in memory only; a sandbox repository stays, a token for it must be issued again | Issue tokens again after a restart; publishing from a sandbox repository needs no token |
+| **The CSI plugin is privileged** | It mounts into every pod of the node, as CSI node plugins do, and holds the tenants' keys | Run it from the chart only; it takes requests from kubelet alone, on a socket in kubelet's plugin directory |
+| **Sandboxed runtimes are untested** | gVisor and Kata Containers were not tested with the plugin; Kata shares a volume through virtio-fs, where the pool's mount inside the workspace may not carry | Test on yours before relying on it |
 | **The metrics are shared between tenants** | One registry; `gitd_pool_bytes` names repositories, of every tenant | Serve the metrics address to the operator only |
 | **Kept secrets are on gitd's disk** | Without `secrets_key_file`, connections' secrets are files only gitd's user reads; with it, whoever reads the key and the files reads them | Set `secrets_key_file` from a systemd credential, and keep the key out of backups of the state directory |
 | **Publishing rules see paths, not intent** | They refuse changes to protected paths, deleted kept paths and too many files; harmful code in any other file passes them | Keep reviewing pull requests; protect the branches they merge into on the host |

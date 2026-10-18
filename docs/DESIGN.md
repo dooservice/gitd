@@ -454,6 +454,21 @@ again when the file changes), an endpoint token the part that issued it; anythin
 refused. Without tenants there is one implicit part: the socket answers it with no key, as
 before, and the network address only with `api_key_file`'s.
 
+### Kubernetes: the CSI node plugin
+`gitd-csi` answers kubelet for the driver `gitd.dev`, ephemeral inline volumes only. On
+`NodePublishVolume` it reads the volume's attributes — `repository`, `branch` or `commit`,
+`tenant`, `name` — and the pod's namespace and name kubelet gives, asks the gitd on the node
+for a workspace at `<root>/<namespace>/<pod>` made with `pool_inside`, mounts the pool's
+objects (`WorkspaceResult.pool_objects`) read-only at its `.git/gitd-pool`, and binds the
+workspace, with that mount, onto the pod's target. On `NodeUnpublishVolume` it unmounts both
+and asks gitd to remove the workspace; gitd refuses while `.git/gitd-pool` is still a mount,
+so nothing reaches into the pool. A workspace carrying its pool names it by the relative
+alternates `../gitd-pool`, which git reads wherever the workspace is mounted; gitd accepts it
+only while `.git/gitd-pool` is a plain directory that is the very same directory as the
+objects of a pool lending to the workspace, as only a mount makes it. The Helm chart runs
+gitd, unprivileged, and the privileged plugin side by side on every node, sharing gitd's
+socket and the state's mounts.
+
 ### What a workspace may not do
 
 Whoever works in a workspace writes its `.git`, so gitd trusts nothing there it has not

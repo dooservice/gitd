@@ -296,6 +296,25 @@ and audit log as a workspace. gitd serves it with git's own `git http-backend`, 
 when given a certificate. [`examples/network`](examples/network) runs it in CI, with a
 sandbox on a network of its own and nothing mounted.
 
+## Kubernetes: workspaces as volumes
+
+A pod asks for a workspace like any volume, and gets a copy-on-write checkout from the gitd
+on its node, with no credential in the pod:
+
+```yaml
+volumes:
+  - name: repo
+    csi:
+      driver: gitd.dev
+      volumeAttributes: { repository: https://github.com/acme/web, branch: main }
+```
+
+`helm install gitd charts/gitd` runs gitd and its CSI node plugin, `gitd-csi`, on every
+node: gitd keeps the pools on the node's disk and the credentials from a Secret only it
+mounts; the plugin mounts each pod's workspace, with its pool read-only inside it, and
+removes it when the pod goes. [`examples/kubernetes`](examples/kubernetes) runs it on a kind
+cluster in CI: a pod commits in its workspace and gitd publishes it.
+
 ## Many tenants on one gitd
 
 A platform hosting many customers runs one gitd for all of them, each a `[[tenants]]` entry
@@ -436,6 +455,8 @@ Connect or gRPC client can call it, and `buf curl` can too. There are clients fo
   [releases](https://github.com/dooservice/gitd/releases), with its checksum.
 - **Docker:** `ghcr.io/dooservice/gitd`, for amd64 and arm64.
 - **systemd:** [`packaging/gitd.service`](packaging/gitd.service).
+- **Kubernetes:** the Helm chart in [`charts/gitd`](charts/gitd), and `gitd-csi-linux-*`
+  from the releases.
 - **Copy-on-write workspaces:** gitd makes a workspace by mounting an overlay on a shared
   template whenever it can, and writes its files otherwise. It runs unprivileged, so the
   mount is done by `gitd-mount`, a tiny root service holding only the capabilities mounting
