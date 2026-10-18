@@ -44,6 +44,7 @@ type Config struct {
 	Audit        Audit        `toml:"audit"`
 	Limits       Limits       `toml:"limits"`
 	Housekeeping Housekeeping `toml:"housekeeping"`
+	Endpoint     Endpoint     `toml:"endpoint"`
 }
 
 // Credential is one credential gitd keeps for the repositories under Prefix (empty for
@@ -257,6 +258,9 @@ func (settings *Config) normalize() error {
 	}
 	if prefix := settings.Publish.BranchPrefix; !ValidBranchPrefix(prefix) {
 		return fmt.Errorf("publish: branch_prefix %q cannot start a branch name", prefix)
+	}
+	if err := settings.Endpoint.normalize(); err != nil {
+		return err
 	}
 	if settings.Audit.RotateBytes <= 0 || settings.Audit.Keep <= 0 {
 		return fmt.Errorf("audit: rotate_bytes and keep must be more than zero")
