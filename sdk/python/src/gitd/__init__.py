@@ -4,6 +4,8 @@ from .changes import ChangedFile, ChangeKind, Changes, Diff
 from .client import Gitd
 from .comparison import Comparison, Conflict, Event, EventKind, Side
 from .connection import DEFAULT_SOCKET, SOCKET_VARIABLE
+from .endpoint_calls import Endpoint
+from .endpoint_tokens import IssuedToken, TokenInfo
 from .errors import GitdError
 from .kept_credentials import AppToCreate, Connected, CredentialKind, KeptCredential, SignIn
 from .models import (
@@ -78,4 +80,7 @@ __all__ = [
     "Submodule",
     "Workspace",
     "WarmLayer",
+    "Endpoint",
+    "IssuedToken",
+    "TokenInfo",
 ]

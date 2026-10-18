@@ -11,6 +11,7 @@ from .changes import Changes, Diff
 from .comparison import Comparison, Conflict, Event, Side
 from .connection import Connection, OnProgress
 from .credentials_calls import Credentials
+from .endpoint_calls import Endpoint
 from .models import AuditEntry, Description, Info, Probe, Published, Strategy, Workspace
 from .publishing_calls import Publishing
 from .publishing_settings import Provenance, PullRequestOptions
@@ -19,18 +20,32 @@ from .warm_layers import WarmLayer
 
 
 class Gitd:
-    """A gitd on its Unix socket. No call on workspaces takes a credential: gitd reads and
-    publishes with the ones it keeps, which a platform manages through gitd.credentials, and
-    publishing follows the rules it sets through gitd.publishing.
+    """A gitd on its Unix socket, or at url on the network with key naming the caller's
+    tenant. No call on workspaces takes a credential: gitd reads and publishes with the ones
+    it keeps, which a platform manages through gitd.credentials, and publishing follows the
+    rules it sets through gitd.publishing. Sandboxes elsewhere get tokens of gitd's own
+    through gitd.endpoint.
 
         with Gitd() as gitd:
             workspace = gitd.prepare("https://github.com/acme/web", "/var/lib/gitd/workspaces/agent-1")
+
+        with Gitd(url="https://gitd.internal:9420", key=open("/run/secrets/acme").read()) as gitd:
+            ...
     """
 
-    def __init__(self, socket: str | None = None, *, timeout: float | None = None) -> None:
-        self.connection = Connection(socket, timeout)
+    def __init__(
+        self,
+        socket: str | None = None,
+        *,
+        timeout: float | None = None,
+        url: str | None = None,
+        key: str | None = None,
+        ca_file: str | None = None,
+    ) -> None:
+        self.connection = Connection(socket, timeout, url=url, key=key, ca_file=ca_file)
         self.credentials = Credentials(self.connection)
         self.publishing = Publishing(self.connection)
+        self.endpoint = Endpoint(self.connection)
 
     def __enter__(self) -> Gitd:
         return self
@@ -121,11 +136,15 @@ class Gitd:
         requested_by: str = "",
         pull_request: PullRequestOptions | None = None,
         provenance: Provenance | None = None,
+        sandbox: str = "",
     ) -> Published:
         """Pushes what was committed in a workspace to a new branch, with the credential gitd
         keeps, and opens its pull request when the publishing settings or pull_request say
-        so. requested_by is who asked for the work, as their account on the host."""
-        request: Any = messages.PublishRequest(path=path, branch=branch, requested_by=requested_by)
+        so. requested_by is who asked for the work, as their account on the host. With
+        sandbox, and path empty, publishes the branch a sandbox pushed through the endpoint."""
+        request: Any = messages.PublishRequest(
+            path=path, branch=branch, requested_by=requested_by, sandbox=sandbox
+        )
         if pull_request is not None:
             request.pull_request.CopyFrom(pull_request.to_message())
         if provenance is not None:
