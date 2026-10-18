@@ -85,7 +85,11 @@ func (keeper *Keeper) retireAfter(dir string, unusedFor time.Duration) bool {
 // a pool's objects directory. A submodule named `vendor/web` lives at
 // `.git/modules/vendor/web`, so the modules are walked rather than globbed.
 func borrows(path, objects string) bool {
-	alternates := []string{filepath.Join(path, ".git", "objects", "info", "alternates")}
+	// A workspace's own, or a bare sandbox repository's.
+	alternates := []string{
+		filepath.Join(path, ".git", "objects", "info", "alternates"),
+		filepath.Join(path, "objects", "info", "alternates"),
+	}
 	_ = filepath.WalkDir(filepath.Join(path, ".git", "modules"), func(file string, entry fs.DirEntry, err error) error {
 		if err == nil && !entry.IsDir() && strings.HasSuffix(file, filepath.Join("objects", "info", "alternates")) {
 			alternates = append(alternates, file)
