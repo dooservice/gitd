@@ -1,3 +1,5 @@
+//go:build linux
+
 package mounthelper
 
 import (
@@ -101,4 +103,11 @@ func FuzzAMountIsNeverCheckedOutsideItsDirectories(f *testing.F) {
 			}
 		}
 	})
+}
+
+func TestATemplateOutsideEveryTenantsIsNotPinned(t *testing.T) {
+	templates := []string{"/var/lib/gitd/tenants/acme/templates", "/var/lib/gitd/tenants/globex/templates"}
+	if _, err := pinUnderAny(templates, "templates", "/var/lib/gitd/tenants/other/templates/x", 1500); err == nil {
+		t.Error("a template outside every tenant's was pinned")
+	}
 }

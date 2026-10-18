@@ -1,3 +1,5 @@
+//go:build linux
+
 package workspace
 
 import (
@@ -123,9 +125,4 @@ func TestAWarmLayerCarriesWhatOneWorkspaceInstalledToTheNext(t *testing.T) {
 	if _, err := workspaces.Seal(ctx, &gitdv1.SealRequest{Path: other, Name: "deps"}); err != nil {
 		t.Errorf("a warm layer no workspace stands on was not replaced: %v", err)
 	}
-}
-
-func hasReason(err error, reason git.Reason) bool {
-	failure, ok := git.AsFailure(err)
-	return ok && failure.Reason == reason
 }

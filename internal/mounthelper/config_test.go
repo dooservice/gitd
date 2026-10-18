@@ -90,7 +90,4 @@ func TestEachTenantsDirectoriesMayBeNamed(t *testing.T) {
 	if len(config.Templates) != 2 || len(config.Layers) != 2 || len(config.Roots) != 2 {
 		t.Errorf("config = %+v", config)
 	}
-	if _, err := pinUnderAny(config.Templates, "templates", "/var/lib/gitd/tenants/other/templates/x", 1500); err == nil {
-		t.Error("a template outside every tenant's was pinned")
-	}
 }

@@ -1,3 +1,5 @@
+//go:build linux
+
 // Package csi is gitd's Kubernetes CSI node plugin: a pod asks for a workspace like any
 // volume — an ephemeral inline volume of the driver gitd.dev — and gets a copy-on-write
 // checkout, made by the gitd on its node, with no credential in the pod.

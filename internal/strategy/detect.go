@@ -6,8 +6,6 @@ import (
 	"path/filepath"
 	"strings"
 	"syscall"
-
-	"golang.org/x/sys/unix"
 )
 
 // Detect picks how workspaces are made on this machine, from what is wanted — Overlay or
@@ -39,7 +37,13 @@ func Detect(want Name, state string, roots []string, mounters ...Mounter) (Maker
 		}
 		return &OverlayMaker{Layers: filepath.Join(state, "layers"), Mounter: mounter}, fmt.Sprintf("an overlay mounts here, by %T", mounter)
 	}
-	return nil, "overlay cannot run here: " + strings.Join(reasons, "; ")
+	why := "overlay cannot run here: " + strings.Join(reasons, "; ")
+	if preferReflink {
+		if err := probeReflink(state, roots); err == nil {
+			return ReflinkMaker{}, "templates are cloned here, with no overlay: " + why
+		}
+	}
+	return nil, why
 }
 
 // probeOverlay mounts a small overlay where real ones go — its lower layer among the
@@ -134,11 +138,6 @@ func probeReflink(state string, roots []string) error {
 		}
 	}
 	return nil
-}
-
-func onOverlay(path string) bool {
-	var stats unix.Statfs_t
-	return unix.Statfs(path, &stats) == nil && stats.Type == unix.OVERLAYFS_SUPER_MAGIC
 }
 
 func sameFilesystem(one, other string) bool {

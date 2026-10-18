@@ -1,3 +1,5 @@
+//go:build linux
+
 // Command gitd-mount mounts and unmounts gitd's overlay workspaces, so that gitd itself
 // needs no privilege. It runs as root, answers only the user its configuration names, on a
 // socket only that user can reach, and only within the directories that configuration

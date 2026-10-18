@@ -1,3 +1,5 @@
+//go:build linux
+
 // Command gitd-csi is gitd's Kubernetes CSI node plugin (internal/csi): a pod's ephemeral
 // volume of the driver gitd.dev becomes a workspace of the gitd on its node, with no
 // credential in the pod. It runs privileged, beside gitd, as the Helm chart deploys it.

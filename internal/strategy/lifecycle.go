@@ -8,22 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-
-	"golang.org/x/sys/unix"
 )
-
-// mountedOverlay says whether path is the root of an overlay mount. It needs no privilege.
-func mountedOverlay(path string) bool {
-	var stat unix.Statx_t
-	if err := unix.Statx(unix.AT_FDCWD, path, unix.AT_SYMLINK_NOFOLLOW, unix.STATX_BASIC_STATS, &stat); err != nil {
-		return false
-	}
-	if stat.Attributes&unix.STATX_ATTR_MOUNT_ROOT == 0 {
-		return false
-	}
-	var filesystem unix.Statfs_t
-	return unix.Statfs(path, &filesystem) == nil && filesystem.Type == unix.OVERLAYFS_SUPER_MAGIC
-}
 
 // Remount mounts again every recorded workspace whose overlay is not mounted — after a
 // reboot, or after somebody unmounted one — and says how many it mounted and what it could
