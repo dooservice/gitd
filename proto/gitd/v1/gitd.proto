@@ -124,6 +124,20 @@ service PublishingService {
   rpc RemovePreset(RemovePresetRequest) returns (RemovePresetResponse);
 }
 
+// gitd's git endpoint, for sandboxes that cannot mount its directories — microVMs, remote
+// sandboxes, CI runners elsewhere — and clone over HTTP instead. A token of gitd's own opens
+// one repository for reading and one sandbox repository for writing; it is never the git
+// host's credential. What a sandbox pushed is published with Publish and `sandbox`.
+service EndpointService {
+  // A token for a sandbox, with the address it clones from. The repository's pool is
+  // synced first, with the credential gitd keeps.
+  rpc IssueToken(IssueTokenRequest) returns (IssueTokenResponse);
+  // End a token now, and remove its sandbox repository when asked.
+  rpc RevokeToken(RevokeTokenRequest) returns (RevokeTokenResponse);
+  // The tokens alive, never their secrets.
+  rpc ListTokens(ListTokensRequest) returns (ListTokensResponse);
+}
+
 // What opens repositories whose address starts with `url_prefix`, on any host:
 // e.g. `https://github.com/acme/` or `https://gitlab.example.com/acme/tools/`. A port in
 // it is ignored, as it is in a repository's address: ports are the host's (gitd.toml).
@@ -200,6 +214,8 @@ message GitFailure {
     // What was asked cannot be done with this host, such as a pull request where gitd does
     // not know the host's API.
     REASON_UNSUPPORTED = 14;
+    // A limit of the tenant is reached: its workspaces, its disk or its tokens.
+    REASON_LIMIT_REACHED = 15;
   }
   Reason reason = 1;
   // The last useful line git wrote, e.g. "remote: Repository not found.".
@@ -414,6 +430,10 @@ message PublishRequest {
   PullRequestOptions pull_request = 5;
   // Where the work came from, written in the pull request and the audit log as told.
   Provenance provenance = 6;
+  // Publish what a sandbox pushed through the endpoint instead of a workspace: the ID of
+  // its sandbox repository, with path left empty. branch names the branch it pushed there,
+  // published under the same name.
+  string sandbox = 7;
 }
 
 // Where a publish's work came from, as the platform says: gitd records it and never checks
@@ -678,6 +698,8 @@ message AuditEntry {
   ConfigurationChange change = 11;
   // Where the work came from, as the publish said.
   Provenance provenance = 12;
+  // The sandbox repository published from, when it was not a workspace.
+  string sandbox = 13;
 }
 
 // A connection added or removed, or the settings of a prefix set or removed.
@@ -690,9 +712,11 @@ message ConfigurationChange {
     ACTION_SETTINGS_REMOVED = 4;
     ACTION_PRESET_SET = 5;
     ACTION_PRESET_REMOVED = 6;
+    ACTION_TOKEN_ISSUED = 7;
+    ACTION_TOKEN_REVOKED = 8;
   }
   Action action = 1;
-  // The connection's ID, the settings' prefix, or the preset's name.
+  // The connection's ID, the settings' prefix, the preset's name, or the token's ID.
   string subject = 2;
   // What it opens or applies to, e.g. `https://github.com/acme`.
   string url_prefix = 3;
@@ -925,3 +949,48 @@ message RemovePresetRequest {
 }
 
 message RemovePresetResponse {}
+
+message IssueTokenRequest {
+  string url = 1;
+  // The branch the sandbox starts from; empty for the repository's default branch.
+  string branch = 2;
+  // How long the token lives: an hour when zero, a day at most.
+  int64 lifetime_seconds = 3;
+  // A token that clones and fetches only.
+  bool read_only = 4;
+  // A sandbox repository the token writes to, from an earlier token; empty makes a new one.
+  string sandbox = 5;
+}
+
+message IssueTokenResponse {
+  // The token, shown this once: gitd keeps only its hash.
+  string token = 1;
+  TokenInfo info = 2;
+  // Where the sandbox clones from, e.g. `https://gitd.internal:9420/git/github.com/acme/web.git`,
+  // with the token as the password: `git clone https://x:<token>@…`.
+  string clone_url = 3;
+}
+
+// A token as gitd shows it, never its secret.
+message TokenInfo {
+  string id = 1;
+  string url = 2;
+  string sandbox = 3;
+  bool writable = 4;
+  google.protobuf.Timestamp issued_at = 5;
+  google.protobuf.Timestamp expires_at = 6;
+}
+
+message RevokeTokenRequest {
+  string id = 1;
+  // Remove its sandbox repository too, with whatever was pushed there and not published.
+  bool remove_sandbox = 2;
+}
+
+message RevokeTokenResponse {}
+
+message ListTokensRequest {}
+
+message ListTokensResponse {
+  repeated TokenInfo tokens = 1;
+}

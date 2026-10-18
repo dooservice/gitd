@@ -283,6 +283,10 @@
                 {
                   "name": "REASON_UNSUPPORTED",
                   "number": 14
+                },
+                {
+                  "name": "REASON_LIMIT_REACHED",
+                  "number": 15
                 }
               ]
             }
@@ -964,6 +968,13 @@
               "type": "TYPE_MESSAGE",
               "typeName": ".gitd.v1.Provenance",
               "jsonName": "provenance"
+            },
+            {
+              "name": "sandbox",
+              "number": 7,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "sandbox"
             }
           ]
         },
@@ -1900,6 +1911,13 @@
               "type": "TYPE_MESSAGE",
               "typeName": ".gitd.v1.Provenance",
               "jsonName": "provenance"
+            },
+            {
+              "name": "sandbox",
+              "number": 13,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "sandbox"
             }
           ]
         },
@@ -1960,6 +1978,14 @@
                 {
                   "name": "ACTION_PRESET_REMOVED",
                   "number": 6
+                },
+                {
+                  "name": "ACTION_TOKEN_ISSUED",
+                  "number": 7
+                },
+                {
+                  "name": "ACTION_TOKEN_REVOKED",
+                  "number": 8
                 }
               ]
             }
@@ -2667,6 +2693,160 @@
         },
         {
           "name": "RemovePresetResponse"
+        },
+        {
+          "name": "IssueTokenRequest",
+          "field": [
+            {
+              "name": "url",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "url"
+            },
+            {
+              "name": "branch",
+              "number": 2,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "branch"
+            },
+            {
+              "name": "lifetime_seconds",
+              "number": 3,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_INT64",
+              "jsonName": "lifetimeSeconds"
+            },
+            {
+              "name": "read_only",
+              "number": 4,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_BOOL",
+              "jsonName": "readOnly"
+            },
+            {
+              "name": "sandbox",
+              "number": 5,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "sandbox"
+            }
+          ]
+        },
+        {
+          "name": "IssueTokenResponse",
+          "field": [
+            {
+              "name": "token",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "token"
+            },
+            {
+              "name": "info",
+              "number": 2,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".gitd.v1.TokenInfo",
+              "jsonName": "info"
+            },
+            {
+              "name": "clone_url",
+              "number": 3,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "cloneUrl"
+            }
+          ]
+        },
+        {
+          "name": "TokenInfo",
+          "field": [
+            {
+              "name": "id",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "id"
+            },
+            {
+              "name": "url",
+              "number": 2,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "url"
+            },
+            {
+              "name": "sandbox",
+              "number": 3,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "sandbox"
+            },
+            {
+              "name": "writable",
+              "number": 4,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_BOOL",
+              "jsonName": "writable"
+            },
+            {
+              "name": "issued_at",
+              "number": 5,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".google.protobuf.Timestamp",
+              "jsonName": "issuedAt"
+            },
+            {
+              "name": "expires_at",
+              "number": 6,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".google.protobuf.Timestamp",
+              "jsonName": "expiresAt"
+            }
+          ]
+        },
+        {
+          "name": "RevokeTokenRequest",
+          "field": [
+            {
+              "name": "id",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "id"
+            },
+            {
+              "name": "remove_sandbox",
+              "number": 2,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_BOOL",
+              "jsonName": "removeSandbox"
+            }
+          ]
+        },
+        {
+          "name": "RevokeTokenResponse"
+        },
+        {
+          "name": "ListTokensRequest"
+        },
+        {
+          "name": "ListTokensResponse",
+          "field": [
+            {
+              "name": "tokens",
+              "number": 1,
+              "label": "LABEL_REPEATED",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".gitd.v1.TokenInfo",
+              "jsonName": "tokens"
+            }
+          ]
         }
       ],
       "enumType": [
@@ -2886,6 +3066,26 @@
               "name": "RemovePreset",
               "inputType": ".gitd.v1.RemovePresetRequest",
               "outputType": ".gitd.v1.RemovePresetResponse"
+            }
+          ]
+        },
+        {
+          "name": "EndpointService",
+          "method": [
+            {
+              "name": "IssueToken",
+              "inputType": ".gitd.v1.IssueTokenRequest",
+              "outputType": ".gitd.v1.IssueTokenResponse"
+            },
+            {
+              "name": "RevokeToken",
+              "inputType": ".gitd.v1.RevokeTokenRequest",
+              "outputType": ".gitd.v1.RevokeTokenResponse"
+            },
+            {
+              "name": "ListTokens",
+              "inputType": ".gitd.v1.ListTokensRequest",
+              "outputType": ".gitd.v1.ListTokensResponse"
             }
           ]
         }

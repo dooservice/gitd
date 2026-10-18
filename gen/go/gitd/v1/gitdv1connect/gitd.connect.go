@@ -31,6 +31,8 @@ const (
 	ConnectionServiceName = "gitd.v1.ConnectionService"
 	// PublishingServiceName is the fully-qualified name of the PublishingService service.
 	PublishingServiceName = "gitd.v1.PublishingService"
+	// EndpointServiceName is the fully-qualified name of the EndpointService service.
+	EndpointServiceName = "gitd.v1.EndpointService"
 )
 
 // These constants are the fully-qualified names of the RPCs defined in this package. They're
@@ -130,6 +132,15 @@ const (
 	// PublishingServiceRemovePresetProcedure is the fully-qualified name of the PublishingService's
 	// RemovePreset RPC.
 	PublishingServiceRemovePresetProcedure = "/gitd.v1.PublishingService/RemovePreset"
+	// EndpointServiceIssueTokenProcedure is the fully-qualified name of the EndpointService's
+	// IssueToken RPC.
+	EndpointServiceIssueTokenProcedure = "/gitd.v1.EndpointService/IssueToken"
+	// EndpointServiceRevokeTokenProcedure is the fully-qualified name of the EndpointService's
+	// RevokeToken RPC.
+	EndpointServiceRevokeTokenProcedure = "/gitd.v1.EndpointService/RevokeToken"
+	// EndpointServiceListTokensProcedure is the fully-qualified name of the EndpointService's
+	// ListTokens RPC.
+	EndpointServiceListTokensProcedure = "/gitd.v1.EndpointService/ListTokens"
 )
 
 // WorkspaceServiceClient is a client for the gitd.v1.WorkspaceService service.
@@ -1316,4 +1327,134 @@ func (UnimplementedPublishingServiceHandler) SetPreset(context.Context, *connect
 
 func (UnimplementedPublishingServiceHandler) RemovePreset(context.Context, *connect.Request[v1.RemovePresetRequest]) (*connect.Response[v1.RemovePresetResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("gitd.v1.PublishingService.RemovePreset is not implemented"))
+}
+
+// EndpointServiceClient is a client for the gitd.v1.EndpointService service.
+type EndpointServiceClient interface {
+	// A token for a sandbox, with the address it clones from. The repository's pool is
+	// synced first, with the credential gitd keeps.
+	IssueToken(context.Context, *connect.Request[v1.IssueTokenRequest]) (*connect.Response[v1.IssueTokenResponse], error)
+	// End a token now, and remove its sandbox repository when asked.
+	RevokeToken(context.Context, *connect.Request[v1.RevokeTokenRequest]) (*connect.Response[v1.RevokeTokenResponse], error)
+	// The tokens alive, never their secrets.
+	ListTokens(context.Context, *connect.Request[v1.ListTokensRequest]) (*connect.Response[v1.ListTokensResponse], error)
+}
+
+// NewEndpointServiceClient constructs a client for the gitd.v1.EndpointService service. By default,
+// it uses the Connect protocol with the binary Protobuf Codec, asks for gzipped responses, and
+// sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the connect.WithGRPC()
+// or connect.WithGRPCWeb() options.
+//
+// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
+// http://api.acme.com or https://acme.com/grpc).
+func NewEndpointServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) EndpointServiceClient {
+	baseURL = strings.TrimRight(baseURL, "/")
+	endpointServiceMethods := v1.File_gitd_v1_gitd_proto.Services().ByName("EndpointService").Methods()
+	return &endpointServiceClient{
+		issueToken: connect.NewClient[v1.IssueTokenRequest, v1.IssueTokenResponse](
+			httpClient,
+			baseURL+EndpointServiceIssueTokenProcedure,
+			connect.WithSchema(endpointServiceMethods.ByName("IssueToken")),
+			connect.WithClientOptions(opts...),
+		),
+		revokeToken: connect.NewClient[v1.RevokeTokenRequest, v1.RevokeTokenResponse](
+			httpClient,
+			baseURL+EndpointServiceRevokeTokenProcedure,
+			connect.WithSchema(endpointServiceMethods.ByName("RevokeToken")),
+			connect.WithClientOptions(opts...),
+		),
+		listTokens: connect.NewClient[v1.ListTokensRequest, v1.ListTokensResponse](
+			httpClient,
+			baseURL+EndpointServiceListTokensProcedure,
+			connect.WithSchema(endpointServiceMethods.ByName("ListTokens")),
+			connect.WithClientOptions(opts...),
+		),
+	}
+}
+
+// endpointServiceClient implements EndpointServiceClient.
+type endpointServiceClient struct {
+	issueToken  *connect.Client[v1.IssueTokenRequest, v1.IssueTokenResponse]
+	revokeToken *connect.Client[v1.RevokeTokenRequest, v1.RevokeTokenResponse]
+	listTokens  *connect.Client[v1.ListTokensRequest, v1.ListTokensResponse]
+}
+
+// IssueToken calls gitd.v1.EndpointService.IssueToken.
+func (c *endpointServiceClient) IssueToken(ctx context.Context, req *connect.Request[v1.IssueTokenRequest]) (*connect.Response[v1.IssueTokenResponse], error) {
+	return c.issueToken.CallUnary(ctx, req)
+}
+
+// RevokeToken calls gitd.v1.EndpointService.RevokeToken.
+func (c *endpointServiceClient) RevokeToken(ctx context.Context, req *connect.Request[v1.RevokeTokenRequest]) (*connect.Response[v1.RevokeTokenResponse], error) {
+	return c.revokeToken.CallUnary(ctx, req)
+}
+
+// ListTokens calls gitd.v1.EndpointService.ListTokens.
+func (c *endpointServiceClient) ListTokens(ctx context.Context, req *connect.Request[v1.ListTokensRequest]) (*connect.Response[v1.ListTokensResponse], error) {
+	return c.listTokens.CallUnary(ctx, req)
+}
+
+// EndpointServiceHandler is an implementation of the gitd.v1.EndpointService service.
+type EndpointServiceHandler interface {
+	// A token for a sandbox, with the address it clones from. The repository's pool is
+	// synced first, with the credential gitd keeps.
+	IssueToken(context.Context, *connect.Request[v1.IssueTokenRequest]) (*connect.Response[v1.IssueTokenResponse], error)
+	// End a token now, and remove its sandbox repository when asked.
+	RevokeToken(context.Context, *connect.Request[v1.RevokeTokenRequest]) (*connect.Response[v1.RevokeTokenResponse], error)
+	// The tokens alive, never their secrets.
+	ListTokens(context.Context, *connect.Request[v1.ListTokensRequest]) (*connect.Response[v1.ListTokensResponse], error)
+}
+
+// NewEndpointServiceHandler builds an HTTP handler from the service implementation. It returns the
+// path on which to mount the handler and the handler itself.
+//
+// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
+// and JSON codecs. They also support gzip compression.
+func NewEndpointServiceHandler(svc EndpointServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
+	endpointServiceMethods := v1.File_gitd_v1_gitd_proto.Services().ByName("EndpointService").Methods()
+	endpointServiceIssueTokenHandler := connect.NewUnaryHandler(
+		EndpointServiceIssueTokenProcedure,
+		svc.IssueToken,
+		connect.WithSchema(endpointServiceMethods.ByName("IssueToken")),
+		connect.WithHandlerOptions(opts...),
+	)
+	endpointServiceRevokeTokenHandler := connect.NewUnaryHandler(
+		EndpointServiceRevokeTokenProcedure,
+		svc.RevokeToken,
+		connect.WithSchema(endpointServiceMethods.ByName("RevokeToken")),
+		connect.WithHandlerOptions(opts...),
+	)
+	endpointServiceListTokensHandler := connect.NewUnaryHandler(
+		EndpointServiceListTokensProcedure,
+		svc.ListTokens,
+		connect.WithSchema(endpointServiceMethods.ByName("ListTokens")),
+		connect.WithHandlerOptions(opts...),
+	)
+	return "/gitd.v1.EndpointService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case EndpointServiceIssueTokenProcedure:
+			endpointServiceIssueTokenHandler.ServeHTTP(w, r)
+		case EndpointServiceRevokeTokenProcedure:
+			endpointServiceRevokeTokenHandler.ServeHTTP(w, r)
+		case EndpointServiceListTokensProcedure:
+			endpointServiceListTokensHandler.ServeHTTP(w, r)
+		default:
+			http.NotFound(w, r)
+		}
+	})
+}
+
+// UnimplementedEndpointServiceHandler returns CodeUnimplemented from all methods.
+type UnimplementedEndpointServiceHandler struct{}
+
+func (UnimplementedEndpointServiceHandler) IssueToken(context.Context, *connect.Request[v1.IssueTokenRequest]) (*connect.Response[v1.IssueTokenResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("gitd.v1.EndpointService.IssueToken is not implemented"))
+}
+
+func (UnimplementedEndpointServiceHandler) RevokeToken(context.Context, *connect.Request[v1.RevokeTokenRequest]) (*connect.Response[v1.RevokeTokenResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("gitd.v1.EndpointService.RevokeToken is not implemented"))
+}
+
+func (UnimplementedEndpointServiceHandler) ListTokens(context.Context, *connect.Request[v1.ListTokensRequest]) (*connect.Response[v1.ListTokensResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("gitd.v1.EndpointService.ListTokens is not implemented"))
 }
