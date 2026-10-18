@@ -28,6 +28,11 @@ jobs:
           go install connectrpc.com/connect/cmd/protoc-gen-connect-go@v1.21.0
           make generate
           git diff --exit-code gen sdk/python/src/gitd/contract.json
+      - name: The contract only grows, against the last release
+        run: |
+          git fetch --quiet --tags --depth=1 origin
+          latest="$(git tag --list '[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | head -1)"
+          buf breaking --against ".git#tag=${latest}"
       - run: make build
       # Mounting takes root; these tests skip without it.
       - name: overlay tests, as root
