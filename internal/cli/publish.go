@@ -11,16 +11,17 @@ import (
 
 func publishCommand(app *app) *cobra.Command {
 	command := &cobra.Command{
-		Use:   "publish PATH BRANCH",
+		Use:   "publish PATH BRANCH | publish --sandbox ID BRANCH",
 		Short: "Push what was committed in a workspace to a new branch",
 		Long: "Push what was committed in the workspace at PATH to a new branch BRANCH, from its\n" +
 			"pool and with the credential gitd keeps, and open its pull request when the\n" +
 			"publishing settings or --pull-request say so. The workspace never sees the\n" +
-			"credential, and the push is never forced.",
-		Args: cobra.ExactArgs(2),
+			"credential, and the push is never forced. With --sandbox, publish the branch BRANCH a\n" +
+			"sandbox pushed to its sandbox repository through gitd's endpoint instead.",
+		Args: cobra.RangeArgs(1, 2),
 	}
 	credentials := addCredentialFlags(command)
-	var requestedBy, title, body, base, agent, model, session, task string
+	var requestedBy, title, body, base, agent, model, session, task, sandbox string
 	var open, draft bool
 	flags := command.Flags()
 	flags.StringVar(&requestedBy, "requested-by", "", "who asked for the work, as their account on the host")
@@ -33,12 +34,21 @@ func publishCommand(app *app) *cobra.Command {
 	flags.StringVar(&model, "model", "", "the model it ran on")
 	flags.StringVar(&session, "session", "", "the platform's name for the session or run")
 	flags.StringVar(&task, "task-url", "", "where the task is: an issue, a ticket (https)")
+	flags.StringVar(&sandbox, "sandbox", "", "publish from this sandbox repository of the endpoint, not a workspace")
 	command.RunE = func(cmd *cobra.Command, args []string) error {
 		given, err := credentials.proto()
 		if err != nil {
 			return err
 		}
-		request := &gitdv1.PublishRequest{Path: args[0], Branch: args[1], Credentials: given, RequestedBy: requestedBy}
+		request := &gitdv1.PublishRequest{Credentials: given, RequestedBy: requestedBy, Sandbox: sandbox}
+		switch {
+		case sandbox != "" && len(args) == 1:
+			request.Branch = args[0]
+		case sandbox == "" && len(args) == 2:
+			request.Path, request.Branch = args[0], args[1]
+		default:
+			return fmt.Errorf("give PATH and BRANCH, or --sandbox and BRANCH")
+		}
 		if agent != "" || model != "" || session != "" || task != "" {
 			request.Provenance = &gitdv1.Provenance{Agent: agent, Model: model, Session: session, TaskUrl: task}
 		}

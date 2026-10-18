@@ -92,7 +92,7 @@ func newRoot(app *app, version string) *cobra.Command {
 		root.AddCommand(command)
 	}
 	for _, command := range []*cobra.Command{
-		probeCommand(app), infoCommand(app), retireCommand(app), auditCommand(app),
+		probeCommand(app), infoCommand(app), retireCommand(app), auditCommand(app), tokenCommand(app),
 		connectCommand(app), connectionsCommand(app), publishingCommand(app), mcpCommand(app, version),
 	} {
 		command.GroupID = "repositories"

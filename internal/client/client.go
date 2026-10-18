@@ -23,6 +23,7 @@ type Client struct {
 	Server       gitdv1connect.ServerServiceClient
 	Connections  gitdv1connect.ConnectionServiceClient
 	Publishing   gitdv1connect.PublishingServiceClient
+	Endpoint     gitdv1connect.EndpointServiceClient
 }
 
 // New returns the gitd that answers on socket. Nothing is dialled until the first call.
@@ -41,6 +42,7 @@ func New(socket string) *Client {
 		Server:       gitdv1connect.NewServerServiceClient(httpClient, base),
 		Connections:  gitdv1connect.NewConnectionServiceClient(httpClient, base),
 		Publishing:   gitdv1connect.NewPublishingServiceClient(httpClient, base),
+		Endpoint:     gitdv1connect.NewEndpointServiceClient(httpClient, base),
 	}
 }
 
@@ -257,4 +259,19 @@ func (client *Client) Watch(ctx context.Context, paths []string, told func(*gitd
 		return err
 	}
 	return nil
+}
+
+// IssueToken issues a token of gitd's endpoint for a sandbox.
+func (client *Client) IssueToken(ctx context.Context, request *gitdv1.IssueTokenRequest) (*gitdv1.IssueTokenResponse, error) {
+	return unary(ctx, client.Endpoint.IssueToken, request)
+}
+
+// RevokeToken ends a token of gitd's endpoint.
+func (client *Client) RevokeToken(ctx context.Context, request *gitdv1.RevokeTokenRequest) (*gitdv1.RevokeTokenResponse, error) {
+	return unary(ctx, client.Endpoint.RevokeToken, request)
+}
+
+// ListTokens lists the endpoint's tokens alive.
+func (client *Client) ListTokens(ctx context.Context) (*gitdv1.ListTokensResponse, error) {
+	return unary(ctx, client.Endpoint.ListTokens, &gitdv1.ListTokensRequest{})
 }
