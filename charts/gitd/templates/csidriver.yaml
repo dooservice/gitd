@@ -1,0 +1,12 @@
+# The driver pods name. Ephemeral inline volumes only: a workspace lives as long as its pod.
+apiVersion: storage.k8s.io/v1
+kind: CSIDriver
+metadata:
+  name: gitd.dev
+  labels:
+    {{- include "gitd.labels" . | nindent 4 }}
+spec:
+  attachRequired: false
+  podInfoOnMount: true
+  volumeLifecycleModes: [Ephemeral]
+  fsGroupPolicy: None

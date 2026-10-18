@@ -1,0 +1,112 @@
+# On every node: gitd, unprivileged, keeping pools and templates on the node's disk; the CSI
+# plugin, privileged as CSI node plugins are, mounting workspaces into pods; and kubelet's
+# registrar. The credentials are mounted into gitd, and tenants' keys into the plugin; never
+# into a pod.
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ .Release.Name }}
+  labels:
+    {{- include "gitd.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: gitd
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        {{- include "gitd.labels" . | nindent 8 }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        fsGroup: {{ .Values.gitdUser }}
+      initContainers:
+        - name: state
+          image: {{ include "gitd.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext: {runAsUser: 0}
+          command: ["sh", "-c", "mkdir -p {{ .Values.stateDir }}/workspaces {{ .Values.stateDir }}/csi && chown {{ .Values.gitdUser }}:{{ .Values.gitdUser }} {{ .Values.stateDir }} {{ .Values.stateDir }}/workspaces"]
+          volumeMounts:
+            - {name: state, mountPath: {{ .Values.stateDir }}}
+      containers:
+        - name: gitd
+          image: {{ include "gitd.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args: ["serve", "--config", "/etc/gitd/gitd.toml"]
+          securityContext:
+            runAsUser: {{ .Values.gitdUser }}
+            runAsGroup: {{ .Values.gitdUser }}
+            allowPrivilegeEscalation: false
+            capabilities: {drop: [ALL]}
+          volumeMounts:
+            - {name: state, mountPath: {{ .Values.stateDir }}, mountPropagation: HostToContainer}
+            - {name: run, mountPath: /run/gitd}
+            - {name: config, mountPath: /etc/gitd/gitd.toml, subPath: gitd.toml}
+            {{- if .Values.credentialsSecret }}
+            - {name: credentials, mountPath: /etc/gitd/credentials, readOnly: true}
+            {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+        - name: csi
+          image: {{ include "gitd.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["gitd-csi"]
+          args:
+            - --endpoint=/csi/csi.sock
+            - --node-id=$(NODE_NAME)
+            - --gitd-socket=/run/gitd/gitd.sock
+            - --root={{ .Values.stateDir }}/workspaces
+            - --records={{ .Values.stateDir }}/csi
+            {{- range .Values.tenants }}
+            - --tenant={{ .name }}={{ .root }},{{ .keyFile }}
+            {{- end }}
+          env:
+            - name: NODE_NAME
+              valueFrom: {fieldRef: {fieldPath: spec.nodeName}}
+          securityContext:
+            privileged: true
+            runAsUser: 0
+          volumeMounts:
+            - {name: plugin, mountPath: /csi}
+            - {name: pods, mountPath: {{ .Values.kubeletDir }}, mountPropagation: Bidirectional}
+            - {name: state, mountPath: {{ .Values.stateDir }}, mountPropagation: Bidirectional}
+            - {name: run, mountPath: /run/gitd}
+            {{- if .Values.credentialsSecret }}
+            - {name: credentials, mountPath: /etc/gitd/credentials, readOnly: true}
+            {{- end }}
+        - name: registrar
+          image: {{ .Values.registrar.image }}
+          args:
+            - --csi-address=/csi/csi.sock
+            - --kubelet-registration-path={{ .Values.kubeletDir }}/plugins/gitd.dev/csi.sock
+          volumeMounts:
+            - {name: plugin, mountPath: /csi}
+            - {name: registration, mountPath: /registration}
+      volumes:
+        - name: plugin
+          hostPath: {path: {{ .Values.kubeletDir }}/plugins/gitd.dev, type: DirectoryOrCreate}
+        - name: registration
+          hostPath: {path: {{ .Values.kubeletDir }}/plugins_registry, type: Directory}
+        - name: pods
+          hostPath: {path: {{ .Values.kubeletDir }}, type: Directory}
+        - name: state
+          hostPath: {path: {{ .Values.stateDir }}, type: DirectoryOrCreate}
+        - name: run
+          emptyDir: {}
+        - name: config
+          configMap: {name: {{ .Release.Name }}-config}
+        {{- if .Values.credentialsSecret }}
+        - name: credentials
+          secret: {secretName: {{ .Values.credentialsSecret }}, defaultMode: 0440}
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

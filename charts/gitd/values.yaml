@@ -1,0 +1,44 @@
+# gitd on every node, and its CSI node plugin: a pod asks for a workspace like any volume.
+#
+#   volumes:
+#     - name: repo
+#       csi:
+#         driver: gitd.dev
+#         volumeAttributes: { repository: https://github.com/acme/web, branch: main }
+
+image:
+  repository: ghcr.io/dooservice/gitd
+  tag: ""            # the chart's appVersion when empty
+  pullPolicy: IfNotPresent
+
+registrar:
+  image: registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.13.0
+
+# Where kubelet keeps pods and plugins on the nodes.
+kubeletDir: /var/lib/kubelet
+# gitd's state on each node: pools, templates and workspaces live there, on the node's disk.
+stateDir: /var/lib/gitd
+# gitd's user in its image; workspaces' files are its. Run agent pods as this user to write.
+gitdUser: 1000
+
+# gitd.toml beyond what the chart sets (socket, state, roots). Credentials go in
+# credentialsSecret and are named here by path, e.g.:
+#   [[credentials]]
+#   prefix = "https://github.com/acme"
+#   github_app = { app_id = 123, private_key_file = "/etc/gitd/credentials/app.pem" }
+config: ""
+
+# A Secret mounted into gitd only, at /etc/gitd/credentials: tokens, App keys, tenants' keys.
+# Pods never see it.
+credentialsSecret: ""
+
+# Tenants the plugin serves, when config declares [[tenants]]: each with the root of its
+# workspaces and its key's file in credentialsSecret, e.g.
+#   - name: acme
+#     root: /var/lib/gitd/tenants-roots/acme
+#     keyFile: /etc/gitd/credentials/acme
+tenants: []
+
+resources: {}
+nodeSelector: {}
+tolerations: []

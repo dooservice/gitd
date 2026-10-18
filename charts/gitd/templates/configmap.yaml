@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-config
+  labels:
+    {{- include "gitd.labels" . | nindent 4 }}
+data:
+  gitd.toml: |
+    socket = "/run/gitd/gitd.sock"
+    state = "{{ .Values.stateDir }}"
+    roots = ["{{ .Values.stateDir }}/workspaces"]
+{{ .Values.config | indent 4 }}

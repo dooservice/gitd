@@ -1,0 +1,10 @@
+apiVersion: v2
+name: gitd
+description: Instant, secretless git workspaces for pods, as CSI volumes of the driver gitd.dev
+type: application
+version: 0.10.0
+appVersion: "0.10.0"
+home: https://github.com/dooservice/gitd
+sources:
+  - https://github.com/dooservice/gitd
+keywords: [git, csi, ai-agents, sandbox, workspace]
