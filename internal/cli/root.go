@@ -23,6 +23,9 @@ import (
 // app is what every command shares: where gitd answers, how to print, and where.
 type app struct {
 	socket         string
+	address        string
+	keyFile        string
+	caFile         string
 	asJSON         bool
 	stdout, stderr io.Writer
 	// interactive is whether stderr is a terminal, the only place progress is drawn;
@@ -31,16 +34,48 @@ type app struct {
 	drawn       bool
 }
 
-// client is the gitd to call: the socket given, then $GITD_SOCKET, then the default.
+// client is the gitd to call: at --url (or $GITD_URL) on the network, else on the socket
+// given, then $GITD_SOCKET, then the default; with the key in --key-file, $GITD_KEY_FILE or
+// $GITD_KEY, when there is one. A gitd that cannot be reached that way fails the first call.
 func (app *app) client() *client.Client {
-	socket := app.socket
-	if socket == "" {
-		socket = os.Getenv("GITD_SOCKET")
+	options := client.Options{Socket: app.socket, URL: app.address, CAFile: app.caFile}
+	if options.Socket == "" {
+		options.Socket = os.Getenv("GITD_SOCKET")
 	}
-	if socket == "" {
-		socket = config.DefaultSocket
+	if options.Socket == "" {
+		options.Socket = config.DefaultSocket
 	}
-	return client.New(socket)
+	if options.URL == "" {
+		options.URL = os.Getenv("GITD_URL")
+	}
+	if options.CAFile == "" {
+		options.CAFile = os.Getenv("GITD_CA_FILE")
+	}
+	options.Key = app.key()
+	built, err := client.Open(options)
+	if err != nil {
+		fmt.Fprintf(app.stderr, "gitd: %s\n", err)
+		os.Exit(1)
+	}
+	return built
+}
+
+// key is the caller's key: read from --key-file or $GITD_KEY_FILE, else $GITD_KEY. Never a
+// flag of its own, where ps would show it.
+func (app *app) key() string {
+	file := app.keyFile
+	if file == "" {
+		file = os.Getenv("GITD_KEY_FILE")
+	}
+	if file != "" {
+		data, err := os.ReadFile(file)
+		if err != nil {
+			fmt.Fprintf(app.stderr, "gitd: reading the key: %s\n", err)
+			os.Exit(1)
+		}
+		return strings.TrimSpace(string(data))
+	}
+	return strings.TrimSpace(os.Getenv("GITD_KEY"))
 }
 
 // Execute runs the command line in args and returns the process's exit code.
@@ -73,6 +108,9 @@ func newRoot(app *app, version string) *cobra.Command {
 	root.SetVersionTemplate("{{.Version}}\n")
 	root.PersistentFlags().StringVar(&app.socket, "socket", "", "gitd's Unix socket (default $GITD_SOCKET, then "+config.DefaultSocket+")")
 	root.PersistentFlags().BoolVar(&app.asJSON, "json", false, "print the answer as JSON")
+	root.PersistentFlags().StringVar(&app.address, "url", "", "a gitd on the network, https://host:port (default $GITD_URL), instead of the socket")
+	root.PersistentFlags().StringVar(&app.keyFile, "key-file", "", "the file of the key naming your tenant (default $GITD_KEY_FILE, then $GITD_KEY)")
+	root.PersistentFlags().StringVar(&app.caFile, "ca-file", "", "the authority of a gitd's certificate the system does not trust (default $GITD_CA_FILE)")
 
 	configPath := addServe(root, app, version)
 	root.RunE = func(cmd *cobra.Command, _ []string) error {

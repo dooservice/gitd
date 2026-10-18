@@ -23,6 +23,8 @@ type Endpoint struct {
 	Tokens    *endpoint.Tokens
 	Sandboxes *endpoint.Sandboxes
 	URL       string
+	// Limits, when set, refuse a new sandbox repository once a tenant's disk is full.
+	Limits interface{ WithinDisk() error }
 }
 
 // endpointHandlers answer EndpointService.
@@ -54,6 +56,11 @@ func (handlers *endpointHandlers) IssueToken(
 			err = git.Fail(git.PathRefused, "sandbox %s is of %s, not of %s", sandbox.ID, sandbox.Repository.HTTPS(), repository.HTTPS())
 		}
 	} else {
+		if limits := server.Endpoint.Limits; limits != nil {
+			if err := limits.WithinDisk(); err != nil {
+				return nil, server.refuse(err)
+			}
+		}
 		err = server.Pools.Sync(ctx, repository, nil, pool.OnlyBranch(asked.GetBranch()), nil)
 		if err == nil {
 			sandbox, err = sandboxes.Make(ctx, repository, asked.GetBranch())

@@ -6,9 +6,15 @@ package client
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"errors"
+	"fmt"
 	"net"
 	"net/http"
+	"net/url"
+	"os"
+	"strings"
 
 	"connectrpc.com/connect"
 
@@ -26,16 +32,48 @@ type Client struct {
 	Endpoint     gitdv1connect.EndpointServiceClient
 }
 
-// New returns the gitd that answers on socket. Nothing is dialled until the first call.
+// New returns the gitd that answers on socket, with no key. Nothing is dialled until the
+// first call.
 func New(socket string) *Client {
-	transport := &http.Transport{
-		DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
-			return (&net.Dialer{}).DialContext(ctx, "unix", socket)
-		},
+	built, _ := Open(Options{Socket: socket})
+	return built
+}
+
+// Options say which gitd to call and how: on its Unix socket, or at URL on the network
+// (https, or http on a private network), with Key naming the caller's tenant, and CAFile
+// the certificate authority of a gitd whose certificate the system does not trust.
+type Options struct {
+	Socket string
+	URL    string
+	Key    string
+	CAFile string
+}
+
+// Open returns the gitd options name. Nothing is dialled until the first call.
+func Open(options Options) (*Client, error) {
+	var transport http.RoundTripper
+	base := "http://gitd"
+	if options.URL != "" {
+		parsed, err := url.Parse(options.URL)
+		if err != nil || (parsed.Scheme != "https" && parsed.Scheme != "http") || parsed.Host == "" {
+			return nil, fmt.Errorf("%q is not the address of a gitd: https://host:port", options.URL)
+		}
+		secured, err := secureTransport(options.CAFile)
+		if err != nil {
+			return nil, err
+		}
+		transport, base = secured, strings.TrimSuffix(options.URL, "/")
+	} else {
+		transport = &http.Transport{
+			DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
+				return (&net.Dialer{}).DialContext(ctx, "unix", options.Socket)
+			},
+		}
+	}
+	if options.Key != "" {
+		transport = keyed{key: options.Key, next: transport}
 	}
 	httpClient := &http.Client{Transport: transport}
-	// The host is never looked up: every connection goes to the socket.
-	const base = "http://gitd"
 	return &Client{
 		Workspaces:   gitdv1connect.NewWorkspaceServiceClient(httpClient, base),
 		Repositories: gitdv1connect.NewRepositoryServiceClient(httpClient, base),
@@ -43,7 +81,42 @@ func New(socket string) *Client {
 		Connections:  gitdv1connect.NewConnectionServiceClient(httpClient, base),
 		Publishing:   gitdv1connect.NewPublishingServiceClient(httpClient, base),
 		Endpoint:     gitdv1connect.NewEndpointServiceClient(httpClient, base),
+	}, nil
+}
+
+// secureTransport speaks to a gitd on the network, trusting caFile's authority besides the
+// system's when given.
+func secureTransport(caFile string) (*http.Transport, error) {
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.ForceAttemptHTTP2 = true
+	if caFile == "" {
+		return transport, nil
 	}
+	pem, err := os.ReadFile(caFile)
+	if err != nil {
+		return nil, err
+	}
+	pool, err := x509.SystemCertPool()
+	if err != nil {
+		pool = x509.NewCertPool()
+	}
+	if !pool.AppendCertsFromPEM(pem) {
+		return nil, fmt.Errorf("%s holds no certificate", caFile)
+	}
+	transport.TLSClientConfig = &tls.Config{RootCAs: pool, MinVersion: tls.VersionTLS12}
+	return transport, nil
+}
+
+// keyed brings the caller's key on every request.
+type keyed struct {
+	key  string
+	next http.RoundTripper
+}
+
+func (transport keyed) RoundTrip(request *http.Request) (*http.Response, error) {
+	request = request.Clone(request.Context())
+	request.Header.Set("Authorization", "Bearer "+transport.key)
+	return transport.next.RoundTrip(request)
 }
 
 // Progress is told what git is doing while a long operation runs.
