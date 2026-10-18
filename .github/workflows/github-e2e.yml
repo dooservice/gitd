@@ -252,7 +252,8 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.cleanup.outputs.token }}
           RUN: ${{ github.run_id }}-${{ github.run_attempt }}
-        run: gh api "repos/dooservice/gitd-e2e/commits/agents/kubernetes-$RUN" --jq .commit.message | grep -F "kubernetes: run $RUN"
+        run: |
+          gh api "repos/dooservice/gitd-e2e/commits/agents/kubernetes-$RUN" --jq .commit.message | grep -F "kubernetes: run $RUN"
       - name: remove what the run pushed
         if: always() && steps.secrets.outputs.set
         env:
