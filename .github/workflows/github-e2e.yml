@@ -147,3 +147,57 @@ jobs:
           gh pr close --repo dooservice/gitd-e2e "agents/openhands-$RUN" --delete-branch 2>/dev/null \
             || gh api -X DELETE "repos/dooservice/gitd-e2e/git/refs/heads/agents/openhands-$RUN" 2>/dev/null || true
           gh api -X DELETE "repos/dooservice/gitd-e2e/git/refs/heads/agents/openhands-injected-$RUN" 2>/dev/null || true
+
+  # gitd's endpoint (e2e/endpoint.sh): a sandbox on its own network clones and pushes over
+  # HTTP with a token of gitd's, and gitd publishes its branch from the same App's bot.
+  endpoint:
+    runs-on: ubuntu-latest
+    needs: openhands
+    env:
+      GITD_E2E_APP_ID: ${{ secrets.GITD_E2E_APP_ID }}
+      GITD_E2E_APP_KEY: ${{ secrets.GITD_E2E_APP_KEY }}
+    steps:
+      - name: the App's secrets and client ID are set
+        id: secrets
+        env:
+          GITD_E2E_CLIENT_ID: ${{ vars.GITD_E2E_CLIENT_ID }}
+        run: |
+          if [ -n "$GITD_E2E_APP_ID" ] && [ -n "$GITD_E2E_APP_KEY" ] && [ -n "$GITD_E2E_CLIENT_ID" ]; then
+            echo "set=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v7
+        if: steps.secrets.outputs.set
+      - uses: actions/setup-go@v7
+        if: steps.secrets.outputs.set
+        with:
+          go-version-file: go.mod
+      - run: make build
+        if: steps.secrets.outputs.set
+      - name: a sandbox elsewhere, through the endpoint
+        if: steps.secrets.outputs.set
+        env:
+          RUN: ${{ github.run_id }}-${{ github.run_attempt }}
+        run: e2e/endpoint.sh
+      - uses: actions/create-github-app-token@v3
+        if: always() && steps.secrets.outputs.set
+        id: cleanup
+        with:
+          client-id: ${{ vars.GITD_E2E_CLIENT_ID }}
+          private-key: ${{ secrets.GITD_E2E_APP_KEY }}
+          repositories: gitd-e2e
+      - name: the pull request is the bot's
+        if: steps.secrets.outputs.set
+        env:
+          GH_TOKEN: ${{ steps.cleanup.outputs.token }}
+          RUN: ${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          gh pr view --repo dooservice/gitd-e2e "agents/endpoint-$RUN" --json author,files > pull.json
+          jq -e --arg file "endpoint-$RUN.txt" '.author.login == "app/gitd-e2e" and ([.files[].path] == [$file])' pull.json
+      - name: remove what the run pushed
+        if: always() && steps.secrets.outputs.set
+        env:
+          GH_TOKEN: ${{ steps.cleanup.outputs.token }}
+          RUN: ${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          gh pr close --repo dooservice/gitd-e2e "agents/endpoint-$RUN" --delete-branch 2>/dev/null \
+            || gh api -X DELETE "repos/dooservice/gitd-e2e/git/refs/heads/agents/endpoint-$RUN" 2>/dev/null || true
