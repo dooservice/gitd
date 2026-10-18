@@ -126,8 +126,13 @@ func TestDetectionPicksOverlayWhenItMountsAndCopyWithTheReasonOtherwise(t *testi
 		t.Errorf("Detect = %v, %q; want overlay by the second mounter", maker, reason)
 	}
 	maker, reason := Detect("", state, []string{root}, refusing)
-	if maker != nil || !strings.Contains(reason, "operation not permitted") {
-		t.Errorf("Detect = %v, %q; want copy and why", maker, reason)
+	switch {
+	case preferReflink && (maker == nil || maker.Name() != Reflink):
+		t.Errorf("Detect = %v, %q; want templates cloned, where there is no overlay", maker, reason)
+	case !preferReflink && maker != nil:
+		t.Errorf("Detect = %v, %q; want copy", maker, reason)
+	case !strings.Contains(reason, "operation not permitted"):
+		t.Errorf("Detect said %q; want why there is no overlay", reason)
 	}
 	if maker, reason := Detect(Copy, state, []string{root}, copyMounter{}); maker != nil || reason != "configured" {
 		t.Errorf("Detect(copy) = %v, %q", maker, reason)
