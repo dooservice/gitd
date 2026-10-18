@@ -23,8 +23,10 @@ type Endpoint struct {
 	Tokens    *endpoint.Tokens
 	Sandboxes *endpoint.Sandboxes
 	URL       string
-	// Limits, when set, refuse a new sandbox repository once a tenant's disk is full.
-	Limits interface{ WithinDisk() error }
+	// Limits, when set, refuse a new sandbox repository once a tenant's disk is full, and
+	// MaxSandboxes, when more than zero, once it has that many.
+	Limits       interface{ WithinDisk() error }
+	MaxSandboxes int
 }
 
 // endpointHandlers answer EndpointService.
@@ -60,6 +62,10 @@ func (handlers *endpointHandlers) IssueToken(
 			if err := limits.WithinDisk(); err != nil {
 				return nil, server.refuse(err)
 			}
+		}
+		if most := server.Endpoint.MaxSandboxes; most > 0 && len(sandboxes.All()) >= most {
+			return nil, server.refuse(git.Fail(git.LimitReached,
+				"the limit of %d sandbox repositories is reached: revoke tokens with --remove-sandbox first", most))
 		}
 		err = server.Pools.Sync(ctx, repository, nil, pool.OnlyBranch(asked.GetBranch()), nil)
 		if err == nil {

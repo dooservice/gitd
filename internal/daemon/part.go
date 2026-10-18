@@ -148,9 +148,16 @@ func (built *part) limit(tenant config.Tenant) error {
 	if err != nil {
 		return err
 	}
-	built.workspaces.UseLimits(workspace.Limits{Workspaces: tenant.Limits.Workspaces, Disk: disk, Used: built.keeper.DiskUsed})
+	used := built.keeper.DiskUsed
+	if built.endpoint != nil {
+		sandboxes := built.endpoint.Sandboxes
+		used = func() int64 { return built.keeper.DiskUsed() + sandboxes.Used() }
+	}
+	built.workspaces.UseLimits(workspace.Limits{Workspaces: tenant.Limits.Workspaces, Disk: disk, Used: used})
 	if built.endpoint != nil {
 		built.endpoint.Limits = built.workspaces
+		built.endpoint.MaxSandboxes = tenant.Limits.Sandboxes
+		built.Git.UseLimits(built.workspaces)
 	}
 	return nil
 }

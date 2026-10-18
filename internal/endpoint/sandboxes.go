@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/dooservice/gitd/internal/git"
@@ -30,6 +31,8 @@ type Sandboxes struct {
 	Dir    string
 	runner *git.Runner
 	pools  *pool.Pools
+	// used is the disk the sandbox repositories took when last measured.
+	used atomic.Int64
 }
 
 // NewSandboxes returns the sandbox repositories under dir.
@@ -48,6 +51,11 @@ type Sandbox struct {
 // show: its branches and tags are taken from the pool, its objects borrowed from it. A clone
 // of it starts on branch, or on the repository's default branch when branch is empty.
 func (sandboxes *Sandboxes) Make(ctx context.Context, repository repo.Repo, branch string) (Sandbox, error) {
+	if branch != "" {
+		if _, err := sandboxes.runner.Run(ctx, git.Cmd{Dir: "/", Args: []string{"check-ref-format", "refs/heads/" + branch}}); err != nil || strings.HasPrefix(branch, "-") {
+			return Sandbox{}, git.Fail(git.BadAddress, "%q is not a branch name", branch)
+		}
+	}
 	random := make([]byte, 8)
 	if _, err := rand.Read(random); err != nil {
 		return Sandbox{}, err
@@ -177,6 +185,7 @@ func (sandboxes *Sandboxes) All() []string {
 // RetireEvery removes, every so often until ctx ends, the sandbox repositories no token
 // alive holds and nothing has pushed to for unusedFor.
 func (sandboxes *Sandboxes) RetireEvery(ctx context.Context, every, unusedFor time.Duration, tokens *Tokens) {
+	sandboxes.Measure()
 	ticker := time.NewTicker(every)
 	defer ticker.Stop()
 	for {
@@ -185,8 +194,29 @@ func (sandboxes *Sandboxes) RetireEvery(ctx context.Context, every, unusedFor ti
 			return
 		case <-ticker.C:
 			sandboxes.Retire(ctx, unusedFor, tokens)
+			sandboxes.Measure()
 		}
 	}
+}
+
+// Measure finds what disk the sandbox repositories take, which counts toward a tenant's
+// disk limit.
+func (sandboxes *Sandboxes) Measure() {
+	var total int64
+	_ = filepath.WalkDir(sandboxes.Dir, func(_ string, entry fs.DirEntry, err error) error {
+		if err == nil && !entry.IsDir() {
+			if info, err := entry.Info(); err == nil {
+				total += info.Size()
+			}
+		}
+		return nil
+	})
+	sandboxes.used.Store(total)
+}
+
+// Used is the disk the sandbox repositories took when last measured.
+func (sandboxes *Sandboxes) Used() int64 {
+	return sandboxes.used.Load()
 }
 
 // Retire removes the sandbox repositories no token alive holds and nothing has pushed to

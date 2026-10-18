@@ -30,6 +30,8 @@ type TenantLimits struct {
 	Workspaces int    `toml:"workspaces"`
 	Disk       string `toml:"disk"`
 	Fetches    int    `toml:"fetches"`
+	// Sandboxes is how many sandbox repositories of the endpoint it may hold at once.
+	Sandboxes int `toml:"sandboxes"`
 }
 
 // DiskBytes is the disk limit in bytes, zero for none.
@@ -92,7 +94,7 @@ func (settings *Config) normalizeTenants() error {
 		if _, err := tenant.Limits.DiskBytes(); err != nil {
 			return fmt.Errorf("tenants.%s: %w", tenant.Name, err)
 		}
-		if tenant.Limits.Workspaces < 0 || tenant.Limits.Fetches < 0 {
+		if tenant.Limits.Workspaces < 0 || tenant.Limits.Fetches < 0 || tenant.Limits.Sandboxes < 0 {
 			return fmt.Errorf("tenants.%s: limits cannot be negative", tenant.Name)
 		}
 		own := Config{Credentials: tenant.Credentials}
