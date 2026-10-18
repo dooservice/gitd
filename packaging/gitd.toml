@@ -109,3 +109,31 @@ retire_after = "720h"
 stale_lock = "1h"
 # How many directories below a root the deepest workspace sits.
 sweep_depth = 4
+
+# gitd's address on the network, off unless listen is set: sandboxes that cannot mount its
+# directories — microVMs, remote sandboxes, CI runners elsewhere — clone and push there with
+# tokens of gitd's own (`gitd token issue`), and a platform on another machine calls the API
+# there with a key. Serve it over TLS, or on a private network only.
+# [endpoint]
+# listen = "0.0.0.0:9420"
+# url = "https://gitd.internal:9420"            # what sandboxes are told to clone from
+# tls_cert_file = "/etc/gitd/tls/cert.pem"      # read again when it changes
+# tls_key_file = "/etc/gitd/tls/key.pem"
+# max_push_bytes = 1073741824                   # the most one push may send (1 GiB)
+
+# Without tenants, the key a caller on the network brings; the network address answers the
+# API only with one. The socket needs none.
+# api_key_file = "/run/credentials/gitd.service/api-key"
+
+# Many customers on one gitd, each isolated from the others: its own key, roots,
+# credentials and limits, and its own pools, templates, workspaces, tokens and audit log
+# under <state>/tenants/<name>. With tenants, every call names its tenant by its key, on the
+# socket too. gitd-mount then needs each tenant's templates, layers and roots.
+# [[tenants]]
+# name = "acme"
+# api_key_file = "/run/credentials/gitd.service/acme"
+# roots = ["/var/lib/gitd/tenants-roots/acme"]
+# limits = { workspaces = 200, disk = "50GB", fetches = 2 }
+#   [[tenants.credentials]]
+#   prefix = "https://github.com/acme"
+#   token_file = "/run/credentials/gitd.service/acme-github"
