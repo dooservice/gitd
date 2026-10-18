@@ -29,6 +29,10 @@ args = ["mcp"]
 The tools are `prepare_workspace`, `list_changes`, `show_diff`, `publish_branch` and the
 others in the [README](../../README.md#for-ai-agents-mcp).
 
+On Ubuntu 24.04 and later, unprivileged user namespaces, which bubblewrap needs, are kept
+behind AppArmor: allow them with `sysctl kernel.apparmor_restrict_unprivileged_userns=0`, or
+an AppArmor profile for `bwrap`.
+
 [`examples/bubblewrap`](../../examples/bubblewrap) shows the isolation part on its own: a
 command in bubblewrap commits in its workspace, cannot write outside it, and does not see
 gitd's socket. CI runs it on every push. What it cannot show is the agents themselves, which
