@@ -452,7 +452,9 @@ Connect or gRPC client can call it, and `buf curl` can too. There are clients fo
 ## Install
 
 - **Binary:** `gitd-linux-amd64` or `gitd-linux-arm64` from the
-  [releases](https://github.com/dooservice/gitd/releases), with its checksum.
+  [releases](https://github.com/dooservice/gitd/releases), with its checksum; on macOS,
+  `gitd-darwin-arm64` or `gitd-darwin-amd64`, where templates are cloned by APFS
+  ([guide](docs/guides/macos.md)).
 - **Docker:** `ghcr.io/dooservice/gitd`, for amd64 and arm64.
 - **systemd:** [`packaging/gitd.service`](packaging/gitd.service).
 - **Kubernetes:** the Helm chart in [`charts/gitd`](charts/gitd), and `gitd-csi-linux-*`
@@ -470,7 +472,8 @@ Connect or gRPC client can call it, and `buf curl` can too. There are clients fo
 - **From source:** `make build` (Go, the version in `go.mod`); `make test`, `make lint`;
   `make generate` regenerates `gen/` from the `.proto` with `buf`.
 
-Pushing a tag such as `0.8.0` releases the binaries, the image and both clients.
+Pushing a tag such as `0.10.0` releases the binaries, the image and both clients. Guides
+for each kind of sandbox are in [`docs/guides`](docs/guides).
 
 ## Contributing and security
 
