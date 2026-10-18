@@ -246,6 +246,11 @@ message PrepareRequest {
   // own layer: its dependencies are there already. The workspace must be at the commit the
   // layer was sealed at, and be made by overlay.
   string warm = 8;
+  // The workspace names its pool by a path inside itself, `.git/gitd-pool`, where whoever
+  // mounts the workspace elsewhere — the CSI driver into a pod — mounts the pool's objects
+  // read-only (WorkspaceResult.pool_objects), so that it works wherever it is mounted. gitd
+  // accepts it only while that is truly the pool's objects directory, mounted there.
+  bool pool_inside = 9;
 }
 
 // How a workspace was made.
@@ -288,6 +293,9 @@ message WorkspaceResult {
   // are pointers in the workspace, as gitd does not download LFS objects. Empty when the
   // repository uses no LFS.
   repeated string lfs_patterns = 6;
+  // With pool_inside: the pool's objects directory, to mount read-only at the workspace's
+  // `.git/gitd-pool`.
+  string pool_objects = 7;
 }
 
 message UpdateRequest {

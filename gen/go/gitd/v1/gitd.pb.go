@@ -1038,7 +1038,12 @@ type PrepareRequest struct {
 	// A warm layer of the repository to stand on, between the template and the workspace's
 	// own layer: its dependencies are there already. The workspace must be at the commit the
 	// layer was sealed at, and be made by overlay.
-	Warm          string `protobuf:"bytes,8,opt,name=warm,proto3" json:"warm,omitempty"`
+	Warm string `protobuf:"bytes,8,opt,name=warm,proto3" json:"warm,omitempty"`
+	// The workspace names its pool by a path inside itself, `.git/gitd-pool`, where whoever
+	// mounts the workspace elsewhere — the CSI driver into a pod — mounts the pool's objects
+	// read-only (WorkspaceResult.pool_objects), so that it works wherever it is mounted. gitd
+	// accepts it only while that is truly the pool's objects directory, mounted there.
+	PoolInside    bool `protobuf:"varint,9,opt,name=pool_inside,json=poolInside,proto3" json:"pool_inside,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1127,6 +1132,13 @@ func (x *PrepareRequest) GetWarm() string {
 		return x.Warm
 	}
 	return ""
+}
+
+func (x *PrepareRequest) GetPoolInside() bool {
+	if x != nil {
+		return x.PoolInside
+	}
+	return false
 }
 
 // The directories of an overlay workspace: the template below, read only, and the
@@ -1293,7 +1305,10 @@ type WorkspaceResult struct {
 	// The patterns the repository's .gitattributes sends to git LFS, e.g. "*.onnx": those files
 	// are pointers in the workspace, as gitd does not download LFS objects. Empty when the
 	// repository uses no LFS.
-	LfsPatterns   []string `protobuf:"bytes,6,rep,name=lfs_patterns,json=lfsPatterns,proto3" json:"lfs_patterns,omitempty"`
+	LfsPatterns []string `protobuf:"bytes,6,rep,name=lfs_patterns,json=lfsPatterns,proto3" json:"lfs_patterns,omitempty"`
+	// With pool_inside: the pool's objects directory, to mount read-only at the workspace's
+	// `.git/gitd-pool`.
+	PoolObjects   string `protobuf:"bytes,7,opt,name=pool_objects,json=poolObjects,proto3" json:"pool_objects,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1368,6 +1383,13 @@ func (x *WorkspaceResult) GetLfsPatterns() []string {
 		return x.LfsPatterns
 	}
 	return nil
+}
+
+func (x *WorkspaceResult) GetPoolObjects() string {
+	if x != nil {
+		return x.PoolObjects
+	}
+	return ""
 }
 
 type UpdateRequest struct {
@@ -6722,7 +6744,7 @@ const file_gitd_v1_gitd_proto_rawDesc = "" +
 	"\x15REASON_CONFIG_REFUSED\x10\f\x12\x19\n" +
 	"\x15REASON_POLICY_REFUSED\x10\r\x12\x16\n" +
 	"\x12REASON_UNSUPPORTED\x10\x0e\x12\x18\n" +
-	"\x14REASON_LIMIT_REACHED\x10\x0f\"\xab\x02\n" +
+	"\x14REASON_LIMIT_REACHED\x10\x0f\"\xcc\x02\n" +
 	"\x0ePrepareRequest\x12\x10\n" +
 	"\x03url\x18\x01 \x01(\tR\x03url\x12\x12\n" +
 	"\x04path\x18\x02 \x01(\tR\x04path\x12-\n" +
@@ -6731,7 +6753,9 @@ const file_gitd_v1_gitd_proto_rawDesc = "" +
 	"\vcredentials\x18\x05 \x03(\v2\x13.gitd.v1.CredentialR\vcredentials\x12!\n" +
 	"\ffull_history\x18\x06 \x01(\bR\vfullHistory\x12-\n" +
 	"\bstrategy\x18\a \x01(\x0e2\x11.gitd.v1.StrategyR\bstrategy\x12\x12\n" +
-	"\x04warm\x18\b \x01(\tR\x04warm\"\\\n" +
+	"\x04warm\x18\b \x01(\tR\x04warm\x12\x1f\n" +
+	"\vpool_inside\x18\t \x01(\bR\n" +
+	"poolInside\"\\\n" +
 	"\x06Layers\x12\x14\n" +
 	"\x05lower\x18\x01 \x01(\tR\x05lower\x12\x14\n" +
 	"\x05upper\x18\x02 \x01(\tR\x05upper\x12\x12\n" +
@@ -6740,14 +6764,15 @@ const file_gitd_v1_gitd_proto_rawDesc = "" +
 	"\x0fPrepareResponse\x12/\n" +
 	"\bprogress\x18\x01 \x01(\v2\x11.gitd.v1.ProgressH\x00R\bprogress\x122\n" +
 	"\x06result\x18\x02 \x01(\v2\x18.gitd.v1.WorkspaceResultH\x00R\x06resultB\a\n" +
-	"\x05event\"\x86\x02\n" +
+	"\x05event\"\xa9\x02\n" +
 	"\x0fWorkspaceResult\x12\x16\n" +
 	"\x06commit\x18\x01 \x01(\tR\x06commit\x12\x16\n" +
 	"\x06branch\x18\x02 \x01(\tR\x06branch\x12H\n" +
 	"\x12pending_submodules\x18\x03 \x03(\v2\x19.gitd.v1.PendingSubmoduleR\x11pendingSubmodules\x12-\n" +
 	"\bstrategy\x18\x04 \x01(\x0e2\x11.gitd.v1.StrategyR\bstrategy\x12'\n" +
 	"\x06layers\x18\x05 \x01(\v2\x0f.gitd.v1.LayersR\x06layers\x12!\n" +
-	"\flfs_patterns\x18\x06 \x03(\tR\vlfsPatterns\"\x9b\x01\n" +
+	"\flfs_patterns\x18\x06 \x03(\tR\vlfsPatterns\x12!\n" +
+	"\fpool_objects\x18\a \x01(\tR\vpoolObjects\"\x9b\x01\n" +
 	"\rUpdateRequest\x12\x12\n" +
 	"\x04path\x18\x01 \x01(\tR\x04path\x12\x16\n" +
 	"\x06branch\x18\x02 \x01(\tR\x06branch\x12'\n" +

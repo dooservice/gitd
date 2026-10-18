@@ -353,6 +353,13 @@
               "label": "LABEL_OPTIONAL",
               "type": "TYPE_STRING",
               "jsonName": "warm"
+            },
+            {
+              "name": "pool_inside",
+              "number": 9,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_BOOL",
+              "jsonName": "poolInside"
             }
           ]
         },
@@ -464,6 +471,13 @@
               "label": "LABEL_REPEATED",
               "type": "TYPE_STRING",
               "jsonName": "lfsPatterns"
+            },
+            {
+              "name": "pool_objects",
+              "number": 7,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "poolObjects"
             }
           ]
         },
