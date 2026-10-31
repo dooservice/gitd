@@ -132,7 +132,7 @@ gitd watch [PATH…]                   gitd seal PATH NAME
 gitd warm URL                        gitd token issue URL [--for 1h] | list | revoke ID
 gitd publish --sandbox ID BRANCH
 gitd audit [--since 24h] [--repository URL] [--limit N]
-gitd publish PATH BRANCH [--requested-by LOGIN] [--pull-request] [--title T] [--draft]
+gitd publish PATH BRANCH [--requested-by LOGIN] [--pull-request] [--title T] [--draft] [--update] [--submodules]
 gitd connect github | github-app --name N [--org O]
 gitd connections list | remove ID | add-token PREFIX --token-env VAR | add-github-app
 gitd publishing show | set PREFIX [--preset NAME] [--allow PATH] … | remove PREFIX
