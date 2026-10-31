@@ -50,24 +50,23 @@ func (workspaces *Workspaces) PublishPushed(
 			workspaces.pools.Unstage(ctx, repository, branch)
 		}
 	}()
-	if len(subjects) == 0 {
-		failure := git.Fail(git.NothingNew, "there is nothing new to publish: the sandbox pushed no new commit")
-		failure.Repository = repository.HTTPS()
-		return nil, failure
+	fresh := len(subjects) > 0
+	if !fresh {
+		if err := workspaces.nothingNew(ctx, repository, branch, request.GetUpdate(), "the sandbox pushed no new commit"); err != nil {
+			return nil, err
+		}
 	}
 	if err := workspaces.checkRules(ctx, repository, branch, rules); err != nil {
 		return nil, err
 	}
-	account, err := workspaces.accountOf(ctx, repository, request, rules)
-	if err != nil {
-		return nil, err
-	}
-	if err := workspaces.pools.Push(ctx, repository, branch, credentials.FromProto(request.GetCredentials()), false); err != nil {
-		return nil, err
+	if fresh {
+		if err := workspaces.pools.Push(ctx, repository, branch, credentials.FromProto(request.GetCredentials()), request.GetUpdate()); err != nil {
+			return nil, err
+		}
 	}
 	answer = &gitdv1.PublishResponse{Branch: branch, Repository: &gitdv1.PublishedRepository{
 		Url: repository.HTTPS(), Commit: commit, Subjects: subjects,
 	}}
-	workspaces.openPullRequest(ctx, request, repository, rules, account, answer)
+	workspaces.openPullRequest(ctx, request, repository, rules, nil, answer)
 	return answer, nil
 }

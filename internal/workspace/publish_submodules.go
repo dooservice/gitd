@@ -9,21 +9,24 @@ import (
 	"github.com/dooservice/gitd/internal/repo"
 )
 
-// stagedSubmodule is a submodule staged to be pushed: its repository, and what the answer
-// says of it.
+// stagedSubmodule is a submodule staged to be pushed: its repository, what the answer says
+// of it, and whether it brings anything new. One that does not is already on the branch an
+// earlier publish made.
 type stagedSubmodule struct {
 	repository repo.Repo
 	published  *gitdv1.PublishedRepository
+	fresh      bool
 }
 
 // stageSubmodules stages every submodule that was committed to in the workspace: one whose
-// commit its repository's branches do not have. One that is as it came is left alone.
+// commit its repository's branches do not have. One that is as it came is left alone. An
+// update takes too one whose commit the branch an earlier publish made already holds.
 //
 // Only a submodule gitd checked out in this workspace is published: its repository's pool
 // lists the workspace among those that borrow from it. The workspace's .gitmodules is the
 // sandbox's to write, so a repository it merely names is never pushed to.
 func (workspaces *Workspaces) stageSubmodules(
-	ctx context.Context, path string, parent repo.Repo, branch string,
+	ctx context.Context, path string, parent repo.Repo, branch string, update bool,
 ) ([]stagedSubmodule, error) {
 	declared, _, err := workspaces.declaredIn(ctx, path)
 	if err != nil {
@@ -45,8 +48,14 @@ func (workspaces *Workspaces) stageSubmodules(
 		if err != nil {
 			return nil, err
 		}
-		if len(subjects) > 0 {
-			changed = append(changed, stagedSubmodule{repository: repository, published: &gitdv1.PublishedRepository{
+		held := false
+		if len(subjects) == 0 && update {
+			if held, err = workspaces.pools.Holds(ctx, repository, branch); err != nil {
+				return nil, err
+			}
+		}
+		if len(subjects) > 0 || held {
+			changed = append(changed, stagedSubmodule{repository: repository, fresh: len(subjects) > 0, published: &gitdv1.PublishedRepository{
 				Url: repository.HTTPS(), Path: submodule.path, Commit: commit, Subjects: subjects,
 			}})
 		}

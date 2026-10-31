@@ -34,12 +34,13 @@ func wantsPullRequest(settings *gitdv1.PullRequestSettings, options *gitdv1.Pull
 	return settings.GetOpen() == gitdv1.PullRequestSettings_OPEN_ALWAYS || options.GetOpen()
 }
 
-// openPullRequest opens the pull request of a publish just pushed, telling what account
-// says of it, and says in the answer what it opened, or why it could not: the branch is
-// published either way.
+// openPullRequest opens the pull request of a publish just pushed — or, when the publish
+// updates, updates the one open from its branch — telling what gitd checked of it, and says
+// in the answer what it did, or why it could not: the branch is published either way.
+// submodules are those on the branch, pushed now or by an earlier publish.
 func (workspaces *Workspaces) openPullRequest(
 	ctx context.Context, request *gitdv1.PublishRequest, repository repo.Repo,
-	rules publishing.Effective, account pullrequests.Account, answer *gitdv1.PublishResponse,
+	rules publishing.Effective, submodules []stagedSubmodule, answer *gitdv1.PublishResponse,
 ) {
 	options := request.GetPullRequest()
 	if !wantsPullRequest(rules.PullRequests, options) {
@@ -50,13 +51,49 @@ func (workspaces *Workspaces) openPullRequest(
 		answer.PullRequestFailure = git.Fail(git.Unsupported, "this gitd opens no pull requests").Proto()
 		return
 	}
-	account.Subjects = answer.GetRepository().GetSubjects()
-	for _, submodule := range answer.GetSubmodules() {
-		account.Submodules = append(account.Submodules, submodule.GetPath()+" → "+request.GetBranch())
+	pullRequest, err := workspaces.pullRequestOf(ctx, request, repository, rules)
+	if err != nil {
+		answer.PullRequestFailure = failureOf(err).Proto()
+		return
+	}
+	for _, submodule := range submodules {
+		pullRequest.account.Submodules = append(pullRequest.account.Submodules, submodule.published.GetPath()+" → "+request.GetBranch())
+	}
+	opened, err := opener.Open(ctx, pullRequest.written(options.GetBody()))
+	if err != nil {
+		answer.PullRequestFailure = failureOf(err).Proto()
+		return
+	}
+	answer.PullRequest = opened
+}
+
+// pullRequest is a pull request to open, and the account its body tells.
+type pullRequest struct {
+	request pullrequests.Request
+	account pullrequests.Account
+}
+
+// written is the request with its body: the platform's text, then the account.
+func (pullRequest pullRequest) written(platform string) pullrequests.Request {
+	request := pullRequest.request
+	request.Body = pullrequests.Body(platform, pullRequest.account)
+	return request
+}
+
+// pullRequestOf is the pull request of a publish's branch in a repository, as the publish
+// and the repository's settings say, with what the branch brings there: read from the pool,
+// those commits gitd published to it before included.
+func (workspaces *Workspaces) pullRequestOf(
+	ctx context.Context, request *gitdv1.PublishRequest, repository repo.Repo, rules publishing.Effective,
+) (pullRequest, error) {
+	options := request.GetPullRequest()
+	summary, err := workspaces.pools.Summarize(ctx, repository, request.GetBranch())
+	if err != nil {
+		return pullRequest{}, err
 	}
 	title := options.GetTitle()
-	if title == "" && len(answer.GetRepository().GetSubjects()) > 0 {
-		title = answer.GetRepository().GetSubjects()[0]
+	if title == "" && len(summary.Subjects) > 0 {
+		title = summary.Subjects[0]
 	}
 	draft := rules.PullRequests.GetDraft()
 	if options != nil && options.Draft != nil {
@@ -66,33 +103,17 @@ func (workspaces *Workspaces) openPullRequest(
 	if rules.PullRequests.GetRequestReviewFromRequester() && request.GetRequestedBy() != "" {
 		reviewers = []string{request.GetRequestedBy()}
 	}
-	opened, err := opener.Open(ctx, pullrequests.Request{
-		Repository: repository, Branch: request.GetBranch(), Given: credentials.FromProto(request.GetCredentials()),
-		Title: title, Body: pullrequests.Body(options.GetBody(), account), Base: options.GetBase(), Draft: draft,
-		Labels: rules.PullRequests.GetLabels(), Reviewers: reviewers,
-	})
-	if err != nil {
-		answer.PullRequestFailure = failureOf(err).Proto()
-		return
-	}
-	answer.PullRequest = opened
-}
-
-// accountOf is what a pull request tells of a publish: the files and lines its commits
-// change, read from the pool before the push marks them published, and its rules.
-func (workspaces *Workspaces) accountOf(
-	ctx context.Context, repository repo.Repo, request *gitdv1.PublishRequest, rules publishing.Effective,
-) (pullrequests.Account, error) {
-	account := pullrequests.Account{RequestedBy: request.GetRequestedBy(), Provenance: request.GetProvenance(), Rules: rules}
-	if !wantsPullRequest(rules.PullRequests, request.GetPullRequest()) {
-		return account, nil
-	}
-	summary, err := workspaces.pools.Summarize(ctx, repository, request.GetBranch())
-	if err != nil {
-		return account, err
-	}
-	account.Files, account.Added, account.Removed = summary.Files, summary.Added, summary.Removed
-	return account, nil
+	return pullRequest{
+		request: pullrequests.Request{
+			Repository: repository, Branch: request.GetBranch(), Given: credentials.FromProto(request.GetCredentials()),
+			Title: title, Base: options.GetBase(), Draft: draft, Labels: rules.PullRequests.GetLabels(), Reviewers: reviewers,
+			Update: request.GetUpdate(),
+		},
+		account: pullrequests.Account{
+			RequestedBy: request.GetRequestedBy(), Provenance: request.GetProvenance(), Rules: rules,
+			Subjects: summary.Subjects, Files: summary.Files, Added: summary.Added, Removed: summary.Removed,
+		},
+	}, nil
 }
 
 // failureOf is an error as the contract carries it.

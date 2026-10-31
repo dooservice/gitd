@@ -53,13 +53,9 @@ func TestAPullRequestIsOpenedAsTheSettingsSayWithWhatGitdChecked(t *testing.T) {
 	}}
 	request := &gitdv1.PublishRequest{Branch: "agents/fix", RequestedBy: "josue",
 		PullRequest: &gitdv1.PullRequestOptions{Body: "Fixes the login."}}
-	account, err := workspaces.accountOf(context.Background(), repository, request, rules)
-	if err != nil {
-		t.Fatal(err)
-	}
-	// The push marks the commits published, after which none is left to count.
+	// The push marks the commits published; the branch still brings them.
 	markPublished(t, workspaces, repository, "agents/fix")
-	workspaces.openPullRequest(context.Background(), request, repository, rules, account, answer)
+	workspaces.openPullRequest(context.Background(), request, repository, rules, nil, answer)
 
 	if answer.GetPullRequest().GetNumber() != 7 || answer.GetPullRequestFailure() != nil {
 		t.Fatalf("answer = %v", answer)
@@ -80,12 +76,12 @@ func TestNoPullRequestUnlessTheSettingsOrThePublishAsk(t *testing.T) {
 	opener := &openerKeeping{}
 	workspaces.UsePublishing(Publishing{PullRequests: opener})
 	asked := publishing.Effective{PullRequests: &gitdv1.PullRequestSettings{Open: gitdv1.PullRequestSettings_OPEN_WHEN_ASKED}}
-	workspaces.openPullRequest(context.Background(), &gitdv1.PublishRequest{Branch: "agents/fix"}, repository, asked, pullrequests.Account{}, answer)
+	workspaces.openPullRequest(context.Background(), &gitdv1.PublishRequest{Branch: "agents/fix"}, repository, asked, nil, answer)
 	if opener.asked != nil || answer.GetPullRequest() != nil {
 		t.Fatal("a pull request was opened that nobody asked for")
 	}
 	request := &gitdv1.PublishRequest{Branch: "agents/fix", PullRequest: &gitdv1.PullRequestOptions{Open: true, Title: "Mine"}}
-	workspaces.openPullRequest(context.Background(), request, repository, asked, pullrequests.Account{}, answer)
+	workspaces.openPullRequest(context.Background(), request, repository, asked, nil, answer)
 	if opener.asked == nil || opener.asked.Title != "Mine" {
 		t.Errorf("asked = %+v", opener.asked)
 	}
@@ -95,12 +91,49 @@ func TestAPullRequestThatFailsLeavesTheBranchPublishedAndSaysWhy(t *testing.T) {
 	workspaces, repository, answer := staged(t)
 	workspaces.UsePublishing(Publishing{PullRequests: &openerKeeping{err: git.Fail(git.AuthRefused, "no permission")}})
 	request := &gitdv1.PublishRequest{Branch: "agents/fix", PullRequest: &gitdv1.PullRequestOptions{Open: true}}
-	workspaces.openPullRequest(context.Background(), request, repository, publishing.Effective{}, pullrequests.Account{}, answer)
+	workspaces.openPullRequest(context.Background(), request, repository, publishing.Effective{}, nil, answer)
 	if answer.GetPullRequestFailure().GetReason() != git.AuthRefused || answer.GetRepository() == nil {
 		t.Errorf("answer = %v", answer)
 	}
 	if err := validRequester("not a login!"); err == nil {
 		t.Error("a requester that is not an account was accepted")
+	}
+}
+
+func TestAnUpdateWithNothingNewGoesOnToThePullRequestOfTheBranch(t *testing.T) {
+	workspaces, repository, _ := staged(t)
+	opener := &openerKeeping{}
+	recorded := &entries{}
+	workspaces.UsePublishing(Publishing{PullRequests: opener, Recorder: recorded})
+	// An earlier publish pushed the branch, and its pull request failed.
+	markPublished(t, workspaces, repository, "agents/fix")
+	path := filepath.Join(workspaces.roots[0], "agent")
+	ctx := context.Background()
+	request := &gitdv1.PublishRequest{Path: path, Branch: "agents/fix", PullRequest: &gitdv1.PullRequestOptions{Open: true}}
+
+	_, err := workspaces.Publish(ctx, request)
+	if failure, ok := git.AsFailure(err); !ok || failure.Reason != git.NothingNew || opener.asked != nil {
+		t.Fatalf("publishing again without update = %v; want nothing new, and no pull request", err)
+	}
+	request.Update = true
+	answer, err := workspaces.Publish(ctx, request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if answer.GetPullRequest().GetNumber() != 7 || len(answer.GetRepository().GetSubjects()) != 0 {
+		t.Errorf("answer = %v; want the pull request, and nothing pushed", answer)
+	}
+	if asked := opener.asked; !asked.Update || asked.Title != "agent" || !strings.Contains(asked.Body, "1 file, +2 −0") {
+		t.Errorf("asked = %+v; want an update telling the whole branch", asked)
+	}
+	if len(recorded.kept) != 2 || recorded.kept[1].GetRefusal() != nil || recorded.kept[1].GetPullRequest() == nil {
+		t.Errorf("recorded = %v", recorded.kept)
+	}
+
+	// Back on main, the workspace brings nothing the branch holds.
+	run(t, path, "reset", "-q", "--hard", "HEAD~1")
+	if _, err := workspaces.Publish(ctx, request); err == nil {
+		t.Error("an update bringing nothing at all was published")
 	}
 }
 

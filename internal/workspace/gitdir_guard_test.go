@@ -51,7 +51,7 @@ func TestASubmoduleGitdNeverCheckedOutIsNotPublished(t *testing.T) {
 	path := made(t, workspaces, roots, "agent-1", repository)
 	writeFile(t, filepath.Join(path, ".gitmodules"), "[submodule \"lib\"]\n\tpath = lib\n\turl = "+other.HTTPS()+"\n")
 	writeFile(t, filepath.Join(path, "lib", ".git"), "gitdir: ../.git/modules/lib\n")
-	_, err := workspaces.stageSubmodules(context.Background(), path, repository, "agents/x")
+	_, err := workspaces.stageSubmodules(context.Background(), path, repository, "agents/x", false)
 	if failure, ok := git.AsFailure(err); !ok || failure.Reason != git.PathRefused {
 		t.Fatalf("stageSubmodules: %v; want PATH_REFUSED", err)
 	}
