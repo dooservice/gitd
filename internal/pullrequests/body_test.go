@@ -50,3 +50,18 @@ func TestABodySaysWhereTheWorkCameFrom(t *testing.T) {
 		t.Errorf("the body lacks %q:\n%s", want, body)
 	}
 }
+
+func TestABodySaysInWhichOrderSubmodulesAreMerged(t *testing.T) {
+	superproject := Body("Fixes the login.", Account{Subjects: []string{"one"}, MergeFirst: []string{
+		"https://github.com/acme/auth/pull/3", "https://github.com/acme/ui/pull/9",
+	}})
+	want := "Fixes the login.\n\nMerge these first, each with a merge commit, not squash or rebase: " +
+		"this pull request points at their commits.\n- https://github.com/acme/auth/pull/3\n- https://github.com/acme/ui/pull/9\n\n"
+	if !strings.HasPrefix(superproject, want) {
+		t.Errorf("the superproject's body:\n%s", superproject)
+	}
+	submodule := Body("Fixes the login.", Account{Subjects: []string{"one"}, PartOf: "https://github.com/acme/web/pull/7"})
+	if !strings.HasPrefix(submodule, "Fixes the login.\n\nPart of https://github.com/acme/web/pull/7: merge this one first, with a merge commit.\n\n") {
+		t.Errorf("the submodule's body:\n%s", submodule)
+	}
+}

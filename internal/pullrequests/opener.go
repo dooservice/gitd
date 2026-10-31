@@ -15,7 +15,8 @@ import (
 )
 
 // Request is a pull request to open from a published branch, with the credentials the
-// publish was given.
+// publish was given. Update says to update the one already open from the branch, if one is,
+// rather than open another.
 type Request struct {
 	Repository repo.Repo
 	Branch     string
@@ -26,6 +27,7 @@ type Request struct {
 	Draft      bool
 	Labels     []string
 	Reviewers  []string
+	Update     bool
 }
 
 // Opener opens pull requests on GitHub with the credential that reaches each repository.
@@ -40,24 +42,28 @@ func New(keys *credentials.Keys, github connections.GitHub) *Opener {
 }
 
 // Open opens a pull request and then asks for its reviewers and labels; a review or a
-// label that cannot be asked for is logged, and the pull request stays opened. A host gitd
-// does not know as GitHub's is refused as unsupported.
+// label that cannot be asked for is logged, and the pull request stays opened. Asked to
+// update, it writes the title and body over those of the pull request already open from
+// the branch, when one is, and leaves its base, draft, reviewers and labels as they are. A
+// host gitd does not know as GitHub's is refused as unsupported.
 func (opener *Opener) Open(ctx context.Context, request Request) (*gitdv1.OpenedPullRequest, error) {
-	repository := request.Repository
-	owner, name, found := strings.Cut(repository.Path, "/")
-	if !found || strings.Contains(name, "/") {
-		return nil, failure(git.Unsupported, repository, "pull requests are opened on GitHub, and %s is not a GitHub repository", repository.HTTPS())
-	}
-	token, err := opener.keys.APIToken(ctx, repository, request.Given, credentials.PullRequests)
+	api, target, err := opener.reach(ctx, request)
 	if err != nil {
-		return nil, failure(git.AuthRefused, repository, "%v", err)
+		return nil, err
 	}
-	if !token.Minted && repository.Host != "github.com" {
-		return nil, failure(git.Unsupported, repository,
-			"pull requests are opened on GitHub, and gitd does not know %s as a GitHub host", repository.Host)
+	repository := request.Repository
+	if request.Update {
+		open, found, err := api.OpenFrom(ctx, target, request.Branch)
+		if err != nil {
+			return nil, refusedBy(repository, err)
+		}
+		if found {
+			if err := api.Edit(ctx, target, open.Number, githubapp.Edit{Title: request.Title, Body: request.Body}); err != nil {
+				return nil, refusedBy(repository, err)
+			}
+			return &gitdv1.OpenedPullRequest{Url: open.URL, Number: open.Number, Updated: true}, nil
+		}
 	}
-	api := opener.github.API(repository.Host)
-	target := githubapp.Repository{Owner: owner, Name: name, Token: token.Token}
 	base := request.Base
 	if base == "" {
 		if base, err = api.DefaultBranch(ctx, target); err != nil {
@@ -81,6 +87,39 @@ func (opener *Opener) Open(ctx context.Context, request Request) (*gitdv1.Opened
 		}
 	}
 	return &gitdv1.OpenedPullRequest{Url: opened.URL, Number: opened.Number}, nil
+}
+
+// Edit writes request's title and body over those of the pull request number.
+func (opener *Opener) Edit(ctx context.Context, request Request, number int64) error {
+	api, target, err := opener.reach(ctx, request)
+	if err != nil {
+		return err
+	}
+	if err := api.Edit(ctx, target, number, githubapp.Edit{Title: request.Title, Body: request.Body}); err != nil {
+		return refusedBy(request.Repository, err)
+	}
+	return nil
+}
+
+// reach is the API of a request's repository and the repository there, with the token
+// that reaches it, or why there is none: a host gitd does not know as GitHub's is refused
+// as unsupported.
+func (opener *Opener) reach(ctx context.Context, request Request) (*githubapp.API, githubapp.Repository, error) {
+	repository := request.Repository
+	owner, name, found := strings.Cut(repository.Path, "/")
+	if !found || strings.Contains(name, "/") {
+		return nil, githubapp.Repository{}, failure(git.Unsupported, repository,
+			"pull requests are opened on GitHub, and %s is not a GitHub repository", repository.HTTPS())
+	}
+	token, err := opener.keys.APIToken(ctx, repository, request.Given, credentials.PullRequests)
+	if err != nil {
+		return nil, githubapp.Repository{}, failure(git.AuthRefused, repository, "%v", err)
+	}
+	if !token.Minted && repository.Host != "github.com" {
+		return nil, githubapp.Repository{}, failure(git.Unsupported, repository,
+			"pull requests are opened on GitHub, and gitd does not know %s as a GitHub host", repository.Host)
+	}
+	return opener.github.API(repository.Host), githubapp.Repository{Owner: owner, Name: name, Token: token.Token}, nil
 }
 
 // refusedBy is what GitHub's refusal means for the caller.

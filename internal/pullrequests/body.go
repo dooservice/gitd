@@ -24,14 +24,33 @@ type Account struct {
 	Removed     int
 	Rules       publishing.Effective
 	Submodules  []string
+	// MergeFirst are the pull requests of the submodules the publish points at, to be
+	// merged before this one; PartOf is the pull request a submodule's belongs to.
+	MergeFirst []string
+	PartOf     string
 }
 
-// Body is a pull request's body: the platform's text first, when given, then gitd's
-// account of the publish.
+// Body is a pull request's body: the platform's text first, when given, then the order
+// it is merged in with the pull requests of its submodules, and gitd's account of the
+// publish.
+//
+// A superproject points at its submodules' new commits, so theirs are merged first, each
+// with a merge commit: a squash or a rebase makes other commits, and leaves the superproject
+// pointing at one its submodule's base does not have.
 func Body(platform string, account Account) string {
 	var body strings.Builder
 	if text := strings.TrimSpace(platform); text != "" {
 		body.WriteString(text + "\n\n")
+	}
+	if len(account.MergeFirst) > 0 {
+		body.WriteString("Merge these first, each with a merge commit, not squash or rebase: this pull request points at their commits.\n")
+		for _, pullRequest := range account.MergeFirst {
+			body.WriteString("- " + pullRequest + "\n")
+		}
+		body.WriteString("\n")
+	}
+	if account.PartOf != "" {
+		body.WriteString("Part of " + account.PartOf + ": merge this one first, with a merge commit.\n\n")
 	}
 	if account.RequestedBy != "" {
 		body.WriteString("Requested by @" + account.RequestedBy + "\n\n")
