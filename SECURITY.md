@@ -12,7 +12,7 @@ What gitd protects, from whom, how, and what it leaves to the deployment is in
 Do not open a public issue. Report it privately through GitHub:
 [**Report a vulnerability**](https://github.com/dooservice/gitd/security/advisories/new),
 in the *Security* tab of this repository, or by email to
-[soporte@apiservicesac.com](mailto:soporte@apiservicesac.com) with «Security» in the
+[security@dooservice.sh](mailto:security@dooservice.sh) with «Security» in the
 subject.
 
 Include the version (`gitd --version`), what an attacker can do and from where (the
