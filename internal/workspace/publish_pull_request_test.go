@@ -45,9 +45,9 @@ func (opener *openerKeeping) Edit(_ context.Context, request pullrequests.Reques
 	return nil
 }
 
-// staged is a workspace with a commit staged for agents/fix in its pool, and the answer a
-// push of it would give.
-func staged(t *testing.T) (*Workspaces, repo.Repo, *gitdv1.PublishResponse) {
+// staged is a workspace with a commit staged for agents/fix in its pool, the answer a push
+// of it would give, and the workspace's path.
+func staged(t *testing.T) (*Workspaces, repo.Repo, *gitdv1.PublishResponse, string) {
 	t.Helper()
 	repository := repo.Repo{Host: "github.com", Path: "acme/web"}
 	workspaces, roots := newTestWorkspaces(t, repository)
@@ -59,11 +59,11 @@ func staged(t *testing.T) (*Workspaces, repo.Repo, *gitdv1.PublishResponse) {
 	}
 	return workspaces, repository, &gitdv1.PublishResponse{
 		Branch: "agents/fix", Repository: &gitdv1.PublishedRepository{Url: repository.HTTPS(), Commit: commit, Subjects: subjects},
-	}
+	}, path
 }
 
 func TestAPullRequestIsOpenedAsTheSettingsSayWithWhatGitdChecked(t *testing.T) {
-	workspaces, repository, answer := staged(t)
+	workspaces, repository, answer, _ := staged(t)
 	opener := &openerKeeping{}
 	workspaces.UsePublishing(Publishing{PullRequests: opener})
 	rules := publishing.Effective{Applied: []string{"https://github.com/acme"}, PullRequests: &gitdv1.PullRequestSettings{
@@ -90,7 +90,7 @@ func TestAPullRequestIsOpenedAsTheSettingsSayWithWhatGitdChecked(t *testing.T) {
 }
 
 func TestNoPullRequestUnlessTheSettingsOrThePublishAsk(t *testing.T) {
-	workspaces, repository, answer := staged(t)
+	workspaces, repository, answer, _ := staged(t)
 	opener := &openerKeeping{}
 	workspaces.UsePublishing(Publishing{PullRequests: opener})
 	asked := publishing.Effective{PullRequests: &gitdv1.PullRequestSettings{Open: gitdv1.PullRequestSettings_OPEN_WHEN_ASKED}}
@@ -106,7 +106,7 @@ func TestNoPullRequestUnlessTheSettingsOrThePublishAsk(t *testing.T) {
 }
 
 func TestAPullRequestThatFailsLeavesTheBranchPublishedAndSaysWhy(t *testing.T) {
-	workspaces, repository, answer := staged(t)
+	workspaces, repository, answer, _ := staged(t)
 	workspaces.UsePublishing(Publishing{PullRequests: &openerKeeping{err: git.Fail(git.AuthRefused, "no permission")}})
 	request := &gitdv1.PublishRequest{Branch: "agents/fix", PullRequest: &gitdv1.PullRequestOptions{Open: true}}
 	workspaces.openPullRequest(context.Background(), request, repository, publishing.Effective{}, nil, answer)
@@ -119,13 +119,12 @@ func TestAPullRequestThatFailsLeavesTheBranchPublishedAndSaysWhy(t *testing.T) {
 }
 
 func TestAnUpdateWithNothingNewGoesOnToThePullRequestOfTheBranch(t *testing.T) {
-	workspaces, repository, _ := staged(t)
+	workspaces, repository, _, path := staged(t)
 	opener := &openerKeeping{}
 	recorded := &entries{}
 	workspaces.UsePublishing(Publishing{PullRequests: opener, Recorder: recorded})
 	// An earlier publish pushed the branch, and its pull request failed.
 	markPublished(t, workspaces, repository, "agents/fix")
-	path := filepath.Join(workspaces.roots[0], "agent")
 	ctx := context.Background()
 	request := &gitdv1.PublishRequest{Path: path, Branch: "agents/fix", PullRequest: &gitdv1.PullRequestOptions{Open: true}}
 
