@@ -259,7 +259,9 @@ A warm layer is an overlay workspace's own layer, sealed for later workspaces to
 
 ### Agents publish only where they may, and only what the rules allow
 
-- Publishing creates **new branches only**, and **never forces** a push.
+- Publishing creates **new branches only**, and **never forces** a push. A publish asked to
+  update moves a branch that exists only as a fast-forward, never over commits it lacks
+  (`TestABranchIsPublishedNewAndMovedOnlyForwardWhenAskedTo`).
 - **Only a token publishes**: a deploy key is read only.
 - A branch outside the prefix the publishing settings set is refused (`BRANCH_REFUSED`)
   before anything is staged.

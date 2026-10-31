@@ -347,6 +347,15 @@ publishes — deploy keys are read only — the push is never forced, and nothin
 when the workspace's own repository brings no new commit (`NOTHING_NEW`). What comes back
 carries each repository's new commit subjects.
 
+**Update.** A branch is pushed with a lease on no value, so one that exists on the host is
+refused (`BRANCH_EXISTS`) rather than moved. With `update`, it is pushed unforced instead:
+git moves it only as a fast-forward, and a branch holding commits the publish lacks is
+refused the same way. An update whose repository brings nothing new is not `NOTHING_NEW`
+when the branch gitd published already holds what is staged, with commits of its own
+(`pool.Holds`): nothing is pushed, the rules run on nothing, and the publish goes on to the
+pull requests and the record — the retry for a pull request that failed after the push.
+Submodules the branch already holds are taken the same way, for their pull requests.
+
 **Rules.** The **publishing settings** of every prefix that opens a repository — those of
 `[[publish.settings]]` and `[publish] branch_prefix`, and those a platform sets through
 `PublishingService` — make what publishing it must follow (`publishing.Effective`): each
@@ -371,8 +380,18 @@ the platform says it: MCP's publish takes none.
 after the push, through the host's API with the credential that pushed (GitHub; another
 host answers `UNSUPPORTED`): titled after the newest commit unless told, a draft and
 labelled as the settings say, the requester asked to review when they say so, and its body
-saying what gitd checked (`pullrequests.Body`). If it cannot be opened, the branch stays
-published and the answer carries `pull_request_failure`.
+saying what gitd checked (`pullrequests.Body`) of the whole branch, those commits published
+to it before included (`pool.Summarize`). If it cannot be opened, the branch stays
+published and the answer carries `pull_request_failure`. An update edits the title and
+body of the pull request already open from the branch instead, and says so (`updated`).
+
+With `PullRequestOptions.submodules`, each submodule on the branch gets its pull request
+first, in its own repository, from the same branch with the same title, into the branch
+`.gitmodules` names for it (`.` for the workspace's base), else its default branch; one that
+cannot be opened is answered in `submodule_pull_requests` with why, and the others go on.
+The workspace's body lists them, to be merged first and each with a merge commit: it points
+at their new commits, which a squash or a rebase would replace. Once the workspace's is
+open, each submodule's body is edited to link back to it.
 
 **Record.**
 Every publish, done or refused, is recorded in the **audit log** — when, the workspace, its
@@ -546,6 +565,7 @@ Connect codes with a typed detail (`GitFailure`) saying what happened and what g
 | `CORRUPT` | `fsck` found missing objects | `DATA_LOSS` |
 | `NOTHING_NEW` | `Publish` found no new commit to push | `FAILED_PRECONDITION` |
 | `BRANCH_REFUSED` | `Publish` to a branch outside `[publish] branch_prefix` | `PERMISSION_DENIED` |
+| `BRANCH_EXISTS` | `Publish` to a branch that exists, without update, or that a fast-forward cannot move | `FAILED_PRECONDITION` |
 | `CONFIG_REFUSED` | The workspace's git configuration sets a key gitd does not run git under | `FAILED_PRECONDITION` |
 | `GIT_FAILED` | Any other git failure | `INTERNAL` |
 

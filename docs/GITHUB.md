@@ -58,7 +58,7 @@ bot, so the person who asked for the work can approve it — and a person does.
 | Threat | Who stops it |
 |---|---|
 | An agent reads or sends the git host's token | gitd: the token never reaches a sandbox |
-| An agent publishes to `main` or another branch people use | gitd: new branches under the prefix only, never forced |
+| An agent publishes to `main` or another branch people use | gitd: new branches under the prefix only, never forced; an update only fast-forwards |
 | An agent changes the CI's workflows, deletes tests, publishes too much | gitd: publishing rules, checked before any push |
 | Code an agent changed runs in the CI with secrets | **GitHub**: steps 1–3 above |
 | Code an agent changed reaches `main` unreviewed | **GitHub**: step 4 |

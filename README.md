@@ -107,7 +107,7 @@ instance in Claude Code's `.mcp.json` or Cursor's `mcp.json`:
 | `describe_workspace` | Its repository, commit, branch, uncommitted changes and submodules |
 | `list_changes` | Each file added, modified or deleted since gitd put it on its commit, with its lines |
 | `show_diff` | The unified diff of those changes, of some files or all, cut short at a size |
-| `publish_branch` | Its commits pushed to a new branch, for a pull request; or what a sandbox pushed through the endpoint |
+| `publish_branch` | Its commits pushed to a new branch, for a pull request, or to one it published before; or what a sandbox pushed through the endpoint |
 | `open_endpoint_access` | An address and a secret of gitd's own for a sandbox elsewhere to clone one repository from |
 | `remove_workspace` | Deleted; its pool stays |
 | `probe_repository` | Whether it can be read, its default branch and branches |
@@ -203,7 +203,8 @@ with a request, which wins over a kept one of the same prefix.
 
 ## Publishing rules
 
-Agents publish only new branches, never forced. A platform sets, per repository prefix,
+Agents publish only new branches, never forced; a publish asked to update moves a branch
+an earlier one made, only ever forward. A platform sets, per repository prefix,
 what a publish may contain, through the API (`PublishingService`) or the command line, and
 gitd checks it on the commits to push — commit by commit, in the pool — before anything is
 pushed:
@@ -236,6 +237,17 @@ the credential that pushed: from the App's bot, the person who asked for the wor
 (`--requested-by`) asked to review it, and its body saying what gitd checked — the commits,
 the files and lines they change, and the rules they passed. If the pull request cannot be
 opened, the branch stays published and the answer says why.
+
+A platform that publishes one session's work more than once sets `update` (`--update`): the
+branch moves forward, as a fast-forward only (`BRANCH_EXISTS` otherwise), and the pull
+request open from it is updated rather than another opened. An update that brings nothing
+new pushes nothing and still opens or updates the pull requests, so one that failed after
+the push is opened by publishing again. With `submodules` (`--submodules`), each submodule
+the branch changes gets its own pull request first, in its own repository, into the branch
+`.gitmodules` names for it or its default branch; the workspace's lists them, to be merged
+first and with a merge commit — a squash or a rebase would leave the workspace pointing at a
+commit its submodule's base does not have — and each links back to it. A submodule on a
+host other than GitHub is answered with why, and the others go on.
 
 Rules by path cannot know what the CI runs: a test or a `Makefile` an agent changed runs in
 the CI of its branch. [`docs/GITHUB.md`](docs/GITHUB.md) sets GitHub up so that agents'
