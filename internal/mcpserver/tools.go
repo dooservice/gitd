@@ -62,7 +62,7 @@ func (tools *tools) register(server *mcp.Server) {
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "publish_branch",
 		Title:       "Publish a branch",
-		Description: "Push what was committed in a workspace to a new branch of its repository, and open its pull request when gitd's settings say so or you ask. gitd pushes with the credential it keeps; the push is never forced, and gitd may refuse a publish that breaks its rules, such as changing the CI or deleting tests. Commit your changes in the workspace first.",
+		Description: "Push what was committed in a workspace to a new branch of its repository, and open its pull request when gitd's settings say so or you ask. To publish more work to a branch you published before, set update: the branch moves forward and its pull request is updated. gitd pushes with the credential it keeps; the push is never forced, and gitd may refuse a publish that breaks its rules, such as changing the CI or deleting tests. Commit your changes in the workspace first.",
 		Annotations: &mcp.ToolAnnotations{DestructiveHint: no(), OpenWorldHint: yes()},
 	}, tools.publish)
 	mcp.AddTool(server, &mcp.Tool{
@@ -150,11 +150,13 @@ type diffOutput struct {
 type publishInput struct {
 	Path        string `json:"path,omitempty" jsonschema:"absolute path of the workspace; leave empty to publish from a sandbox instead"`
 	Sandbox     string `json:"sandbox,omitempty" jsonschema:"the sandbox repository a sandbox pushed to through gitd's endpoint, instead of a workspace; branch is then the branch it pushed"`
-	Branch      string `json:"branch" jsonschema:"the new branch to push to, which must not exist yet"`
+	Branch      string `json:"branch" jsonschema:"the new branch to push to, which must not exist yet unless update is set"`
+	Update      bool   `json:"update,omitempty" jsonschema:"the branch is one you published before: move it forward and update its pull request"`
 	PullRequest bool   `json:"pull_request,omitempty" jsonschema:"open a pull request even when gitd opens them only when asked"`
 	Title       string `json:"title,omitempty" jsonschema:"the pull request's title; default: the newest commit's subject"`
 	Body        string `json:"body,omitempty" jsonschema:"what the pull request is about, before what gitd checked"`
 	Draft       *bool  `json:"draft,omitempty" jsonschema:"open it as a draft; default: as gitd's settings say"`
+	Submodules  bool   `json:"submodules,omitempty" jsonschema:"open a pull request in each submodule's repository too, to be merged first"`
 }
 
 type endpointInput struct {
@@ -222,10 +224,18 @@ type published struct {
 }
 
 type publishOutput struct {
-	Branch       string      `json:"branch"`
-	Repositories []published `json:"repositories" jsonschema:"the workspace's repository first, then each submodule pushed"`
-	PullRequest  string      `json:"pull_request,omitempty" jsonschema:"the pull request opened, when one was"`
-	NoPull       string      `json:"no_pull_request,omitempty" jsonschema:"why the pull request could not be opened; the branch is published all the same"`
+	Branch       string                 `json:"branch"`
+	Repositories []published            `json:"repositories" jsonschema:"the workspace's repository first, then each submodule pushed"`
+	PullRequest  string                 `json:"pull_request,omitempty" jsonschema:"the pull request opened, when one was"`
+	Updated      bool                   `json:"updated,omitempty" jsonschema:"the pull request was already open, and gitd updated it"`
+	NoPull       string                 `json:"no_pull_request,omitempty" jsonschema:"why the pull request could not be opened; the branch is published all the same"`
+	Submodules   []submodulePullRequest `json:"submodule_pull_requests,omitempty" jsonschema:"each submodule's pull request, to be merged before the workspace's, or why it could not be opened"`
+}
+
+type submodulePullRequest struct {
+	Path        string `json:"path"`
+	PullRequest string `json:"pull_request,omitempty"`
+	NoPull      string `json:"no_pull_request,omitempty"`
 }
 
 type removeOutput struct {
@@ -317,18 +327,23 @@ func (tools *tools) diff(ctx context.Context, _ *mcp.CallToolRequest, in diffInp
 }
 
 func (tools *tools) publish(ctx context.Context, _ *mcp.CallToolRequest, in publishInput) (*mcp.CallToolResult, publishOutput, error) {
-	request := &gitdv1.PublishRequest{Path: in.Path, Branch: in.Branch, Sandbox: in.Sandbox}
-	if in.PullRequest || in.Title != "" || in.Body != "" || in.Draft != nil {
-		request.PullRequest = &gitdv1.PullRequestOptions{Open: in.PullRequest, Title: in.Title, Body: in.Body, Draft: in.Draft}
+	request := &gitdv1.PublishRequest{Path: in.Path, Branch: in.Branch, Sandbox: in.Sandbox, Update: in.Update}
+	if in.PullRequest || in.Title != "" || in.Body != "" || in.Draft != nil || in.Submodules {
+		request.PullRequest = &gitdv1.PullRequestOptions{
+			Open: in.PullRequest, Title: in.Title, Body: in.Body, Draft: in.Draft, Submodules: in.Submodules,
+		}
 	}
 	answer, err := tools.gitd.Publish(ctx, request)
 	if err != nil {
 		return nil, publishOutput{}, refusal(err)
 	}
 	out := publishOutput{Branch: answer.GetBranch(), Repositories: publishedOf(answer.GetRepository(), answer.GetSubmodules())}
-	out.PullRequest = answer.GetPullRequest().GetUrl()
-	if failure := answer.GetPullRequestFailure(); failure != nil {
-		out.NoPull = strings.TrimPrefix(failure.GetReason().String(), "REASON_") + ": " + failure.GetGitSaid()
+	out.PullRequest, out.Updated = answer.GetPullRequest().GetUrl(), answer.GetPullRequest().GetUpdated()
+	out.NoPull = why(answer.GetPullRequestFailure())
+	for _, submodule := range answer.GetSubmodulePullRequests() {
+		out.Submodules = append(out.Submodules, submodulePullRequest{
+			Path: submodule.GetPath(), PullRequest: submodule.GetPullRequest().GetUrl(), NoPull: why(submodule.GetFailure()),
+		})
 	}
 	return nil, out, nil
 }
@@ -396,6 +411,14 @@ func (tools *tools) audit(ctx context.Context, _ *mcp.CallToolRequest, in auditI
 		out.Entries = append(out.Entries, recorded)
 	}
 	return nil, out, nil
+}
+
+// why is what a failure says, as the agent reads it, or "" for none.
+func why(failure *gitdv1.GitFailure) string {
+	if failure == nil {
+		return ""
+	}
+	return strings.TrimPrefix(failure.GetReason().String(), "REASON_") + ": " + failure.GetGitSaid()
 }
 
 // publishedOf is what a publish pushed, as the agent reads it: the workspace's repository
