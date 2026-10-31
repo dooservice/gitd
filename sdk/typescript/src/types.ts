@@ -75,13 +75,25 @@ export interface Refusal {
 
 /**
  * What a publish pushed: the workspace's repository first, then each submodule; the pull
- * request it opened, or why it could not, the branch being published either way.
+ * request it opened or updated, or why it could not, the branch being published either way;
+ * and each submodule's, when asked for.
  */
 export interface Published {
   branch: string;
   repositories: PublishedRepository[];
   pullRequest?: OpenedPullRequest;
   pullRequestRefused?: Refusal;
+  submodulePullRequests: SubmodulePullRequest[];
+}
+
+/** The pull request of one submodule, or why it could not be opened. */
+export interface SubmodulePullRequest {
+  /** Where it is in the workspace. */
+  path: string;
+  /** Its repository. */
+  url: string;
+  pullRequest?: OpenedPullRequest;
+  refused?: Refusal;
 }
 
 export interface PublishedRepository {
@@ -212,6 +224,7 @@ export interface AuditEntry {
   pullRequestRefused?: Refusal;
   change?: ConfigurationChange;
   provenance?: Provenance;
+  submodulePullRequests: SubmodulePullRequest[];
 }
 
 export interface AuditOptions {

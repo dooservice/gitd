@@ -173,7 +173,8 @@ export class Gitd {
 
   /**
    * Pushes what was committed in a workspace to a new branch, with the credential gitd
-   * keeps, and opens its pull request when the publishing settings or the options say so.
+   * keeps, and opens its pull request when the publishing settings or the options say so;
+   * with `update`, moves an earlier publish's branch forward and updates its pull request.
    */
   async publish(path: string, branch: string, options: PublishOptions = {}): Promise<Published> {
     const answer = await call(() =>
@@ -182,6 +183,7 @@ export class Gitd {
         branch,
         requestedBy: options.requestedBy ?? "",
         sandbox: options.sandbox ?? "",
+        update: options.update ?? false,
         pullRequest: pullRequestOptionsProto(options.pullRequest),
         provenance: options.provenance && {
           agent: options.provenance.agent ?? "",

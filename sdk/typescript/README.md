@@ -32,7 +32,7 @@ No call takes a credential: gitd reads and publishes with the ones it keeps.
 | `update(path, { branch, submodules, onProgress })` | To the tip of its branch, or of the branch given |
 | `checkout(path, commit, { submodules, onProgress })` | To a commit, as a rollback does |
 | `describe(path)` | Its repository, commit, branch, uncommitted changes and submodules |
-| `publish(path, branch)` | Its commits pushed to a new branch |
+| `publish(path, branch, { requestedBy, pullRequest, provenance, sandbox, update })` | Its commits pushed to a new branch, or with `update` an earlier publish's branch moved forward; its pull request opened or updated, and with `pullRequest.submodules` each submodule's |
 | `remove(path)` | Deleted; its pool stays |
 | `probe(url)` | Whether it can be read, its default branch and branches |
 | `info()` | Which gitd answers, and how it makes workspaces here and why |

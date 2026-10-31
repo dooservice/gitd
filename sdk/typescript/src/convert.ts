@@ -14,6 +14,7 @@ import {
   type OpenedPullRequest as OpenedPullRequestMessage,
   type PublishResponse,
   type PublishedRepository as PublishedRepositoryMessage,
+  type SubmodulePullRequest as SubmodulePullRequestMessage,
   type RevisionSchema,
   type WorkspaceResult,
 } from "./gen/gitd/v1/gitd_pb.js";
@@ -28,6 +29,7 @@ import type {
   PublishedRepository,
   Refusal,
   StrategyName,
+  SubmodulePullRequest,
   Workspace,
 } from "./types.js";
 
@@ -114,6 +116,7 @@ export function publishedOf(answer: PublishResponse): Published {
     repositories: pushedOf(answer.repository, answer.submodules),
     pullRequest: openedOf(answer.pullRequest),
     pullRequestRefused: refusalOf(answer.pullRequestFailure),
+    submodulePullRequests: answer.submodulePullRequests.map(submodulePullRequestOf),
   };
 }
 
@@ -129,6 +132,7 @@ export function toAuditEntry(entry: AuditEntryMessage): AuditEntry {
     requestedBy: entry.requestedBy,
     pullRequest: openedOf(entry.pullRequest),
     pullRequestRefused: refusalOf(entry.pullRequestFailure),
+    submodulePullRequests: entry.submodulePullRequests.map(submodulePullRequestOf),
     provenance: entry.provenance && {
       agent: entry.provenance.agent,
       model: entry.provenance.model,
@@ -144,7 +148,16 @@ export function toAuditEntry(entry: AuditEntryMessage): AuditEntry {
 }
 
 function openedOf(opened: OpenedPullRequestMessage | undefined): OpenedPullRequest | undefined {
-  return opened && { url: opened.url, number: Number(opened.number) };
+  return opened && { url: opened.url, number: Number(opened.number), updated: opened.updated };
+}
+
+function submodulePullRequestOf(submodule: SubmodulePullRequestMessage): SubmodulePullRequest {
+  return {
+    path: submodule.path,
+    url: submodule.url,
+    pullRequest: openedOf(submodule.pullRequest),
+    refused: refusalOf(submodule.failure),
+  };
 }
 
 function refusalOf(failure: GitFailure | undefined): Refusal | undefined {

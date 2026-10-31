@@ -53,6 +53,11 @@ export interface PullRequestOptions {
   /** The branch it merges into; default: the repository's default branch. */
   base?: string;
   draft?: boolean;
+  /**
+   * Open one too in each submodule's repository, with the same title, into the branch
+   * .gitmodules names for it or its default branch: to be merged first, with a merge commit.
+   */
+  submodules?: boolean;
 }
 
 /** Where a publish's work came from, as the platform says; gitd records it as told. */
@@ -71,10 +76,19 @@ export interface PublishOptions {
   provenance?: Provenance;
   /** Publish what a sandbox pushed through the endpoint instead of a workspace; path is then "". */
   sandbox?: string;
+  /**
+   * The branch may exist from an earlier publish: move it forward, only ever as a
+   * fast-forward (BRANCH_EXISTS otherwise), and update the pull request open from it. With
+   * nothing new beyond what gitd published to it, nothing is pushed and the pull requests
+   * are still opened or updated.
+   */
+  update?: boolean;
 }
 
 /** A pull request gitd opened. */
 export interface OpenedPullRequest {
   url: string;
   number: number;
+  /** It was already open from the branch, and gitd updated its title and body. */
+  updated: boolean;
 }

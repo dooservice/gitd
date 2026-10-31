@@ -60,6 +60,7 @@ export function pullRequestOptionsProto(
       body: options.body ?? "",
       base: options.base ?? "",
       draft: options.draft,
+      submodules: options.submodules ?? false,
     }
   );
 }
