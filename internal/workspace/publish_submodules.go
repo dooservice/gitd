@@ -10,12 +10,13 @@ import (
 )
 
 // stagedSubmodule is a submodule staged to be pushed: its repository, what the answer says
-// of it, and whether it brings anything new. One that does not is already on the branch an
-// earlier publish made.
+// of it, and whether it brings anything new — one that does not is already on the branch an
+// earlier publish made. base is the branch `.gitmodules` says it follows, if any.
 type stagedSubmodule struct {
 	repository repo.Repo
 	published  *gitdv1.PublishedRepository
 	fresh      bool
+	base       string
 }
 
 // stageSubmodules stages every submodule that was committed to in the workspace: one whose
@@ -55,9 +56,11 @@ func (workspaces *Workspaces) stageSubmodules(
 			}
 		}
 		if len(subjects) > 0 || held {
-			changed = append(changed, stagedSubmodule{repository: repository, fresh: len(subjects) > 0, published: &gitdv1.PublishedRepository{
-				Url: repository.HTTPS(), Path: submodule.path, Commit: commit, Subjects: subjects,
-			}})
+			changed = append(changed, stagedSubmodule{
+				repository: repository, fresh: len(subjects) > 0, base: submodule.branch, published: &gitdv1.PublishedRepository{
+					Url: repository.HTTPS(), Path: submodule.path, Commit: commit, Subjects: subjects,
+				},
+			})
 		}
 	}
 	return changed, nil

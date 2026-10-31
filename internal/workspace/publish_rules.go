@@ -53,6 +53,7 @@ func (workspaces *Workspaces) record(entry *gitdv1.AuditEntry, answer *gitdv1.Pu
 	} else {
 		entry.Repository, entry.Submodules = answer.GetRepository(), answer.GetSubmodules()
 		entry.PullRequest, entry.PullRequestFailure = answer.GetPullRequest(), answer.GetPullRequestFailure()
+		entry.SubmodulePullRequests = answer.GetSubmodulePullRequests()
 	}
 	if err := recorder.Record(entry); err != nil {
 		slog.Error("a publish is missing from the audit log", "workspace", entry.GetWorkspace(),

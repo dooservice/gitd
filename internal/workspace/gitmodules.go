@@ -11,9 +11,10 @@ import (
 	"github.com/dooservice/gitd/internal/git"
 )
 
-// submodule is one submodule as the superproject's `.gitmodules` names it.
+// submodule is one submodule as the superproject's `.gitmodules` names it: branch is the
+// branch it follows, when it names one.
 type submodule struct {
-	name, path, url string
+	name, path, url, branch string
 }
 
 func (submodule submodule) pending(failure *git.Failure) *gitdv1.PendingSubmodule {
@@ -57,7 +58,7 @@ func (workspaces *Workspaces) readGitmodules(ctx context.Context, dir string) ([
 		return nil, nil
 	}
 	out, err := workspaces.runner.Run(ctx, git.Cmd{Dir: dir, Args: []string{
-		"config", "--file", file, "--null", "--get-regexp", `^submodule\..*\.(path|url)$`,
+		"config", "--file", file, "--null", "--get-regexp", `^submodule\..*\.(path|url|branch)$`,
 	}})
 	if failure, ok := git.AsFailure(err); ok && failure.ExitCode == 1 {
 		return nil, nil
@@ -77,10 +78,13 @@ func (workspaces *Workspaces) readGitmodules(ctx context.Context, dir string) ([
 			position[name] = len(declared)
 			declared = append(declared, submodule{name: name})
 		}
-		if field == "path" {
+		switch field {
+		case "path":
 			declared[position[name]].path = value
-		} else {
+		case "url":
 			declared[position[name]].url = value
+		default:
+			declared[position[name]].branch = value
 		}
 	}
 	return declared, nil
