@@ -287,6 +287,10 @@
                 {
                   "name": "REASON_LIMIT_REACHED",
                   "number": 15
+                },
+                {
+                  "name": "REASON_BRANCH_EXISTS",
+                  "number": 16
                 }
               ]
             }
@@ -989,6 +993,13 @@
               "label": "LABEL_OPTIONAL",
               "type": "TYPE_STRING",
               "jsonName": "sandbox"
+            },
+            {
+              "name": "update",
+              "number": 8,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_BOOL",
+              "jsonName": "update"
             }
           ]
         },
@@ -1064,6 +1075,13 @@
               "oneofIndex": 0,
               "jsonName": "draft",
               "proto3Optional": true
+            },
+            {
+              "name": "submodules",
+              "number": 6,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_BOOL",
+              "jsonName": "submodules"
             }
           ],
           "oneofDecl": [
@@ -1088,6 +1106,48 @@
               "label": "LABEL_OPTIONAL",
               "type": "TYPE_INT64",
               "jsonName": "number"
+            },
+            {
+              "name": "updated",
+              "number": 3,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_BOOL",
+              "jsonName": "updated"
+            }
+          ]
+        },
+        {
+          "name": "SubmodulePullRequest",
+          "field": [
+            {
+              "name": "path",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "path"
+            },
+            {
+              "name": "url",
+              "number": 2,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "url"
+            },
+            {
+              "name": "pull_request",
+              "number": 3,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".gitd.v1.OpenedPullRequest",
+              "jsonName": "pullRequest"
+            },
+            {
+              "name": "failure",
+              "number": 4,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".gitd.v1.GitFailure",
+              "jsonName": "failure"
             }
           ]
         },
@@ -1165,6 +1225,14 @@
               "type": "TYPE_MESSAGE",
               "typeName": ".gitd.v1.GitFailure",
               "jsonName": "pullRequestFailure"
+            },
+            {
+              "name": "submodule_pull_requests",
+              "number": 6,
+              "label": "LABEL_REPEATED",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".gitd.v1.SubmodulePullRequest",
+              "jsonName": "submodulePullRequests"
             }
           ]
         },
@@ -1932,6 +2000,14 @@
               "label": "LABEL_OPTIONAL",
               "type": "TYPE_STRING",
               "jsonName": "sandbox"
+            },
+            {
+              "name": "submodule_pull_requests",
+              "number": 14,
+              "label": "LABEL_REPEATED",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".gitd.v1.SubmodulePullRequest",
+              "jsonName": "submodulePullRequests"
             }
           ]
         },

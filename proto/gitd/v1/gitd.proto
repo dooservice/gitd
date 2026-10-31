@@ -29,7 +29,8 @@ service WorkspaceService {
   // Take an existing clone in, linking it to a pool without fetching anything.
   rpc Adopt(AdoptRequest) returns (stream AdoptResponse);
   // Push what was committed in a workspace to a new branch, with a token, so a pull or merge
-  // request can be opened from it. New commits of its submodules go first, each to a
+  // request can be opened from it — or, with update, move an earlier publish's branch
+  // forward and update its pull request. New commits of its submodules go first, each to a
   // branch of the same name in its own repository. The branch must start with the
   // configured prefix, if there is one; every publish, done or refused, is in the audit log.
   rpc Publish(PublishRequest) returns (PublishResponse);
@@ -216,6 +217,10 @@ message GitFailure {
     REASON_UNSUPPORTED = 14;
     // A limit of the tenant is reached: its workspaces, its disk or its tokens.
     REASON_LIMIT_REACHED = 15;
+    // The branch already exists on the host as the publish may not take it: without update,
+    // at all; with update, holding commits the publish does not have, which only a forced
+    // push, never done, would drop. Nothing was pushed.
+    REASON_BRANCH_EXISTS = 16;
   }
   Reason reason = 1;
   // The last useful line git wrote, e.g. "remote: Repository not found.".
@@ -426,8 +431,8 @@ message AdoptResult {
 
 message PublishRequest {
   string path = 1;
-  // A branch that does not exist yet: nothing is ever pushed over one that does. It must
-  // start with `[publish] branch_prefix`, when the configuration sets one.
+  // A branch that does not exist yet, unless update is set: nothing is ever pushed over
+  // one. It must start with `[publish] branch_prefix`, when the configuration sets one.
   string branch = 2;
   repeated Credential credentials = 3;
   // Who asked for the work, as their account on the git host, e.g. `josue`: written in the
@@ -442,6 +447,12 @@ message PublishRequest {
   // its sandbox repository, with path left empty. branch names the branch it pushed there,
   // published under the same name.
   string sandbox = 7;
+  // The branch may already be on the host from an earlier publish of the same work: it is
+  // moved forward, only ever as a fast-forward, and a pull request already open from it is
+  // updated rather than another opened. When the work brings nothing beyond what gitd
+  // published to the branch, nothing is pushed and the pull requests are still opened or
+  // updated: a publish whose pull request failed is retried so.
+  bool update = 8;
 }
 
 // Where a publish's work came from, as the platform says: gitd records it and never checks
@@ -469,12 +480,30 @@ message PullRequestOptions {
   // The branch it asks to merge into. Empty: the repository's default branch.
   string base = 4;
   optional bool draft = 5;
+  // Open one too in the repository of each submodule the publish pushed, from the branch of
+  // the same name, with the same title, into the branch `.gitmodules` names for it, else
+  // its repository's default branch. They are opened first, and the workspace's pull
+  // request lists them, to be merged first and with a merge commit; each links back to it.
+  bool submodules = 6;
 }
 
-// A pull request gitd opened.
+// A pull request gitd opened, or updated.
 message OpenedPullRequest {
   string url = 1;
   int64 number = 2;
+  // It was already open from the branch, and gitd updated its title and body.
+  bool updated = 3;
+}
+
+// The pull request of one submodule, or why it could not be opened: one that fails does not
+// stop the others.
+message SubmodulePullRequest {
+  // Where it is in the workspace.
+  string path = 1;
+  // Its repository.
+  string url = 2;
+  OpenedPullRequest pull_request = 3;
+  GitFailure failure = 4;
 }
 
 message PublishedRepository {
@@ -495,6 +524,8 @@ message PublishResponse {
   // Why the pull request could not be opened, when it was to be. The branch is published
   // all the same.
   GitFailure pull_request_failure = 5;
+  // The pull request of each submodule pushed, when PullRequestOptions.submodules asked.
+  repeated SubmodulePullRequest submodule_pull_requests = 6;
 }
 
 message ChangesRequest {
@@ -708,6 +739,8 @@ message AuditEntry {
   Provenance provenance = 12;
   // The sandbox repository published from, when it was not a workspace.
   string sandbox = 13;
+  // The pull request of each submodule, or why it could not be opened.
+  repeated SubmodulePullRequest submodule_pull_requests = 14;
 }
 
 // A connection added or removed, or the settings of a prefix set or removed.

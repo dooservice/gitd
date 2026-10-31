@@ -160,7 +160,8 @@ type WorkspaceServiceClient interface {
 	// Take an existing clone in, linking it to a pool without fetching anything.
 	Adopt(context.Context, *connect.Request[v1.AdoptRequest]) (*connect.ServerStreamForClient[v1.AdoptResponse], error)
 	// Push what was committed in a workspace to a new branch, with a token, so a pull or merge
-	// request can be opened from it. New commits of its submodules go first, each to a
+	// request can be opened from it — or, with update, move an earlier publish's branch
+	// forward and update its pull request. New commits of its submodules go first, each to a
 	// branch of the same name in its own repository. The branch must start with the
 	// configured prefix, if there is one; every publish, done or refused, is in the audit log.
 	Publish(context.Context, *connect.Request[v1.PublishRequest]) (*connect.Response[v1.PublishResponse], error)
@@ -404,7 +405,8 @@ type WorkspaceServiceHandler interface {
 	// Take an existing clone in, linking it to a pool without fetching anything.
 	Adopt(context.Context, *connect.Request[v1.AdoptRequest], *connect.ServerStream[v1.AdoptResponse]) error
 	// Push what was committed in a workspace to a new branch, with a token, so a pull or merge
-	// request can be opened from it. New commits of its submodules go first, each to a
+	// request can be opened from it — or, with update, move an earlier publish's branch
+	// forward and update its pull request. New commits of its submodules go first, each to a
 	// branch of the same name in its own repository. The branch must start with the
 	// configured prefix, if there is one; every publish, done or refused, is in the audit log.
 	Publish(context.Context, *connect.Request[v1.PublishRequest]) (*connect.Response[v1.PublishResponse], error)
