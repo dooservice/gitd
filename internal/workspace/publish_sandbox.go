@@ -62,7 +62,7 @@ func (workspaces *Workspaces) PublishPushed(
 	if err != nil {
 		return nil, err
 	}
-	if err := workspaces.pools.Push(ctx, repository, branch, credentials.FromProto(request.GetCredentials())); err != nil {
+	if err := workspaces.pools.Push(ctx, repository, branch, credentials.FromProto(request.GetCredentials()), false); err != nil {
 		return nil, err
 	}
 	answer = &gitdv1.PublishResponse{Branch: branch, Repository: &gitdv1.PublishedRepository{

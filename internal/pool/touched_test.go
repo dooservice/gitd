@@ -85,8 +85,8 @@ func TestTheCommitsToPublishSayWhichPathsTheyTouch(t *testing.T) {
 	if !slices.Equal(allowed, []string{"app.go", "moved.go"}) {
 		t.Errorf("among Go files except tests = %v", allowed)
 	}
-	added, removed, err := kept.Lines(ctx, repository, "agents/fix")
-	if err != nil || added != 2 || removed != 2 {
-		t.Errorf("lines = +%d -%d, %v; want app.go's change and the rename, not main's", added, removed, err)
+	summary, err := kept.Summarize(ctx, repository, "agents/fix")
+	if err != nil || summary.Added != 2 || summary.Removed != 2 || summary.Files != 3 {
+		t.Errorf("summary = %+v, %v; want app.go's change and the rename, not main's", summary, err)
 	}
 }

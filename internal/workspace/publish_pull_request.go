@@ -7,7 +7,6 @@ import (
 	gitdv1 "github.com/dooservice/gitd/gen/go/gitd/v1"
 	"github.com/dooservice/gitd/internal/credentials"
 	"github.com/dooservice/gitd/internal/git"
-	"github.com/dooservice/gitd/internal/pool"
 	"github.com/dooservice/gitd/internal/publishing"
 	"github.com/dooservice/gitd/internal/pullrequests"
 	"github.com/dooservice/gitd/internal/repo"
@@ -88,16 +87,11 @@ func (workspaces *Workspaces) accountOf(
 	if !wantsPullRequest(rules.PullRequests, request.GetPullRequest()) {
 		return account, nil
 	}
-	branch := request.GetBranch()
-	files, err := workspaces.pools.Touched(ctx, repository, branch, pool.Paths{})
+	summary, err := workspaces.pools.Summarize(ctx, repository, request.GetBranch())
 	if err != nil {
 		return account, err
 	}
-	added, removed, err := workspaces.pools.Lines(ctx, repository, branch)
-	if err != nil {
-		return account, err
-	}
-	account.Files, account.Added, account.Removed = len(files), added, removed
+	account.Files, account.Added, account.Removed = summary.Files, summary.Added, summary.Removed
 	return account, nil
 }
 

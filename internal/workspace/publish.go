@@ -88,12 +88,12 @@ func (workspaces *Workspaces) Publish(
 	given := credentials.FromProto(request.GetCredentials())
 	answer = &gitdv1.PublishResponse{Branch: branch}
 	for _, submodule := range changed {
-		if err := workspaces.pools.Push(ctx, submodule.repository, branch, given); err != nil {
+		if err := workspaces.pools.Push(ctx, submodule.repository, branch, given, false); err != nil {
 			return nil, err
 		}
 		answer.Submodules = append(answer.Submodules, submodule.published)
 	}
-	if err := workspaces.pools.Push(ctx, repository, branch, given); err != nil {
+	if err := workspaces.pools.Push(ctx, repository, branch, given, false); err != nil {
 		return nil, err
 	}
 	answer.Repository = &gitdv1.PublishedRepository{Url: repository.HTTPS(), Commit: commit, Subjects: subjects}

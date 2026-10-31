@@ -27,6 +27,7 @@ const (
 	PolicyRefused = gitdv1.GitFailure_REASON_POLICY_REFUSED
 	Unsupported   = gitdv1.GitFailure_REASON_UNSUPPORTED
 	LimitReached  = gitdv1.GitFailure_REASON_LIMIT_REACHED
+	BranchExists  = gitdv1.GitFailure_REASON_BRANCH_EXISTS
 )
 
 // Failure is an operation that did not go through: why, what git said about it, and the

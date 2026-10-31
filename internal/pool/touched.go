@@ -16,6 +16,14 @@ func unpublished(branch string) []string {
 		"--glob=refs/gitd/commits/*", "--glob=refs/gitd/published/*"}
 }
 
+// onBranch are git's arguments for the commits staged for branch beyond the repository's
+// branches: those gitd published to that branch before as well, but none it published to
+// another. A branch's name holds none of a glob's characters, so it excludes only itself.
+func onBranch(branch string) []string {
+	return []string{"refs/gitd/staging/" + branch, "--not", "--branches", "--glob=refs/gitd/commits/*",
+		"--exclude=refs/gitd/published/" + branch, "--glob=refs/gitd/published/*"}
+}
+
 // Paths is which paths Touched lists: those among Among, git's glob pathspecs (every path
 // when empty), but none among Except, and only those deleted when Deleted.
 type Paths struct {
