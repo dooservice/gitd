@@ -56,3 +56,44 @@ func TestAPullRequestIsOpenedReviewedAndLabelled(t *testing.T) {
 		t.Errorf("labels = %v", labels)
 	}
 }
+
+func TestTheOpenPullRequestOfABranchIsFoundAndEdited(t *testing.T) {
+	var queried string
+	var edited map[string]any
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		switch request.Method + " " + request.URL.Path {
+		case "GET /repos/acme/web/pulls":
+			queried = request.URL.RawQuery
+			if request.URL.Query().Get("head") == "acme:agents/none" {
+				_, _ = writer.Write([]byte(`[]`))
+				return
+			}
+			_, _ = writer.Write([]byte(`[{"html_url": "https://github.com/acme/web/pull/128", "number": 128}]`))
+		case "PATCH /repos/acme/web/pulls/128":
+			_ = json.NewDecoder(request.Body).Decode(&edited)
+			_, _ = writer.Write([]byte(`{}`))
+		default:
+			writer.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer server.Close()
+	api := NewAPI(server.URL, "gitd/test")
+	web := Repository{Owner: "acme", Name: "web", Token: "ghs_x"}
+	ctx := context.Background()
+	open, found, err := api.OpenFrom(ctx, web, "agents/fix")
+	if err != nil || !found || open.Number != 128 {
+		t.Fatalf("OpenFrom = %+v, %v, %v", open, found, err)
+	}
+	if queried != "head=acme%3Aagents%2Ffix&state=open" {
+		t.Errorf("queried %q", queried)
+	}
+	if _, found, err := api.OpenFrom(ctx, web, "agents/none"); err != nil || found {
+		t.Errorf("OpenFrom of a branch with none = %v, %v", found, err)
+	}
+	if err := api.Edit(ctx, web, 128, Edit{Title: "Fix login", Body: "b"}); err != nil {
+		t.Fatal(err)
+	}
+	if edited["title"] != "Fix login" || edited["body"] != "b" {
+		t.Errorf("edited = %v", edited)
+	}
+}

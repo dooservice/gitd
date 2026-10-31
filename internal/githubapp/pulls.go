@@ -16,6 +16,12 @@ type PullRequest struct {
 	Draft bool   `json:"draft"`
 }
 
+// Edit is what editing a pull request writes over: its title and body.
+type Edit struct {
+	Title string `json:"title"`
+	Body  string `json:"body"`
+}
+
 // Opened is a pull request GitHub opened.
 type Opened struct {
 	URL    string `json:"html_url"`
@@ -63,4 +69,22 @@ func (api *API) AskToReview(ctx context.Context, repository Repository, number i
 func (api *API) Label(ctx context.Context, repository Repository, number int64, labels []string) error {
 	path := fmt.Sprintf("%s/issues/%d/labels", repository.path(), number)
 	return api.call(ctx, http.MethodPost, path, repository.authorization(), map[string][]string{"labels": labels}, nil)
+}
+
+// OpenFrom is the pull request open from a branch of the repository itself, and false when
+// none is.
+func (api *API) OpenFrom(ctx context.Context, repository Repository, branch string) (Opened, bool, error) {
+	var listed []Opened
+	query := url.Values{"head": {repository.Owner + ":" + branch}, "state": {"open"}}
+	err := api.call(ctx, http.MethodGet, repository.path()+"/pulls?"+query.Encode(), repository.authorization(), nil, &listed)
+	if err != nil || len(listed) == 0 {
+		return Opened{}, false, err
+	}
+	return listed[0], true, nil
+}
+
+// Edit writes a pull request's title and body over what they were.
+func (api *API) Edit(ctx context.Context, repository Repository, number int64, edit Edit) error {
+	path := fmt.Sprintf("%s/pulls/%d", repository.path(), number)
+	return api.call(ctx, http.MethodPatch, path, repository.authorization(), edit, nil)
 }
