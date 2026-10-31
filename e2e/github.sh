@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # gitd against GitHub itself, as a platform runs it: a GitHub App kept in the configuration,
 # publishing settings set through the API, an agent's change published as a pull request
-# from the App's bot, and a change to the CI refused before anything is pushed.
+# from the App's bot and then updated with more work, and a change to the CI refused before
+# anything is pushed.
 #
 # It needs the App's ID and private key (GITD_E2E_APP_ID, GITD_E2E_APP_KEY), the App
 # installed on REPOSITORY only, and gitd built at ./bin/gitd. The branches it pushes are
@@ -58,6 +59,19 @@ git -C "$ROOT/workspaces/fix" -c user.name="gitd e2e" -c user.email="e2e@gitd.de
 "$GITD" --json publish "$ROOT/workspaces/fix" "agents/e2e-$RUN" ${REVIEWER:+--requested-by "$REVIEWER"} \
   --body "An end to end run of gitd: $RUN." | tee "$ROOT/published"
 grep -q '"url": "https://github.com/'"$REPOSITORY"'/pull/' "$ROOT/published" || fail "no pull request was opened"
+
+step "more work on the same branch moves it forward and updates its pull request"
+echo "run $RUN, again" >> "$ROOT/workspaces/fix/e2e-$RUN.txt"
+git -C "$ROOT/workspaces/fix" -c user.name="gitd e2e" -c user.email="e2e@gitd.dev" commit -q -am "e2e: run $RUN, again"
+if "$GITD" publish "$ROOT/workspaces/fix" "agents/e2e-$RUN" 2> "$ROOT/exists"; then
+  fail "a branch that exists was published over without update"
+fi
+grep -q "BRANCH_EXISTS" "$ROOT/exists" || fail "the refusal is not BRANCH_EXISTS"
+"$GITD" --json publish "$ROOT/workspaces/fix" "agents/e2e-$RUN" --update --body "An end to end run of gitd: $RUN, updated." \
+  | tee "$ROOT/updated"
+grep -q '"updated": true' "$ROOT/updated" || fail "the pull request was not updated"
+[ "$(grep -o '/pull/[0-9]*' "$ROOT/updated")" = "$(grep -o '/pull/[0-9]*' "$ROOT/published")" ] \
+  || fail "another pull request was opened"
 
 step "a change to the CI is refused before anything is pushed"
 "$GITD" prepare "https://github.com/$REPOSITORY" "$ROOT/workspaces/ci" > /dev/null
