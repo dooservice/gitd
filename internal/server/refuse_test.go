@@ -18,6 +18,7 @@ func TestEveryRefusalCarriesTheCodeOfWhatHappened(t *testing.T) {
 		git.Fail(git.NotFound, "no branch"):  connect.CodeNotFound,
 		git.Fail(git.Busy, "queue full"):     connect.CodeResourceExhausted,
 		git.Fail(git.AuthRefused, "refused"): connect.CodePermissionDenied,
+		git.Fail(git.BranchExists, "exists"): connect.CodeFailedPrecondition,
 		context.Canceled:                     connect.CodeCanceled,
 		context.DeadlineExceeded:             connect.CodeDeadlineExceeded,
 		errors.New("disk full"):              connect.CodeInternal,
