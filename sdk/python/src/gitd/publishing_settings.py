@@ -156,17 +156,20 @@ class Preset:
 class PullRequestOptions:
     """A publish's own say on its pull request: open one even when the settings open them
     only when asked, its title (the newest commit's subject when empty), the text before
-    what gitd checked, the branch it merges into, and whether it is a draft."""
+    what gitd checked, the branch it merges into, and whether it is a draft. submodules
+    opens one too in each submodule's repository, with the same title, into the branch
+    .gitmodules names for it or its default branch: to be merged first, with a merge commit."""
 
     open: bool = False
     title: str = ""
     body: str = ""
     base: str = ""
     draft: bool | None = None
+    submodules: bool = False
 
     def to_message(self) -> Any:
         message: Any = messages.PullRequestOptions(
-            open=self.open, title=self.title, body=self.body, base=self.base
+            open=self.open, title=self.title, body=self.body, base=self.base, submodules=self.submodules
         )
         if self.draft is not None:
             message.draft = self.draft
@@ -201,11 +204,13 @@ class Provenance:
 
 @dataclass(frozen=True)
 class OpenedPullRequest:
-    """A pull request gitd opened."""
+    """A pull request gitd opened; updated says it was already open from the branch, and
+    gitd updated its title and body."""
 
     url: str
     number: int
+    updated: bool = False
 
     @classmethod
     def from_message(cls, opened: Any) -> OpenedPullRequest:
-        return cls(url=opened.url, number=opened.number)
+        return cls(url=opened.url, number=opened.number, updated=opened.updated)

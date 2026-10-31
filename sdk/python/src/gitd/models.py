@@ -201,14 +201,41 @@ class Refusal:
 
 
 @dataclass(frozen=True)
+class SubmodulePullRequest:
+    """The pull request of one submodule, at path in the workspace and of the repository at
+    url, or why it could not be opened."""
+
+    path: str
+    url: str
+    pull_request: OpenedPullRequest | None = None
+    refused: Refusal | None = None
+
+    @classmethod
+    def from_message(cls, submodule: Any) -> SubmodulePullRequest:
+        return cls(
+            path=submodule.path,
+            url=submodule.url,
+            pull_request=(
+                OpenedPullRequest.from_message(submodule.pull_request)
+                if submodule.HasField("pull_request")
+                else None
+            ),
+            refused=Refusal.from_message(submodule.failure) if submodule.HasField("failure") else None,
+        )
+
+
+@dataclass(frozen=True)
 class Published:
     """What a publish pushed: the workspace's repository first, then each submodule; the
-    pull request it opened, or why it could not, the branch being published either way."""
+    pull request it opened or updated, or why it could not, the branch being published
+    either way; and each submodule's, when asked for. An update that brought nothing new
+    lists the workspace's repository with no subjects."""
 
     branch: str
     repositories: list[PublishedRepository]
     pull_request: OpenedPullRequest | None = None
     pull_request_refused: Refusal | None = None
+    submodule_pull_requests: list[SubmodulePullRequest] = field(default_factory=list)
 
     @classmethod
     def from_message(cls, response: Any) -> Published:
@@ -226,6 +253,9 @@ class Published:
                 if response.HasField("pull_request_failure")
                 else None
             ),
+            submodule_pull_requests=[
+                SubmodulePullRequest.from_message(submodule) for submodule in response.submodule_pull_requests
+            ],
         )
 
 
@@ -310,6 +340,7 @@ class AuditEntry:
     pull_request_refused: Refusal | None = None
     change: ConfigurationChange | None = None
     provenance: Provenance | None = None
+    submodule_pull_requests: list[SubmodulePullRequest] = field(default_factory=list)
 
     @classmethod
     def from_message(cls, entry: Any) -> AuditEntry:
@@ -332,4 +363,7 @@ class AuditEntry:
             ),
             change=ConfigurationChange.from_message(entry.change) if entry.HasField("change") else None,
             provenance=Provenance.from_message(entry.provenance) if entry.HasField("provenance") else None,
+            submodule_pull_requests=[
+                SubmodulePullRequest.from_message(submodule) for submodule in entry.submodule_pull_requests
+            ],
         )

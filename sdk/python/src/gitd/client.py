@@ -137,13 +137,20 @@ class Gitd:
         pull_request: PullRequestOptions | None = None,
         provenance: Provenance | None = None,
         sandbox: str = "",
+        update: bool = False,
     ) -> Published:
         """Pushes what was committed in a workspace to a new branch, with the credential gitd
         keeps, and opens its pull request when the publishing settings or pull_request say
         so. requested_by is who asked for the work, as their account on the host. With
-        sandbox, and path empty, publishes the branch a sandbox pushed through the endpoint."""
+        sandbox, and path empty, publishes the branch a sandbox pushed through the endpoint.
+
+        With update, the branch may exist from an earlier publish: it is moved forward, only
+        ever as a fast-forward (BRANCH_EXISTS otherwise), and the pull request open from it is
+        updated rather than another opened. An update bringing nothing beyond what gitd
+        published to the branch pushes nothing and still opens or updates the pull requests,
+        so a publish whose pull request failed is retried by publishing again."""
         request: Any = messages.PublishRequest(
-            path=path, branch=branch, requested_by=requested_by, sandbox=sandbox
+            path=path, branch=branch, requested_by=requested_by, sandbox=sandbox, update=update
         )
         if pull_request is not None:
             request.pull_request.CopyFrom(pull_request.to_message())

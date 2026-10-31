@@ -29,11 +29,23 @@ No call takes a credential: gitd reads and publishes with the ones it keeps.
 | `update(path, *, branch, submodules, on_progress)` | To the tip of its branch, or of the branch given |
 | `checkout(path, commit, *, submodules, on_progress)` | To a commit, as a rollback does |
 | `describe(path)` | Its repository, commit, branch, uncommitted changes and submodules |
-| `publish(path, branch)` | Its commits pushed to a new branch |
+| `publish(path, branch, *, requested_by, pull_request, provenance, sandbox, update)` | Its commits pushed to a new branch, or with `update` an earlier publish's branch moved forward; its pull request opened or updated |
 | `remove(path)` | Deleted; its pool stays |
 | `probe(url)` | Whether it can be read, its default branch and branches |
 | `info()` | Which gitd answers, and how it makes workspaces here and why |
 | `audit(*, since, url, limit)` | Every publish, done or refused, newest first |
+
+```python
+from gitd import PullRequestOptions
+
+published = gitd.publish(
+    workspace.path, "agents/fix-login", update=True,
+    pull_request=PullRequestOptions(open=True, submodules=True, title="Fix the login", body="…"),
+)
+print(published.pull_request.url, published.pull_request.updated)
+for submodule in published.submodule_pull_requests:   # merged first, with a merge commit
+    print(submodule.path, submodule.pull_request or submodule.refused)
+```
 
 A refusal raises `GitdError`, with `reason` (`AUTH_REQUIRED`, `NOT_FOUND`, `PATH_REFUSED`,
 `BRANCH_REFUSED`, `BUSY`, …) and `said`, what git said. Decide from the reason, never from

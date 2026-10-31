@@ -23,6 +23,7 @@ from .models import (
     Refusal,
     Strategy,
     Submodule,
+    SubmodulePullRequest,
     Workspace,
 )
 from .publishing_settings import (
@@ -78,6 +79,7 @@ __all__ = [
     "Refusal",
     "Strategy",
     "Submodule",
+    "SubmodulePullRequest",
     "Workspace",
     "WarmLayer",
     "Endpoint",
