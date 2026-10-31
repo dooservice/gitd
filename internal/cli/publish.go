@@ -16,13 +16,15 @@ func publishCommand(app *app) *cobra.Command {
 		Long: "Push what was committed in the workspace at PATH to a new branch BRANCH, from its\n" +
 			"pool and with the credential gitd keeps, and open its pull request when the\n" +
 			"publishing settings or --pull-request say so. The workspace never sees the\n" +
-			"credential, and the push is never forced. With --sandbox, publish the branch BRANCH a\n" +
-			"sandbox pushed to its sandbox repository through gitd's endpoint instead.",
+			"credential, and the push is never forced. With --update, move a branch an earlier\n" +
+			"publish made forward and update its pull request; with --submodules, open one in each\n" +
+			"submodule's repository too. With --sandbox, publish the branch BRANCH a sandbox\n" +
+			"pushed to its sandbox repository through gitd's endpoint instead.",
 		Args: cobra.RangeArgs(1, 2),
 	}
 	credentials := addCredentialFlags(command)
 	var requestedBy, title, body, base, agent, model, session, task, sandbox string
-	var open, draft bool
+	var open, draft, update, submodules bool
 	flags := command.Flags()
 	flags.StringVar(&requestedBy, "requested-by", "", "who asked for the work, as their account on the host")
 	flags.BoolVar(&open, "pull-request", false, "open a pull request even when the settings open them only when asked")
@@ -35,12 +37,14 @@ func publishCommand(app *app) *cobra.Command {
 	flags.StringVar(&session, "session", "", "the platform's name for the session or run")
 	flags.StringVar(&task, "task-url", "", "where the task is: an issue, a ticket (https)")
 	flags.StringVar(&sandbox, "sandbox", "", "publish from this sandbox repository of the endpoint, not a workspace")
+	flags.BoolVar(&update, "update", false, "the branch may exist from an earlier publish: move it forward, and update its pull request")
+	flags.BoolVar(&submodules, "submodules", false, "open a pull request in each submodule's repository too, to be merged first")
 	command.RunE = func(cmd *cobra.Command, args []string) error {
 		given, err := credentials.proto()
 		if err != nil {
 			return err
 		}
-		request := &gitdv1.PublishRequest{Credentials: given, RequestedBy: requestedBy, Sandbox: sandbox}
+		request := &gitdv1.PublishRequest{Credentials: given, RequestedBy: requestedBy, Sandbox: sandbox, Update: update}
 		switch {
 		case sandbox != "" && len(args) == 1:
 			request.Branch = args[0]
@@ -52,8 +56,8 @@ func publishCommand(app *app) *cobra.Command {
 		if agent != "" || model != "" || session != "" || task != "" {
 			request.Provenance = &gitdv1.Provenance{Agent: agent, Model: model, Session: session, TaskUrl: task}
 		}
-		if open || title != "" || body != "" || base != "" || cmd.Flags().Changed("draft") {
-			request.PullRequest = &gitdv1.PullRequestOptions{Open: open, Title: title, Body: body, Base: base}
+		if open || title != "" || body != "" || base != "" || submodules || cmd.Flags().Changed("draft") {
+			request.PullRequest = &gitdv1.PullRequestOptions{Open: open, Title: title, Body: body, Base: base, Submodules: submodules}
 			if cmd.Flags().Changed("draft") {
 				request.PullRequest.Draft = &draft
 			}
@@ -71,6 +75,7 @@ func publishCommand(app *app) *cobra.Command {
 				}
 			}
 			pullRequestLine(out, answer.GetPullRequest(), answer.GetPullRequestFailure())
+			submodulePullRequestLines(out, answer.GetSubmodulePullRequests())
 		})
 		return nil
 	}

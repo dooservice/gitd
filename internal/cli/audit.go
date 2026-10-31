@@ -73,16 +73,31 @@ func auditLine(out io.Writer, entry *gitdv1.AuditEntry) {
 		fmt.Fprintf(out, "  published %s %s: %s\n", pushed.GetUrl(), short(pushed.GetCommit()), strings.Join(pushed.GetSubjects(), "; "))
 	}
 	pullRequestLine(out, entry.GetPullRequest(), entry.GetPullRequestFailure())
+	submodulePullRequestLines(out, entry.GetSubmodulePullRequests())
 }
 
 // pullRequestLine says what pull request a publish opened, or why it could not.
 func pullRequestLine(out io.Writer, opened *gitdv1.OpenedPullRequest, failure *gitdv1.GitFailure) {
 	switch {
+	case opened.GetUpdated():
+		fmt.Fprintf(out, "  pull request #%d, updated: %s\n", opened.GetNumber(), opened.GetUrl())
 	case opened != nil:
 		fmt.Fprintf(out, "  pull request #%d: %s\n", opened.GetNumber(), opened.GetUrl())
 	case failure != nil:
 		reason := strings.TrimPrefix(failure.GetReason().String(), "REASON_")
 		fmt.Fprintf(out, "  no pull request, %s: %s\n", reason, failure.GetGitSaid())
+	}
+}
+
+// submodulePullRequestLines says, for each submodule, what pull request a publish opened in
+// its repository, or why it could not.
+func submodulePullRequestLines(out io.Writer, submodules []*gitdv1.SubmodulePullRequest) {
+	for _, submodule := range submodules {
+		var line strings.Builder
+		pullRequestLine(&line, submodule.GetPullRequest(), submodule.GetFailure())
+		if said := line.String(); said != "" {
+			fmt.Fprintf(out, "  %s:%s", submodule.GetPath(), strings.TrimPrefix(said, " "))
+		}
 	}
 }
 

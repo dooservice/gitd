@@ -66,3 +66,18 @@ func TestConflictsAndEventsReadAsTheyHappened(t *testing.T) {
 		t.Errorf("got:\n%s\nwant:\n%s", out.String(), want)
 	}
 }
+
+func TestPullRequestsReadAsUpdatedOrNotAndPerSubmodule(t *testing.T) {
+	var out bytes.Buffer
+	pullRequestLine(&out, &gitdv1.OpenedPullRequest{Url: "https://github.com/acme/web/pull/7", Number: 7, Updated: true}, nil)
+	submodulePullRequestLines(&out, []*gitdv1.SubmodulePullRequest{
+		{Path: "libs/auth", PullRequest: &gitdv1.OpenedPullRequest{Url: "https://github.com/acme/auth/pull/3", Number: 3}},
+		{Path: "tools", Failure: &gitdv1.GitFailure{Reason: gitdv1.GitFailure_REASON_UNSUPPORTED, GitSaid: "not GitHub"}},
+	})
+	want := "  pull request #7, updated: https://github.com/acme/web/pull/7\n" +
+		"  libs/auth: pull request #3: https://github.com/acme/auth/pull/3\n" +
+		"  tools: no pull request, UNSUPPORTED: not GitHub\n"
+	if out.String() != want {
+		t.Errorf("got:\n%s\nwant:\n%s", out.String(), want)
+	}
+}
