@@ -115,7 +115,7 @@ func ownerName(owner string) string {
 // within says whether path is dir or under it.
 func within(path, dir string) bool {
 	relative, err := filepath.Rel(filepath.Clean(dir), filepath.Clean(path))
-	return err == nil && relative != ".." && !strings.HasPrefix(relative, "../")
+	return err == nil && relative != ".." && !strings.HasPrefix(relative, ".."+string(filepath.Separator))
 }
 
 // parseBytes reads a size such as "50GB", "500MB" or "1048576"; empty is zero.
