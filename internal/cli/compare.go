@@ -3,6 +3,7 @@ package cli
 import (
 	"fmt"
 	"io"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -14,7 +15,7 @@ import (
 // sideOf reads a side as the command line writes it: a workspace by its absolute path, a
 // branch by its name.
 func sideOf(written string) *gitdv1.Side {
-	if strings.HasPrefix(written, "/") {
+	if filepath.IsAbs(written) {
 		return &gitdv1.Side{Of: &gitdv1.Side_Workspace{Workspace: written}}
 	}
 	return &gitdv1.Side{Of: &gitdv1.Side_Branch{Branch: written}}
