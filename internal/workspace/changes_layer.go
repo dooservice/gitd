@@ -8,7 +8,6 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
-	"syscall"
 
 	"github.com/dooservice/gitd/internal/repo"
 	"github.com/dooservice/gitd/internal/strategy"
@@ -91,16 +90,6 @@ func layerPaths(lowers []string, upper string, root *os.Root) ([]string, error) 
 		return nil
 	})
 	return candidates, err
-}
-
-// isWhiteout says whether a character device is overlay's mark of a deletion.
-func isWhiteout(file string) bool {
-	info, err := os.Lstat(file)
-	if err != nil {
-		return false
-	}
-	stat, ok := info.Sys().(*syscall.Stat_t)
-	return ok && stat.Rdev == 0
 }
 
 // hiddenUnder lists what the template has directly under directory and the workspace no
