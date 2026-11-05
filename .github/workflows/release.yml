@@ -41,6 +41,13 @@ jobs:
                 -X github.com/dooservice/gitd/internal/config.loginApp=${GITD_LOGIN_APP}" \
               -o "dist/gitd-darwin-${arch}" ./cmd/gitd
             sha256sum "dist/gitd-darwin-${arch}" | cut -d' ' -f1 > "dist/gitd-darwin-${arch}.sha256"
+            # Windows: gitd only, as on macOS.
+            CGO_ENABLED=0 GOOS=windows GOARCH="${arch}" go build -trimpath \
+              -ldflags "-s -w -X main.version=${GITHUB_REF_NAME} \
+                -X github.com/dooservice/gitd/internal/config.loginClientID=${GITD_LOGIN_CLIENT_ID} \
+                -X github.com/dooservice/gitd/internal/config.loginApp=${GITD_LOGIN_APP}" \
+              -o "dist/gitd-windows-${arch}.exe" ./cmd/gitd
+            sha256sum "dist/gitd-windows-${arch}.exe" | cut -d' ' -f1 > "dist/gitd-windows-${arch}.exe.sha256"
           done
       # The notes are docs/releases/<version>.md, written with the release.
       - name: Release notes
