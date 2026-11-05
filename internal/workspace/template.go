@@ -21,14 +21,14 @@ func (workspaces *Workspaces) BuildTemplate(ctx context.Context, key template.Ke
 	}); err != nil {
 		return err
 	}
-	if err := workspaces.runner.SetConfig(ctx, building,
+	if err := workspaces.runner.SetConfig(ctx, building, append([]string{
 		"remote.origin.url", workspaces.pools.Address(key.Repository),
 		"gitd.url", key.Repository.HTTPS(),
 		"gitd.pool", workspaces.pools.Path(key.Repository),
 		"gitd.history", "tips",
 		"core.checkStat", "minimal",
 		"core.trustctime", "false",
-	); err != nil {
+	}, platformSettings()...)...); err != nil {
 		return err
 	}
 	work := job{path: building, repository: key.Repository, revision: atCommit(key.Commit), submodules: key.Submodules}

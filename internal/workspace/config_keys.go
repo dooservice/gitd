@@ -59,7 +59,7 @@ var allowedKeyGroups = []keyGroup{
 		why: "how files and text are handled, without running anything",
 		keys: []string{
 			"core.autocrlf", "core.eol", "core.safecrlf", "core.quotepath",
-			"core.untrackedcache", "core.commitgraph", "core.multipackindex",
+			"core.untrackedcache", "core.commitgraph", "core.multipackindex", "core.longpaths",
 		},
 	},
 	{
