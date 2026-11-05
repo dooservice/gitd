@@ -1,8 +1,14 @@
 package config
 
-import "testing"
+import (
+	"runtime"
+	"testing"
+)
 
 func TestThePackagedConfigurationIsTheDefaults(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("packaging/ is the Linux package; Windows has its own defaults")
+	}
 	packaged, err := Load("../../packaging/gitd.toml")
 	if err != nil {
 		t.Fatal(err)

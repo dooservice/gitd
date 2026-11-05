@@ -106,7 +106,7 @@ func TestASandboxClonesWithItsTokenAndPushesToItsSandboxRepositoryOnly(t *testin
 	}
 
 	work := filepath.Join(endpoint.root, "sandbox")
-	must(t, endpoint.root, "clone", "-q", "--filter=blob:none", endpoint.address(secret, "acme/web"), work)
+	must(t, endpoint.root, "-c", "core.autocrlf=false", "clone", "-q", "--filter=blob:none", endpoint.address(secret, "acme/web"), work)
 	if data, err := os.ReadFile(filepath.Join(work, "README.md")); err != nil || string(data) != "hi\n" {
 		t.Fatalf("the clone has %q, %v", data, err)
 	}
