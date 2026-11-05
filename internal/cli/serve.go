@@ -27,5 +27,7 @@ func addServe(root *cobra.Command, app *app, version string) *string {
 }
 
 func serve(ctx context.Context, configPath, socket, version string) error {
-	return daemon.Run(ctx, configPath, socket, version)
+	return asService(ctx, configPath, func(ctx context.Context) error {
+		return daemon.Run(ctx, configPath, socket, version)
+	})
 }
