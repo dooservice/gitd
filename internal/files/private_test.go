@@ -3,6 +3,7 @@ package files
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 )
 
@@ -18,7 +19,7 @@ func TestAPrivateFileIsReplacedWholeAndReadableByItsOwnerOnly(t *testing.T) {
 			t.Fatalf("read %q, %v; want %q", read, err, content)
 		}
 	}
-	if info, _ := os.Stat(path); info.Mode().Perm() != 0o600 {
+	if info, _ := os.Stat(path); runtime.GOOS != "windows" && info.Mode().Perm() != 0o600 {
 		t.Errorf("mode %v", info.Mode().Perm())
 	}
 	entries, _ := os.ReadDir(directory)

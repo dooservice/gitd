@@ -7,8 +7,9 @@ import (
 )
 
 // WritePrivate writes data to path so that a crash leaves the old file or the new one,
-// never half of either: written aside, synced, moved into place, and the directory synced.
-// The file is readable by gitd's user only.
+// never half of either: written aside, synced, moved into place, and the directory synced
+// where the system can. The file is readable by gitd's user only (on Windows, by its owner,
+// SYSTEM and Administrators).
 func WritePrivate(path string, data []byte) error {
 	directory := filepath.Dir(path)
 	aside, err := os.CreateTemp(directory, ".writing-*")
@@ -16,7 +17,7 @@ func WritePrivate(path string, data []byte) error {
 		return err
 	}
 	defer os.Remove(aside.Name())
-	if err := aside.Chmod(0o600); err != nil {
+	if err := keepPrivate(aside); err != nil {
 		_ = aside.Close()
 		return err
 	}
@@ -34,10 +35,5 @@ func WritePrivate(path string, data []byte) error {
 	if err := os.Rename(aside.Name(), path); err != nil {
 		return err
 	}
-	opened, err := os.Open(directory)
-	if err != nil {
-		return err
-	}
-	defer opened.Close()
-	return opened.Sync()
+	return syncDirectory(directory)
 }
