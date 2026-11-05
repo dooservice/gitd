@@ -5,7 +5,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"syscall"
 )
 
 // Detect picks how workspaces are made on this machine, from what is wanted — Overlay or
@@ -141,15 +140,10 @@ func probeReflink(state string, roots []string) error {
 }
 
 func sameFilesystem(one, other string) bool {
-	first, err := os.Stat(one)
-	if err != nil {
+	first, ok := deviceOf(one)
+	if !ok {
 		return false
 	}
-	second, err := os.Stat(other)
-	if err != nil {
-		return false
-	}
-	a, okA := first.Sys().(*syscall.Stat_t)
-	b, okB := second.Sys().(*syscall.Stat_t)
-	return okA && okB && a.Dev == b.Dev
+	second, ok := deviceOf(other)
+	return ok && first == second
 }
