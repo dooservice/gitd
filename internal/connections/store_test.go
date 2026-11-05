@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -50,7 +51,7 @@ func TestAConnectionIsKeptAcrossRestartsWithItsSecretSealed(t *testing.T) {
 	if strings.Contains(string(data), "glpat-secret") {
 		t.Error("the secret is on disk as it is, though a key was given")
 	}
-	if info, _ := os.Stat(file); info.Mode().Perm() != 0o600 {
+	if info, _ := os.Stat(file); runtime.GOOS != "windows" && info.Mode().Perm() != 0o600 {
 		t.Errorf("the file's mode is %v", info.Mode().Perm())
 	}
 
