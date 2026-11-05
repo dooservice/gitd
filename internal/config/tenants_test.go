@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -17,6 +18,9 @@ func loaded(t *testing.T, text string) (Config, error) {
 }
 
 func TestATenantHasAKeyRootsOfItsOwnAndLimitsGitdCanUse(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("written with Linux paths, which are not absolute on Windows")
+	}
 	settings, err := loaded(t, `
 state = "/var/lib/gitd"
 [[tenants]]

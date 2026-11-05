@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strings"
 	"testing"
@@ -125,13 +126,17 @@ func agentWork(t *testing.T, ws, main, feature string) {
 	expect(t, status(t, ws), " M README.md\n?? src/new.go", "after a new file")
 	must(t, os.Remove(filepath.Join(ws, "src", "old.go")))
 	must(t, os.Chmod(filepath.Join(ws, "run.sh"), 0o644))
-	expect(t, status(t, ws), " M README.md\n M run.sh\n D src/old.go\n?? src/new.go", "after a delete and a mode change")
+	changed := " M README.md\n M run.sh\n D src/old.go\n?? src/new.go"
+	if runtime.GOOS == "windows" {
+		changed = " M README.md\n D src/old.go\n?? src/new.go"
+	}
+	expect(t, status(t, ws), changed, "after a delete and a mode change, which Windows does not keep")
 
 	git(t, ws, "stash", "push", "-q", "--include-untracked")
 	expect(t, status(t, ws), "", "after stash")
 	expect(t, read(t, filepath.Join(ws, "README.md")), "hello\n", "README after stash")
 	git(t, ws, "stash", "pop", "-q")
-	expect(t, status(t, ws), " M README.md\n M run.sh\n D src/old.go\n?? src/new.go", "after stash pop")
+	expect(t, status(t, ws), changed, "after stash pop")
 
 	git(t, ws, "checkout", "-q", "-b", "agent/work")
 	git(t, ws, "add", "-A")

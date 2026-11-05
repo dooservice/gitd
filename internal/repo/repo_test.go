@@ -1,6 +1,9 @@
 package repo
 
-import "testing"
+import (
+	"path/filepath"
+	"testing"
+)
 
 func TestEveryShapeOfAnAddressNamesTheSameRepository(t *testing.T) {
 	want := Repo{Host: "github.com", Path: "oca/web"}
@@ -94,11 +97,11 @@ func TestARelativeSubmoduleIsResolvedAgainstItsSuperproject(t *testing.T) {
 
 func TestThePoolOfARepositoryStaysUnderThePoolsDirectory(t *testing.T) {
 	repository := Repo{Host: "github.com", Path: "oca/web"}
-	if got := repository.Dir("/pools"); got != "/pools/github.com/oca/web.git" {
+	if got := repository.Dir("/pools"); got != filepath.FromSlash("/pools/github.com/oca/web.git") {
 		t.Errorf("Dir = %q", got)
 	}
 	nested := Repo{Host: "gitlab.com", Path: "acme/tools/web"}
-	if got := nested.Dir("/pools"); got != "/pools/gitlab.com/acme/tools/web.git" {
+	if got := nested.Dir("/pools"); got != filepath.FromSlash("/pools/gitlab.com/acme/tools/web.git") {
 		t.Errorf("Dir = %q", got)
 	}
 }

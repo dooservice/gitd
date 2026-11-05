@@ -3,6 +3,7 @@ package workspace
 import (
 	"context"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	gitdv1 "github.com/dooservice/gitd/gen/go/gitd/v1"
@@ -38,6 +39,9 @@ func TestWatchersHearWhatHappensToAWorkspace(t *testing.T) {
 }
 
 func TestALayersFingerprintChangesWithWhatIsWrittenThere(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("layers are an overlay's, which Windows has not")
+	}
 	layer := t.TempDir()
 	write(t, filepath.Join(layer, "src/app.go"), "a")
 	before := fingerprint(layer)
