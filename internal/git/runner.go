@@ -2,8 +2,8 @@
 //
 // Every process gets an environment built here rather than gitd's own: inheriting it once
 // made a private repository look public, because the editor's `GIT_ASKPASS` answered for
-// it. Killing a call kills git's whole process group, because git starts children of its
-// own that would otherwise outlive it.
+// it. Killing a call kills git's whole process group (a job object on Windows), because git
+// starts children of its own that would otherwise outlive it.
 package git
 
 import (
@@ -13,7 +13,6 @@ import (
 	"os/exec"
 	"strings"
 	"sync/atomic"
-	"syscall"
 	"time"
 
 	"github.com/dooservice/gitd/internal/progress"
@@ -62,10 +61,11 @@ func (runner *Runner) Run(ctx context.Context, command Cmd) (string, error) {
 	process := exec.CommandContext(ctx, runner.binary, append(hardened(command.Local), command.Args...)...)
 	process.Dir = command.Dir
 	process.Env = append(append([]string{}, runner.environment...), command.Env...)
-	process.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
-	process.Cancel = func() error {
-		return syscall.Kill(-process.Process.Pid, syscall.SIGKILL)
+	group, err := newProcessGroup(process)
+	if err != nil {
+		return "", Fail(Failed, "git %s could not start: %v", command.Args[0], err)
 	}
+	defer group.close()
 	process.WaitDelay = 5 * time.Second
 
 	var stdout bytes.Buffer
@@ -77,7 +77,7 @@ func (runner *Runner) Run(ctx context.Context, command Cmd) (string, error) {
 	}
 
 	runner.running.Add(1)
-	err := process.Run()
+	err = group.run(process)
 	runner.running.Add(-1)
 	var exit *exec.ExitError
 	if err != nil && command.Differences && errors.As(err, &exit) && exit.ExitCode() == 1 && ctx.Err() == nil {
