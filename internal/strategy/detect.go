@@ -38,9 +38,11 @@ func Detect(want Name, state string, roots []string, mounters ...Mounter) (Maker
 	}
 	why := "overlay cannot run here: " + strings.Join(reasons, "; ")
 	if preferReflink {
-		if err := probeReflink(state, roots); err == nil {
+		err := probeReflink(state, roots)
+		if err == nil {
 			return ReflinkMaker{}, "templates are cloned here, with no overlay: " + why
 		}
+		why += "; templates cannot be cloned here: " + err.Error()
 	}
 	return nil, why
 }
