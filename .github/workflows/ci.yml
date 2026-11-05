@@ -92,6 +92,41 @@ jobs:
           grep -q "Clean checkouts as git sees them: 10 of 10" results.md
           cat results.md >> "$GITHUB_STEP_SUMMARY"
 
+  # Windows: the tests, the service installed and answering, and workspaces cloned by
+  # blocks on a Dev Drive, measured.
+  windows:
+    runs-on: windows-2025
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - uses: samypr100/setup-dev-drive@v3
+        with:
+          drive-size: 20GB
+          drive-format: ReFS
+      - run: go test ./...
+      - run: go build -o bin/gitd.exe ./cmd/gitd
+      - name: The service installed, answering the group and removed
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          bin\gitd.exe service install
+          bin\gitd.exe service start
+          bin\gitd.exe service status | Tee-Object -Variable state
+          if ($state -ne "running") { throw "the service is $state" }
+          bin\gitd.exe info
+          if ($LASTEXITCODE -ne 0) { Get-Content C:\ProgramData\gitd\gitd.log; throw "gitd did not answer" }
+          bin\gitd.exe service uninstall
+      - name: Ten workspaces cloned by blocks on a Dev Drive
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          benchmarks\windows.ps1 -Repo https://github.com/OCA/web -Agents 10 -Root "$env:DEV_DRIVE\gitd" | Tee-Object -FilePath results.md
+          if (-not (Select-String -Quiet "made by reflink" results.md)) { throw "workspaces were not cloned by blocks" }
+          if (-not (Select-String -Quiet "Clean checkouts as git sees them: 10 of 10" results.md)) { throw "a workspace was not clean" }
+          Get-Content results.md | Add-Content $env:GITHUB_STEP_SUMMARY
+
   # The bubblewrap example (docs/guides/claude-code-and-codex.md): a command isolated as
   # Claude Code and Codex isolate theirs writes only its workspace.
   bubblewrap:
