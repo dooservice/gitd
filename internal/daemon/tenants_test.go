@@ -45,7 +45,11 @@ func TestTwoTenantsOnOneGitdSeeNothingOfEachOther(t *testing.T) {
 		if _, err := os.Stat(socket); err == nil {
 			break
 		}
-		time.Sleep(50 * time.Millisecond)
+		select {
+		case err := <-served:
+			t.Fatalf("gitd stopped before answering: %v", err)
+		case <-time.After(50 * time.Millisecond):
+		}
 	}
 
 	as := func(key string) *client.Client {
