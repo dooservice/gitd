@@ -47,6 +47,7 @@ func TestTwoTenantsOnOneGitdSeeNothingOfEachOther(t *testing.T) {
 		}
 		select {
 		case err := <-served:
+			served <- err
 			t.Fatalf("gitd stopped before answering: %v", err)
 		case <-time.After(50 * time.Millisecond):
 		}
