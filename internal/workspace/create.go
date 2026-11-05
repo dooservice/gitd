@@ -34,13 +34,13 @@ func (workspaces *Workspaces) create(ctx context.Context, work job) (Result, err
 	if work.full {
 		history = "full"
 	}
-	if err := workspaces.runner.SetConfig(ctx, building.path,
+	if err := workspaces.runner.SetConfig(ctx, building.path, append([]string{
 		"remote.origin.url", workspaces.pools.Address(work.repository),
 		"gitd.url", work.repository.HTTPS(),
 		"gitd.pool", workspaces.pools.Path(work.repository),
 		"gitd.history", history,
 		"gitd.strategy", string(strategy.Copy),
-	); err != nil {
+	}, platformSettings()...)...); err != nil {
 		return Result{}, err
 	}
 	result, used, err := workspaces.bringUp(ctx, building)
