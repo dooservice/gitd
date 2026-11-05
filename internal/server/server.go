@@ -79,7 +79,8 @@ func (server *Server) Routes() http.Handler {
 	return routes
 }
 
-// listen opens the socket, replacing one a previous gitd left, readable by its group only.
+// listen opens the socket, replacing one a previous gitd left, open to its owner and group
+// only (on Windows, to its owner, SYSTEM and Administrators).
 func listen(socket string) (net.Listener, error) {
 	if err := os.MkdirAll(filepath.Dir(socket), 0o755); err != nil {
 		return nil, err
@@ -91,5 +92,9 @@ func listen(socket string) (net.Listener, error) {
 	if err != nil {
 		return nil, err
 	}
-	return listener, os.Chmod(socket, 0o660)
+	if err := restrictSocket(socket); err != nil {
+		_ = listener.Close()
+		return nil, err
+	}
+	return listener, nil
 }
