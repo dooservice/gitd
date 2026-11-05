@@ -67,7 +67,8 @@ func heldElsewhere(uint64) bool { return false }
 // clone makes target share source's blocks, with source's mode and modification time. Block
 // cloning needs both files on one ReFS volume, the target as long as the source and with the
 // same integrity setting, and whole clusters: the last one is rounded up, which the target's
-// length then cuts back.
+// length then cuts back. The target is opened to read as well as write, which setting its
+// integrity needs.
 func clone(source, target string, info fs.FileInfo) error {
 	in, err := os.Open(source)
 	if err != nil {
@@ -78,7 +79,7 @@ func clone(source, target string, info fs.FileInfo) error {
 	if err != nil {
 		return fmt.Errorf("%w: %s is not on ReFS: %v", ErrUnsupported, source, err)
 	}
-	out, err := os.OpenFile(target, os.O_WRONLY|os.O_CREATE|os.O_EXCL, info.Mode().Perm())
+	out, err := os.OpenFile(target, os.O_RDWR|os.O_CREATE|os.O_EXCL, info.Mode().Perm())
 	if err != nil {
 		return err
 	}
