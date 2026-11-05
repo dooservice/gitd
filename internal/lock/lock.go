@@ -1,6 +1,6 @@
 // Package lock serializes the writes on one repository and bounds how many run at once.
 //
-// A lock is held in memory and backed by an flock on disk, so a second gitd, or one that
+// A lock is held in memory and backed by a file lock on disk, so a second gitd, or one that
 // restarted while the first one's git was still running, waits too. Both are taken before
 // git takes its own `.lock` files, which is what lets a stale one be told from a live one.
 package lock
@@ -13,7 +13,6 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
-	"syscall"
 	"time"
 )
 
@@ -63,7 +62,7 @@ func (locks *Locks) Acquire(parent context.Context, key string) (func(), error) 
 	var once sync.Once
 	return func() {
 		once.Do(func() {
-			_ = syscall.Flock(int(file.Fd()), syscall.LOCK_UN)
+			_ = unlockFile(file)
 			_ = file.Close()
 			<-slot
 		})
@@ -81,8 +80,8 @@ func (locks *Locks) slot(key string) chan struct{} {
 	return slot
 }
 
-// flock takes the file lock of key, trying again until ctx ends: flock itself cannot be
-// told to stop waiting.
+// flock takes the file lock of key, trying again until ctx ends: neither flock nor
+// LockFileEx can be told to stop waiting.
 func (locks *Locks) flock(ctx, parent context.Context, key string) (*os.File, error) {
 	sum := sha256.Sum256([]byte(key))
 	file, err := os.OpenFile(filepath.Join(locks.dir, hex.EncodeToString(sum[:12])+".lock"), os.O_CREATE|os.O_RDWR, 0o644)
@@ -90,11 +89,11 @@ func (locks *Locks) flock(ctx, parent context.Context, key string) (*os.File, er
 		return nil, err
 	}
 	for {
-		err = syscall.Flock(int(file.Fd()), syscall.LOCK_EX|syscall.LOCK_NB)
-		if err == nil {
+		held, err := tryLockFile(file)
+		if held {
 			return file, nil
 		}
-		if !errors.Is(err, syscall.EWOULDBLOCK) {
+		if err != nil {
 			_ = file.Close()
 			return nil, err
 		}
