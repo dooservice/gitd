@@ -80,13 +80,13 @@ func (workspaces *Workspaces) initModule(ctx context.Context, workspace *os.Root
 
 // pointAt links a submodule's checkout and its git directory both ways, with relative
 // paths: the checkout's `.git` file and the git directory's `core.worktree`, written as
-// `submodule update` leaves them, with core.bare off.
+// `submodule update` leaves them, with forward slashes on every system and core.bare off.
 func (workspaces *Workspaces) pointAt(ctx context.Context, workspace *os.Root, gitDir, workTree string) error {
 	toGitDir, err := filepath.Rel(workTree, gitDir)
 	if err != nil {
 		return err
 	}
-	if err := workspace.WriteFile(filepath.Join(workTree, ".git"), []byte("gitdir: "+toGitDir+"\n"), 0o644); err != nil {
+	if err := workspace.WriteFile(filepath.Join(workTree, ".git"), []byte("gitdir: "+filepath.ToSlash(toGitDir)+"\n"), 0o644); err != nil {
 		return git.Fail(git.PathRefused, "submodule %s: %v", workTree, err)
 	}
 	toWorkTree, err := filepath.Rel(gitDir, workTree)
@@ -94,7 +94,7 @@ func (workspaces *Workspaces) pointAt(ctx context.Context, workspace *os.Root, g
 		return err
 	}
 	return workspaces.runner.SetConfig(ctx, filepath.Join(workspace.Name(), gitDir),
-		"core.bare", "false", "core.logallrefupdates", "true", "core.worktree", toWorkTree)
+		"core.bare", "false", "core.logallrefupdates", "true", "core.worktree", filepath.ToSlash(toWorkTree))
 }
 
 func exists(path string) bool {
