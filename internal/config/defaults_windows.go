@@ -11,7 +11,7 @@ const DefaultSocket = `C:\ProgramData\gitd\gitd.sock`
 // DefaultPath is the configuration file read when none is given.
 const DefaultPath = `C:\ProgramData\gitd\gitd.toml`
 
-// DefaultState is where pools, templates and workspaces live unless configured. Workspaces
-// are cloned by blocks only on a Dev Drive or another ReFS volume, so state and roots are
-// best moved to one.
-const DefaultState = `C:\ProgramData\gitd`
+// DefaultState is where pools, templates and workspaces live unless configured: apart from
+// the configuration, which holds credentials. Workspaces are cloned by blocks only on a Dev
+// Drive or another ReFS volume, so state and roots are best moved to one.
+const DefaultState = `C:\ProgramData\gitd\state`

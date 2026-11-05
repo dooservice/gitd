@@ -79,12 +79,16 @@ func (handler *handler) Execute(_ []string, requests <-chan svc.ChangeRequest, s
 
 // Install registers gitd at executable as a service started with the machine and restarted
 // when it fails, serving with the configuration at configPath. It creates the group and adds
-// member to it, and gives the group its access to state and roots.
+// member to it, gives the group its access to state and roots, and keeps the configuration,
+// which holds credentials, to SYSTEM and Administrators.
 func Install(executable, configPath, member, state string, roots []string) error {
 	if err := ensureGroup(member); err != nil {
 		return err
 	}
 	if err := grant(state, roots); err != nil {
+		return err
+	}
+	if err := keepPrivate(configPath); err != nil {
 		return err
 	}
 	manager, err := mgr.Connect()
@@ -255,6 +259,23 @@ func grant(state string, roots []string) error {
 		}
 	}
 	return nil
+}
+
+// keepPrivate lets only SYSTEM and Administrators read the configuration, which holds
+// credentials, when it exists.
+func keepPrivate(configPath string) error {
+	if _, err := os.Stat(configPath); err != nil {
+		return nil
+	}
+	descriptor, err := windows.SecurityDescriptorFromString("D:P(A;;FA;;;SY)(A;;FA;;;BA)")
+	if err != nil {
+		return err
+	}
+	dacl, _, err := descriptor.DACL()
+	if err != nil {
+		return err
+	}
+	return windows.SetNamedSecurityInfo(configPath, windows.SE_FILE_OBJECT, windows.DACL_SECURITY_INFORMATION|windows.PROTECTED_DACL_SECURITY_INFORMATION, nil, nil, dacl, nil)
 }
 
 // protect creates dir if needed and replaces its permissions with access, inherited by what
