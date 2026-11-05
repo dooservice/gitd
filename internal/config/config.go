@@ -155,9 +155,6 @@ type Audit struct {
 	Keep        time.Duration `toml:"keep"`
 }
 
-// DefaultMountHelper is where gitd-mount answers unless the configuration says otherwise.
-const DefaultMountHelper = "/run/gitd-mount/gitd-mount.sock"
-
 // Limits bound how much gitd does at once and for how long: fetches and writes running,
 // operations queued behind them and for how long, and how long one call may take.
 type Limits struct {
@@ -182,18 +179,12 @@ type Housekeeping struct {
 	TemplateGrace time.Duration `toml:"template_grace"`
 }
 
-// DefaultSocket is where gitd answers when the configuration says nowhere else.
-const DefaultSocket = "/run/gitd/gitd.sock"
-
-// DefaultPath is the configuration file read when none is given.
-const DefaultPath = "/etc/gitd/gitd.toml"
-
 // Default is the configuration every key falls back to.
 func Default() Config {
 	return Config{
 		Socket: DefaultSocket,
-		State:  "/var/lib/gitd",
-		Roots:  []string{"/var/lib/gitd/workspaces"},
+		State:  DefaultState,
+		Roots:  []string{filepath.Join(DefaultState, "workspaces")},
 		Git:    "git",
 		GitHub: GitHub{LoginClientID: loginClientID, LoginApp: loginApp},
 		Audit: Audit{
