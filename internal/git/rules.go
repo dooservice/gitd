@@ -1,6 +1,9 @@
 package git
 
-import "os"
+import (
+	"os"
+	"runtime"
+)
 
 // subcommands are everything gitd runs git for, and nothing else can be run.
 func subcommands() map[string]bool {
@@ -39,13 +42,14 @@ func subcommands() map[string]bool {
 // hardened is set on the command line, where the repository being read cannot turn any
 // of it back on: no hooks, no fsmonitor, no credential helper, no prompt, no transport but
 // HTTPS and SSH, and no HTTP redirect, so a token sent to a repository's host goes there
-// only: a moved repository fails with where it went, rather than being followed.
+// only: a moved repository fails with where it went, rather than being followed. On Windows
+// paths longer than 260 characters are allowed, as deep trees such as node_modules need.
 func hardened(local bool) []string {
 	file := "protocol.file.allow=never"
 	if local {
 		file = "protocol.file.allow=always"
 	}
-	return []string{
+	flags := []string{
 		"-c", "credential.helper=",
 		"-c", "core.hooksPath=/dev/null",
 		"-c", "core.fsmonitor=false",
@@ -57,7 +61,15 @@ func hardened(local bool) []string {
 		"-c", "protocol.https.allow=always",
 		"-c", file,
 	}
+	if runtime.GOOS == "windows" {
+		flags = append(flags, "-c", "core.longpaths=true")
+	}
+	return flags
 }
+
+// windowsVariables are what a program on Windows cannot run without: networking and
+// cryptography need SYSTEMROOT, and ssh finds its known hosts from USERPROFILE.
+var windowsVariables = []string{"SYSTEMROOT", "WINDIR", "COMSPEC", "PATHEXT", "TEMP", "TMP", "USERPROFILE", "HOMEDRIVE", "HOMEPATH", "PROGRAMDATA"}
 
 // closedEnvironment is the only environment git sees: the little it needs from gitd's own,
 // and global and system configuration switched off.
@@ -73,7 +85,11 @@ func closedEnvironment() []string {
 		"LANG=en_US.UTF-8",
 		"LC_ALL=en_US.UTF-8",
 	}
-	for _, name := range []string{"HOME", "PATH", "LD_LIBRARY_PATH", "TZ"} {
+	kept := []string{"HOME", "PATH", "LD_LIBRARY_PATH", "TZ"}
+	if runtime.GOOS == "windows" {
+		kept = append(kept, windowsVariables...)
+	}
+	for _, name := range kept {
 		if value, ok := os.LookupEnv(name); ok {
 			environment = append(environment, name+"="+value)
 		}
