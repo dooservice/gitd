@@ -69,12 +69,36 @@ func (host Host) Pool(t *testing.T, pools string) string {
 	return dir
 }
 
+// ShallowPool clones the served repository's main tip only into the pool of it under
+// pools, as gitd makes a pool unless the whole history is wanted.
+func (host Host) ShallowPool(t *testing.T, pools string) string {
+	t.Helper()
+	dir := host.Repository.Dir(pools)
+	Git(t, filepath.Dir(pools), "clone", "-q", "--bare", "--depth", "1", "file://"+host.Served, dir)
+	Git(t, dir, "config", "http.sslCAInfo", host.Certificate)
+	return dir
+}
+
 // Commit writes a file in Work, commits it and pushes it to the host's main.
 func (host Host) Commit(t *testing.T, name, content string) {
 	t.Helper()
 	Write(t, filepath.Join(host.Work, name), content)
 	Git(t, host.Work, "add", "-A")
 	Git(t, host.Work, "commit", "-q", "-m", "change "+name)
+	Git(t, host.Work, "push", "-q", "origin", "main")
+}
+
+// CommitAt is Commit, made at when, as git reads a date: a history with an age.
+func (host Host) CommitAt(t *testing.T, name, content, when string) {
+	t.Helper()
+	Write(t, filepath.Join(host.Work, name), content)
+	Git(t, host.Work, "add", "-A")
+	command := exec.Command("git", "-c", "user.name=Test", "-c", "user.email=test@example.com", "commit", "-q", "-m", "change "+name)
+	command.Dir = host.Work
+	command.Env = append(os.Environ(), "GIT_AUTHOR_DATE="+when, "GIT_COMMITTER_DATE="+when)
+	if out, err := command.CombinedOutput(); err != nil {
+		t.Fatalf("committing at %s: %v\n%s", when, err, out)
+	}
 	Git(t, host.Work, "push", "-q", "origin", "main")
 }
 
