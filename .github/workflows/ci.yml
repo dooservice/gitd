@@ -125,6 +125,8 @@ jobs:
           benchmarks\windows.ps1 -Repo https://github.com/OCA/web -Agents 10 -Root "$env:DEV_DRIVE\gitd" | Tee-Object -FilePath results.md
           if (-not (Select-String -Quiet "made by reflink" results.md)) { throw "workspaces were not cloned by blocks" }
           if (-not (Select-String -Quiet "Clean checkouts as git sees them: 10 of 10" results.md)) { throw "a workspace was not clean" }
+          $shared = Select-String -Pattern 'shared by up to (\d+) files' results.md | ForEach-Object { [int]$_.Matches[0].Groups[1].Value }
+          if (-not $shared -or $shared -lt 2) { fsutil file queryExtentsAndRefCounts (Get-ChildItem -Recurse -File "$env:DEV_DRIVE\gitd\workspaces\agent-2" | Sort-Object Length -Descending | Select-Object -First 1).FullName; throw "the workspaces' blocks are not shared" }
           Get-Content results.md | Add-Content $env:GITHUB_STEP_SUMMARY
 
   # The bubblewrap example (docs/guides/claude-code-and-codex.md): a command isolated as
