@@ -1,6 +1,6 @@
 """A Modal sandbox clones from gitd's endpoint, commits and pushes, and gitd publishes it.
 
-Needs `pip install gitd modal`, Modal's token (`modal token new`), and a gitd Modal can
+Needs `pip install gitd-client modal`, Modal's token (`modal token new`), and a gitd Modal can
 reach over the internet: GITD_URL (https://…), GITD_KEY_FILE (the tenant's key), REPOSITORY
 and BRANCH. Not run in CI.
 """
