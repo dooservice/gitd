@@ -60,14 +60,20 @@ git -C "$ROOT/workspaces/fix" -c user.name="gitd e2e" -c user.email="e2e@gitd.de
   --body "An end to end run of gitd: $RUN." | tee "$ROOT/published"
 grep -q '"url": "https://github.com/'"$REPOSITORY"'/pull/' "$ROOT/published" || fail "no pull request was opened"
 
-step "more work on the same branch moves it forward and updates its pull request"
-echo "run $RUN, again" >> "$ROOT/workspaces/fix/e2e-$RUN.txt"
-git -C "$ROOT/workspaces/fix" -c user.name="gitd e2e" -c user.email="e2e@gitd.dev" commit -q -am "e2e: run $RUN, again"
-if "$GITD" publish "$ROOT/workspaces/fix" "agents/e2e-$RUN" 2> "$ROOT/exists"; then
-  fail "a branch that exists was published over without update"
+step "another workspace cannot publish over the branch without update"
+"$GITD" prepare "https://github.com/$REPOSITORY" "$ROOT/workspaces/other" > /dev/null
+echo "another run $RUN" > "$ROOT/workspaces/other/e2e-other-$RUN.txt"
+git -C "$ROOT/workspaces/other" add -A
+git -C "$ROOT/workspaces/other" -c user.name="gitd e2e" -c user.email="e2e@gitd.dev" commit -q -m "e2e: another run $RUN"
+if "$GITD" publish "$ROOT/workspaces/other" "agents/e2e-$RUN" 2> "$ROOT/exists"; then
+  fail "a branch another workspace published was published over without update"
 fi
 grep -q "BRANCH_EXISTS" "$ROOT/exists" || fail "the refusal is not BRANCH_EXISTS"
-"$GITD" --json publish "$ROOT/workspaces/fix" "agents/e2e-$RUN" --update --body "An end to end run of gitd: $RUN, updated." \
+
+step "more work on the same branch, from the same workspace, moves it forward and updates its pull request"
+echo "run $RUN, again" >> "$ROOT/workspaces/fix/e2e-$RUN.txt"
+git -C "$ROOT/workspaces/fix" -c user.name="gitd e2e" -c user.email="e2e@gitd.dev" commit -q -am "e2e: run $RUN, again"
+"$GITD" --json publish "$ROOT/workspaces/fix" "agents/e2e-$RUN" --body "An end to end run of gitd: $RUN, updated." \
   | tee "$ROOT/updated"
 grep -q '"updated": true' "$ROOT/updated" || fail "the pull request was not updated"
 [ "$(grep -o '/pull/[0-9]*' "$ROOT/updated")" = "$(grep -o '/pull/[0-9]*' "$ROOT/published")" ] \
