@@ -10,7 +10,9 @@ import {
   type AuditEntry as AuditEntryMessage,
   type ChangedFile as ChangedFileMessage,
   type ChangesResponse,
+  type DescribeResponse,
   type GitFailure,
+  type ListedWorkspace as ListedWorkspaceMessage,
   type OpenedPullRequest as OpenedPullRequestMessage,
   type PublishResponse,
   type PublishedRepository as PublishedRepositoryMessage,
@@ -24,6 +26,8 @@ import type {
   ChangedFile,
   ChangeKind,
   Changes,
+  Description,
+  ListedWorkspace,
   Probe,
   Published,
   PublishedRepository,
@@ -47,6 +51,31 @@ export function toWorkspace(path: string, result: WorkspaceResult): Workspace {
       reason: submodule.failure?.gitSaid ?? "",
     })),
     lfsPatterns: result.lfsPatterns,
+  };
+}
+
+export function toDescription(answer: DescribeResponse): Description {
+  return {
+    url: answer.url,
+    commit: answer.commit,
+    branch: answer.branch,
+    modified: answer.modified,
+    strategy: strategyName(answer.strategy),
+    submodules: answer.submodules.map((submodule) => ({
+      path: submodule.path,
+      url: submodule.url,
+      commit: submodule.commit,
+      checkedOut: submodule.checkedOut,
+    })),
+    lfsPatterns: answer.lfsPatterns,
+  };
+}
+
+export function toListedWorkspace(listed: ListedWorkspaceMessage): ListedWorkspace {
+  return {
+    path: listed.path,
+    description: listed.description && toDescription(listed.description),
+    published: listed.published,
   };
 }
 

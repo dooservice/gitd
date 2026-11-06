@@ -60,6 +60,14 @@ export interface Description {
   lfsPatterns: string[];
 }
 
+/** A workspace gitd made, and the branches published from it, as gitd recorded them. */
+export interface ListedWorkspace {
+  path: string;
+  /** What it is on disk; absent when gitd could not describe it. */
+  description?: Description;
+  published: string[];
+}
+
 export interface Submodule {
   path: string;
   url: string;

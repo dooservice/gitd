@@ -29,6 +29,8 @@ import {
   toAuditEntry,
   toChangedFiles,
   toChanges,
+  toDescription,
+  toListedWorkspace,
   toWorkspace,
 } from "./convert.js";
 import type {
@@ -43,6 +45,7 @@ import type {
   Diff,
   DiffOptions,
   Info,
+  ListedWorkspace,
   PrepareOptions,
   Probe,
   Published,
@@ -163,21 +166,7 @@ export class Gitd {
 
   /** What a workspace is on disk, without the network. */
   async describe(path: string): Promise<Description> {
-    const answer = await call(() => this.workspaces.describe({ path }));
-    return {
-      url: answer.url,
-      commit: answer.commit,
-      branch: answer.branch,
-      modified: answer.modified,
-      strategy: strategyName(answer.strategy),
-      submodules: answer.submodules.map((submodule) => ({
-        path: submodule.path,
-        url: submodule.url,
-        commit: submodule.commit,
-        checkedOut: submodule.checkedOut,
-      })),
-      lfsPatterns: answer.lfsPatterns,
-    };
+    return toDescription(await call(() => this.workspaces.describe({ path })));
   }
 
   /**
@@ -293,6 +282,12 @@ export class Gitd {
   /** Deletes a workspace; its pool stays. */
   async remove(path: string): Promise<void> {
     await call(() => this.workspaces.remove({ path }));
+  }
+
+  /** Every workspace gitd made, described, with the branches published from each. */
+  async list(): Promise<ListedWorkspace[]> {
+    const answer = await call(() => this.workspaces.list({}));
+    return answer.workspaces.map(toListedWorkspace);
   }
 }
 

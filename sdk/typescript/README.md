@@ -34,6 +34,7 @@ No call takes a credential: gitd reads and publishes with the ones it keeps.
 | `describe(path)` | Its repository, commit, branch, uncommitted changes and submodules |
 | `publish(path, branch?, { requestedBy, pullRequest, provenance, sandbox, update })` | Its commits pushed to a new branch, or to the branch it is on when none is given; with `update`, or a branch it published before, that branch moved forward; its pull request opened or updated, and with `pullRequest.submodules` each submodule's |
 | `remove(path)` | Deleted; its pool stays |
+| `list()` | Every workspace gitd made, described, with the branches published from each |
 | `probe(url)` | Whether it can be read, its default branch and branches |
 | `info()` | Which gitd answers, and how it makes workspaces here and why |
 | `audit({ since, url, limit })` | Every publish, done or refused, newest first |
