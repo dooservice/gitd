@@ -36,6 +36,8 @@ and gitd pushes from the pool with the token it keeps.
   Codeberg or your own, over HTTPS or SSH, on any port, submodules included.
 - **For agents.** `gitd mcp` offers it as Model Context Protocol tools, none of which takes a
   credential.
+- **Linux, macOS and Windows.** Overlay workspaces on Linux, APFS clones on macOS, block
+  clones on a Windows Dev Drive; Docker, Kubernetes and any sandbox with a network.
 
 ## Why gitd
 
@@ -411,9 +413,9 @@ commit lost to a force push is still there for a rollback. A workspace is a plai
 repository whose `objects/info/alternates` points at the pool: it has its own refs, index
 and config, any branch, and can be moved or mounted elsewhere. gitd runs the official `git`
 with a closed environment, no hooks and only HTTPS and SSH, and builds everything aside
-before moving it into place. The design is in [`docs/DESIGN.md`](docs/DESIGN.md), and where
-gitd is going — a GitHub App, publishing policies, changes and diffs for platforms, any
-sandbox, Kubernetes — in [`docs/ROADMAP.md`](docs/ROADMAP.md).
+before moving it into place. The design is in [`docs/DESIGN.md`](docs/DESIGN.md); what each version
+brought, and what comes next — clients for Go and Rust, then 1.0 — in
+[`docs/ROADMAP.md`](docs/ROADMAP.md).
 
 Unlike `git worktree`, workspaces share no refs or config with each other, can check out
 the same branch twice, and survive being mounted into a container.
@@ -459,7 +461,7 @@ its network address when `[endpoint]` sets one, there with a key; the contract i
 [`proto/gitd/v1/gitd.proto`](proto/gitd/v1/gitd.proto). Any language with a
 Connect or gRPC client can call it, and `buf curl` can too. There are clients for
 [Python](sdk/python) (`pip install gitd`) and [TypeScript](sdk/typescript)
-(`npm install gitd-client`).
+(`npm install gitd-client`), on Linux, macOS and Windows; Go and Rust ones are next.
 
 ## Install
 
