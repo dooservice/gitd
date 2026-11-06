@@ -65,6 +65,8 @@ try {
     "| ``git clone --depth 1`` | {0:N2}s each | {1:N1} MB each |" -f $clone, $cloneDisk
     ""
     "- Clean checkouts as git sees them: $clean of $Agents."
+    $served = Select-String -Path "$Root\gitd.log" -Pattern 'procedure=\S*Prepare took=(\S+)' | ForEach-Object { $_.Matches[0].Groups[1].Value }
+    "- What gitd itself took for each prepare, as its log says: $($served -join ', ')."
 }
 finally {
     Stop-Process -Id $serving.Id -Force -ErrorAction SilentlyContinue
