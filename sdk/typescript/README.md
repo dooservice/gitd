@@ -43,5 +43,5 @@ A refusal is a `GitdError` with its `reason` (`AUTH_REQUIRED`, `NOT_FOUND`, `PAT
 
 [`examples/agent.ts`](examples/agent.ts) is an agent's round trip: prepare, commit, publish.
 
-Node 22 or later. Generated from gitd's contract with `npm run generate`; built with
+Node 22 or later, on Linux, macOS and Windows. Generated from gitd's contract with `npm run generate`; built with
 `npm run build`.

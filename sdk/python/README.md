@@ -69,4 +69,4 @@ the message.
 
 No code is generated: the client reads gitd's contract when it starts.
 
-Python 3.11 or later, on Linux. Apache-2.0.
+Python 3.11 or later, on Linux, macOS and Windows. Apache-2.0.
