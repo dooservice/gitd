@@ -69,15 +69,19 @@ func (workspaces *Workspaces) finishMade(ctx context.Context, work job, commit, 
 }
 
 // target is the commit a job goes to, in full, and the branch it follows, if any: the commit
-// asked for, detached; or the tip of the branch asked for, or of the default branch.
+// asked for, detached; or the tip of the branch asked for, or of the default branch. Only a
+// branch someone asked for is checked as a name: the default one is what git itself set as
+// the pool's HEAD.
 func (workspaces *Workspaces) target(ctx context.Context, work job) (commit, branch string, err error) {
 	revision := work.revision.GetCommit()
 	if revision == "" {
 		branch = work.revision.GetBranch()
 		if branch == "" {
 			branch = workspaces.pools.DefaultBranch(ctx, work.repository)
-		}
-		if err := workspaces.validBranch(ctx, branch); err != nil {
+			if branch == "" {
+				return "", "", git.Fail(git.NotFound, "no branch was given, and the repository names no default one")
+			}
+		} else if err := workspaces.validBranch(ctx, branch); err != nil {
 			return "", "", err
 		}
 		revision = "refs/heads/" + branch
