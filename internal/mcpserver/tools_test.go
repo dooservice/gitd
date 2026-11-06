@@ -8,7 +8,7 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
-	"github.com/dooservice/gitd/internal/client"
+	"github.com/dooservice/gitd/client"
 )
 
 // listed is the tools an agent sees, through a real MCP session.

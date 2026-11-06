@@ -1,4 +1,5 @@
-// Package client calls a gitd on its Unix socket, for the command line and the MCP server.
+// Package client calls a gitd, on its Unix socket or on the network: for programs written in
+// Go, and for gitd's own command line and MCP server.
 //
 // It speaks the Connect protocol over HTTP/1.1, which the server answers besides gRPC, so
 // a stream of progress needs nothing more than the standard library.
@@ -20,7 +21,11 @@ import (
 
 	gitdv1 "github.com/dooservice/gitd/gen/go/gitd/v1"
 	"github.com/dooservice/gitd/gen/go/gitd/v1/gitdv1connect"
+	"github.com/dooservice/gitd/internal/config"
 )
+
+// SocketVariable names the environment variable that says where gitd's socket is.
+const SocketVariable = "GITD_SOCKET"
 
 // Client is a gitd on one socket.
 type Client struct {
@@ -41,12 +46,24 @@ func New(socket string) *Client {
 
 // Options say which gitd to call and how: on its Unix socket, or at URL on the network
 // (https, or http on a private network), with Key naming the caller's tenant, and CAFile
-// the certificate authority of a gitd whose certificate the system does not trust.
+// the certificate authority of a gitd whose certificate the system does not trust. With
+// neither Socket nor URL, the socket is $GITD_SOCKET, then the system's default.
 type Options struct {
 	Socket string
 	URL    string
 	Key    string
 	CAFile string
+}
+
+// socket is the socket to call: the one given, else $GITD_SOCKET, else the system's default.
+func (options Options) socket() string {
+	if options.Socket != "" {
+		return options.Socket
+	}
+	if from := os.Getenv(SocketVariable); from != "" {
+		return from
+	}
+	return config.DefaultSocket
 }
 
 // Open returns the gitd options name. Nothing is dialled until the first call.
@@ -64,9 +81,10 @@ func Open(options Options) (*Client, error) {
 		}
 		transport, base = secured, strings.TrimSuffix(options.URL, "/")
 	} else {
+		socket := options.socket()
 		transport = &http.Transport{
 			DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
-				return (&net.Dialer{}).DialContext(ctx, "unix", options.Socket)
+				return (&net.Dialer{}).DialContext(ctx, "unix", socket)
 			},
 		}
 	}

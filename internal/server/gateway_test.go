@@ -13,8 +13,8 @@ import (
 
 	"connectrpc.com/connect"
 
+	"github.com/dooservice/gitd/client"
 	"github.com/dooservice/gitd/internal/apikeys"
-	"github.com/dooservice/gitd/internal/client"
 	"github.com/dooservice/gitd/internal/credentials"
 	"github.com/dooservice/gitd/internal/endpoint"
 	"github.com/dooservice/gitd/internal/git"
