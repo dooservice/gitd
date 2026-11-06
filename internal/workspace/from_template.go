@@ -117,17 +117,17 @@ func (workspaces *Workspaces) validBranch(ctx context.Context, branch string) er
 
 // onBranch puts a workspace made from a template — detached at commit — on branch, where a
 // written workspace's `checkout -B branch origin/branch` leaves it, by writing refs and
-// configuration only. No branch leaves it detached.
+// configuration only, both refs in one transaction. No branch leaves it detached.
 func (workspaces *Workspaces) onBranch(ctx context.Context, path, commit, branch string) error {
 	if branch == "" {
 		return nil
 	}
-	for _, args := range [][]string{
-		{"update-ref", "--end-of-options", "refs/remotes/origin/" + branch, commit},
-		{"update-ref", "--end-of-options", "refs/heads/" + branch, commit},
-		{"symbolic-ref", "HEAD", "refs/heads/" + branch},
+	refs := fmt.Sprintf("update refs/remotes/origin/%s %s\nupdate refs/heads/%s %s\n", branch, commit, branch, commit)
+	for _, command := range []git.Cmd{
+		{Dir: path, Args: []string{"update-ref", "--stdin"}, Input: refs},
+		{Dir: path, Args: []string{"symbolic-ref", "HEAD", "refs/heads/" + branch}},
 	} {
-		if _, err := workspaces.runner.Run(ctx, git.Cmd{Dir: path, Args: args}); err != nil {
+		if _, err := workspaces.runner.Run(ctx, command); err != nil {
 			return fmt.Errorf("putting %s on %s: %w", path, branch, err)
 		}
 	}
