@@ -133,14 +133,23 @@ export class Gitd {
       fullHistory: options.fullHistory ?? false,
       strategy: strategyProto(options.strategy),
       warm: options.warm ?? "",
+      newBranch: options.newBranch ?? "",
     };
     const stream = this.workspaces.prepare(request, { signal: options.signal });
     return toWorkspace(options.path, await drain(stream, options.onProgress));
   }
 
-  /** Brings a workspace to the tip of its branch, or of the branch given. */
+  /**
+   * Brings a workspace to the tip of its branch, or of the branch given; with `merge`, merges
+   * that branch into the one it is on.
+   */
   async update(path: string, options: UpdateOptions = {}): Promise<Workspace> {
-    const request = { path, branch: options.branch ?? "", withSubmodules: options.submodules ?? false };
+    const request = {
+      path,
+      branch: options.branch ?? "",
+      merge: options.merge ?? "",
+      withSubmodules: options.submodules ?? false,
+    };
     const stream = this.workspaces.update(request, { signal: options.signal });
     return toWorkspace(path, await drain(stream, options.onProgress));
   }
@@ -172,11 +181,12 @@ export class Gitd {
   }
 
   /**
-   * Pushes what was committed in a workspace to a new branch, with the credential gitd
-   * keeps, and opens its pull request when the publishing settings or the options say so;
-   * with `update`, moves an earlier publish's branch forward and updates its pull request.
+   * Pushes what was committed in a workspace to a new branch, or to the branch it is on when
+   * none is given, with the credential gitd keeps, and opens its pull request when the
+   * publishing settings or the options say so; with `update`, or on a branch this workspace
+   * published before, moves that branch forward and updates its pull request.
    */
-  async publish(path: string, branch: string, options: PublishOptions = {}): Promise<Published> {
+  async publish(path: string, branch = "", options: PublishOptions = {}): Promise<Published> {
     const answer = await call(() =>
       this.workspaces.publish({
         path,

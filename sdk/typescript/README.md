@@ -28,11 +28,11 @@ No call takes a credential: gitd reads and publishes with the ones it keeps.
 
 | Method | What it does |
 |---|---|
-| `prepare({ url, path, branch, commit, submodules, fullHistory, strategy, onProgress })` | A workspace of a repository at a path under gitd's roots |
-| `update(path, { branch, submodules, onProgress })` | To the tip of its branch, or of the branch given |
+| `prepare({ url, path, branch, commit, submodules, fullHistory, strategy, warm, newBranch, onProgress })` | A workspace of a repository at a path under gitd's roots, on a new branch of its own with `newBranch` |
+| `update(path, { branch, merge, submodules, onProgress })` | To the tip of its branch, or of the branch given; with `merge`, that branch merged into the one it is on |
 | `checkout(path, commit, { submodules, onProgress })` | To a commit, as a rollback does |
 | `describe(path)` | Its repository, commit, branch, uncommitted changes and submodules |
-| `publish(path, branch, { requestedBy, pullRequest, provenance, sandbox, update })` | Its commits pushed to a new branch, or with `update` an earlier publish's branch moved forward; its pull request opened or updated, and with `pullRequest.submodules` each submodule's |
+| `publish(path, branch?, { requestedBy, pullRequest, provenance, sandbox, update })` | Its commits pushed to a new branch, or to the branch it is on when none is given; with `update`, or a branch it published before, that branch moved forward; its pull request opened or updated, and with `pullRequest.submodules` each submodule's |
 | `remove(path)` | Deleted; its pool stays |
 | `probe(url)` | Whether it can be read, its default branch and branches |
 | `info()` | Which gitd answers, and how it makes workspaces here and why |
