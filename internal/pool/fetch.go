@@ -40,7 +40,10 @@ func (pools *Pools) fetch(
 		}
 		refspecs = []string{"+refs/heads/*:refs/heads/*", "+refs/tags/*:refs/tags/*"}
 	default:
-		if shallow {
+		switch {
+		case shallow && want.Since != "":
+			args = append(args, "--shallow-since="+want.Since)
+		case shallow:
 			args = append(args, "--depth", "1")
 		}
 		branches := want.Branches
