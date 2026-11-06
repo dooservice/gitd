@@ -9,7 +9,7 @@ go get github.com/dooservice/gitd/client@latest
 ```
 
 ```go
-gitd, err := client.Open(client.Options{}) // $GITD_SOCKET, then the system's default socket
+gitd, err := client.Open(client.Options{}) // $GITD_SOCKET, then your own gitd's, then the system's
 if err != nil {
 	return err
 }

@@ -105,7 +105,7 @@ func newRoot(app *app, version string) *cobra.Command {
 		Args:          cobra.NoArgs,
 	}
 	root.SetVersionTemplate("{{.Version}}\n")
-	root.PersistentFlags().StringVar(&app.socket, "socket", "", "gitd's Unix socket (default $GITD_SOCKET, then "+config.DefaultSocket+")")
+	root.PersistentFlags().StringVar(&app.socket, "socket", "", "gitd's Unix socket (default $GITD_SOCKET, then the one gitd up runs for you, then "+config.DefaultSocket+")")
 	root.PersistentFlags().BoolVar(&app.asJSON, "json", false, "print the answer as JSON")
 	root.PersistentFlags().StringVar(&app.address, "url", "", "a gitd on the network, https://host:port (default $GITD_URL), instead of the socket")
 	root.PersistentFlags().StringVar(&app.keyFile, "key-file", "", "the file of the key naming your tenant (default $GITD_KEY_FILE, then $GITD_KEY)")
