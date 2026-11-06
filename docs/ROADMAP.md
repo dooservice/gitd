@@ -660,9 +660,10 @@ machine, workspaces sharing their template's disk, and the same contract.
 | **0.12 · 2 Service** ✓ | `gitd service install/start/stop/status/uninstall`; the local group `gitd` reaches the socket, reads pools and templates, changes the workspaces; the configuration stays SYSTEM's and the Administrators' | Installed, started and answering in CI |
 | **0.12 · 3 Fewer git processes** ✓ (0.12.1) | A workspace from a template starts 5 git processes instead of 9 without a branch, 6 instead of 8 with one, on every system | Released in 0.12.1 |
 
-**Measured** (OCA/web, ten workspaces, GitHub's Windows Server 2025 runner): 0.5 to 0.9 s a
-workspace on a Dev Drive, against 1.1 to 1.5 s for `git clone --depth 1`, with no download.
-macOS, which clones a whole tree in one call, takes 0.17 s.
+**Measured** (OCA/web, ten workspaces, GitHub's Windows Server 2025 runner): with 0.12.1,
+about 0.76 s of gitd's own time a workspace on a Dev Drive, against 1.1 to 1.5 s for
+`git clone --depth 1`, with no download. macOS, which clones a whole tree in one call,
+takes 0.10 s.
 
 ### Still open
 
