@@ -11,7 +11,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	gitdv1 "github.com/dooservice/gitd/gen/go/gitd/v1"
-	"github.com/dooservice/gitd/internal/client"
+	"github.com/dooservice/gitd/client"
 )
 
 // print writes an answer as JSON when asked, and as text otherwise.
