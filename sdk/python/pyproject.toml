@@ -3,8 +3,8 @@ requires = ["hatchling>=1.32.4"]
 build-backend = "hatchling.build"
 
 [project]
-name = "gitd"
-version = "0.13.0"
+name = "gitd-client"
+version = "0.14.0"
 description = "Client for gitd: instant, secretless git checkouts for agent sandboxes"
 readme = "README.md"
 license = "Apache-2.0"
@@ -12,7 +12,7 @@ requires-python = ">=3.11"
 keywords = ["git", "ai-agents", "sandbox", "workspace", "grpc"]
 classifiers = [
   "Programming Language :: Python :: 3",
-  "Operating System :: POSIX :: Linux",
+  "Operating System :: OS Independent",
   "Topic :: Software Development :: Version Control :: Git",
 ]
 dependencies = [

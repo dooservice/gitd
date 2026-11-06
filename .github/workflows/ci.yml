@@ -56,6 +56,47 @@ jobs:
       - run: cd sdk/typescript && npm ci && npm run build
       - run: e2e/remote-sdks.sh
 
+  # The Rust client on each system: its generated code up to date, its lints and tests on
+  # the oldest Rust it supports and the current one, and its calls to a real gitd on its
+  # socket and over TLS with a key (e2e/rust-sdk.sh).
+  rust-sdk:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-2025]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - run: rustup toolchain install 1.99 --profile minimal --component rustfmt,clippy && rustup default 1.99
+      - if: runner.os == 'Linux'
+        uses: bufbuild/buf-action@v1
+        with:
+          setup_only: true
+      - name: generated code is up to date
+        if: runner.os == 'Linux'
+        run: |
+          cd sdk/rust
+          buf generate --template buf.gen.yaml ../../proto
+          git diff --exit-code src/gen
+      - name: lints and tests
+        working-directory: sdk/rust
+        run: |
+          cargo fmt --check
+          cargo clippy --locked --all-targets -- -D warnings
+          cargo test --locked
+      - name: the oldest Rust it supports
+        if: runner.os == 'Linux'
+        working-directory: sdk/rust
+        run: rustup toolchain install 1.85 --profile minimal && cargo +1.85 test --locked
+      - run: go build -o bin/ ./cmd/gitd
+      - run: e2e/rust-sdk.sh
+
   # The network example: two tenants on one gitd, and a sandbox on its own network that
   # clones and pushes with a token of gitd's, nothing mounted.
   network:

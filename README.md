@@ -460,9 +460,9 @@ gitd speaks ConnectRPC (gRPC, gRPC-Web and Connect over HTTP) on its Unix socket
 its network address when `[endpoint]` sets one, there with a key; the contract is
 [`proto/gitd/v1/gitd.proto`](proto/gitd/v1/gitd.proto). Any language with a
 Connect or gRPC client can call it, and `buf curl` can too. There are clients for
-[Python](sdk/python) (`pip install gitd`) and [TypeScript](sdk/typescript)
-(`npm install gitd-client`) and [Go](client) (`go get github.com/dooservice/gitd/client`),
-on Linux, macOS and Windows; a Rust one is next.
+[Python](sdk/python) (`pip install gitd-client`) and [TypeScript](sdk/typescript)
+(`npm install gitd-client`), [Go](client) (`go get github.com/dooservice/gitd/client`) and
+[Rust](sdk/rust) (`cargo add gitd-client`), on Linux, macOS and Windows.
 
 ## Install
 
@@ -489,7 +489,7 @@ on Linux, macOS and Windows; a Rust one is next.
 - **From source:** `make build` (Go, the version in `go.mod`); `make test`, `make lint`;
   `make generate` regenerates `gen/` from the `.proto` with `buf`.
 
-Pushing a tag such as `0.10.0` releases the binaries, the image and both clients. Guides
+Pushing a tag such as `0.10.0` releases the binaries, the image and the clients. Guides
 for each kind of sandbox are in [`docs/guides`](docs/guides).
 
 ## Contributing and security

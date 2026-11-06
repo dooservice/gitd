@@ -1,8 +1,9 @@
 name: sdks
 
-# Publishes the clients with each release: gitd on PyPI, gitd-client on npm, and the Go
-# client under the module's own version. PyPI and npm trust this workflow by OIDC (trusted
-# publishing), so no token is kept anywhere.
+# Publishes the clients with each release: gitd on PyPI, gitd-client on npm and on
+# crates.io, and the Go client under the module's own version. PyPI and npm trust this
+# workflow by OIDC (trusted publishing), so no token is kept for them; crates.io does too
+# once its trusted publisher is set, until then it takes the CARGO_REGISTRY_TOKEN secret.
 on:
   push:
     tags:
@@ -64,3 +65,29 @@ jobs:
           git push origin "v${GITHUB_REF_NAME}"
       - name: The module proxy has it
         run: curl -fsS "https://proxy.golang.org/github.com/dooservice/gitd/@v/v${GITHUB_REF_NAME}.info"
+
+  # crates.io lets a trusted publisher be set only on a crate that exists: the first release
+  # publishes with the environment's CARGO_REGISTRY_TOKEN secret, the next ones by OIDC once
+  # the secret is removed.
+  rust:
+    runs-on: ubuntu-24.04
+    environment: crates-io
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      KEPT_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+    defaults:
+      run:
+        working-directory: sdk/rust
+    steps:
+      - uses: actions/checkout@v7
+      - run: rustup toolchain install 1.99 --profile minimal && rustup default 1.99
+      - name: The crate's version is the release's
+        run: grep -qx "version = \"${GITHUB_REF_NAME}\"" Cargo.toml
+      - uses: rust-lang/crates-io-auth-action@v1
+        id: auth
+        if: env.KEPT_TOKEN == ''
+      - run: cargo publish --locked
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token || env.KEPT_TOKEN }}

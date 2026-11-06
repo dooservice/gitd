@@ -1,6 +1,6 @@
 """An E2B sandbox clones from gitd's endpoint, commits and pushes, and gitd publishes it.
 
-Needs `pip install gitd e2b`, E2B_API_KEY, and a gitd E2B can reach over the internet:
+Needs `pip install gitd-client e2b`, E2B_API_KEY, and a gitd E2B can reach over the internet:
 GITD_URL (https://…), GITD_KEY_FILE (the tenant's key), REPOSITORY and BRANCH. Not run in CI.
 """
 

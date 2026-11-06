@@ -1,0 +1,41 @@
+[package]
+name = "gitd-client"
+version = "0.14.0"
+edition = "2024"
+rust-version = "1.85"
+description = "Client for gitd: instant, secretless git checkouts for agent sandboxes"
+license = "Apache-2.0"
+repository = "https://github.com/dooservice/gitd"
+homepage = "https://github.com/dooservice/gitd"
+documentation = "https://docs.rs/gitd-client"
+readme = "README.md"
+keywords = ["git", "ai-agents", "sandbox", "workspace", "grpc"]
+categories = ["api-bindings", "development-tools"]
+include = ["src/**/*.rs", "examples/**/*.rs", "README.md", "Cargo.toml"]
+
+[lib]
+name = "gitd"
+
+[dependencies]
+http = "1"
+hyper-util = { version = "0.1", features = ["tokio"] }
+prost = "0.14"
+prost-types = "0.14"
+thiserror = "2"
+tokio = { version = "1", features = ["rt"] }
+tokio-stream = { version = "0.1", default-features = false }
+tonic = { version = "0.14", default-features = false, features = ["codegen", "channel", "tls-ring", "tls-native-roots"] }
+tonic-prost = "0.14"
+tonic-types = "0.14"
+tower = { version = "0.5", default-features = false, features = ["util"] }
+
+[target.'cfg(unix)'.dependencies]
+tokio = { version = "1", features = ["net"] }
+
+[target.'cfg(windows)'.dependencies]
+async-io = "2"
+futures-io = "0.3"
+uds_windows = "1"
+
+[dev-dependencies]
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }

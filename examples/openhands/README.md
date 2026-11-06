@@ -26,7 +26,7 @@ What each side holds:
 ## Run it
 
 With a gitd serving and a GitHub App kept in it, Docker and the Python client
-(`pip install gitd`):
+(`pip install gitd-client`):
 
 ```sh
 docker build -t gitd-openhands-sandbox examples/openhands/sandbox
