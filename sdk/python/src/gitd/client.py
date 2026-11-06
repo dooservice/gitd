@@ -12,7 +12,7 @@ from .comparison import Comparison, Conflict, Event, Side
 from .connection import Connection, OnProgress
 from .credentials_calls import Credentials
 from .endpoint_calls import Endpoint
-from .models import AuditEntry, Description, Info, Probe, Published, Strategy, Workspace
+from .models import AuditEntry, Description, Info, ListedWorkspace, Probe, Published, Strategy, Workspace
 from .publishing_calls import Publishing
 from .publishing_settings import Provenance, PullRequestOptions
 from .timestamps import Timestamp
@@ -239,6 +239,11 @@ class Gitd:
     def remove(self, path: str) -> None:
         """Deletes a workspace; its pool stays."""
         self.connection.call(methods.REMOVE, messages.RemoveRequest(path=path))
+
+    def list(self) -> list[ListedWorkspace]:
+        """Every workspace gitd made, described, with the branches published from each."""
+        response = self.connection.call(methods.LIST, messages.ListRequest())
+        return [ListedWorkspace.from_message(listed) for listed in response.workspaces]
 
     def audit(
         self,

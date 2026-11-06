@@ -165,6 +165,26 @@ class Description:
 
 
 @dataclass(frozen=True)
+class ListedWorkspace:
+    """A workspace gitd made, what it is on disk, and the branches published from it, as
+    gitd recorded them. description is None when gitd could not describe it."""
+
+    path: str
+    description: Description | None
+    published: list[str] = field(default_factory=list)
+
+    @classmethod
+    def from_message(cls, listed: Any) -> ListedWorkspace:
+        return cls(
+            path=listed.path,
+            description=Description.from_message(listed.description)
+            if listed.HasField("description")
+            else None,
+            published=list(listed.published),
+        )
+
+
+@dataclass(frozen=True)
 class PublishedRepository:
     """A repository a publish pushed. path is the submodule's, empty for the workspace's own
     repository; subjects are the new commits' subjects, newest first."""
