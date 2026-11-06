@@ -2,6 +2,7 @@ package workspace
 
 import (
 	"context"
+	"slices"
 
 	gitdv1 "github.com/dooservice/gitd/gen/go/gitd/v1"
 	"github.com/dooservice/gitd/internal/credentials"
@@ -46,6 +47,12 @@ func (workspaces *Workspaces) Publish(
 	}
 	defer release()
 	entry.Url = repository.HTTPS()
+	if branch == "" {
+		if branch, err = workspaces.onOwnBranch(ctx, path); err != nil {
+			return nil, err
+		}
+		entry.Branch = branch
+	}
 	rules := workspaces.rulesFor(repository)
 	if err := workspaces.validBranch(ctx, branch); err != nil {
 		return nil, err
@@ -62,7 +69,7 @@ func (workspaces *Workspaces) Publish(
 			workspaces.pools.Unstage(ctx, repository, branch)
 		}
 	}()
-	update, fresh := request.GetUpdate(), len(subjects) > 0
+	update, fresh := request.GetUpdate() || slices.Contains(workspaces.pools.Published(repository, path), branch), len(subjects) > 0
 	if !fresh {
 		if err := workspaces.nothingNew(ctx, repository, branch, update, "commit in the workspace first"); err != nil {
 			return nil, err
@@ -110,9 +117,22 @@ func (workspaces *Workspaces) Publish(
 			return nil, err
 		}
 	}
+	if err := workspaces.pools.NotePublished(ctx, repository, path, branch); err != nil {
+		return nil, err
+	}
 	answer.Repository = &gitdv1.PublishedRepository{Url: repository.HTTPS(), Commit: commit, Subjects: subjects}
 	workspaces.openPullRequest(ctx, request, repository, rules, onBranch, answer)
 	return answer, nil
+}
+
+// onOwnBranch is the branch the workspace at path is on, which a publish with no branch
+// given publishes: the one Prepare's new_branch started it on.
+func (workspaces *Workspaces) onOwnBranch(ctx context.Context, path string) (string, error) {
+	branch, on := workspaces.runner.Branch(ctx, path)
+	if !on || branch == "" {
+		return "", git.Fail(git.BadAddress, "say which branch to publish: %s is on none of its own", path)
+	}
+	return branch, nil
 }
 
 // nothingNew answers a publish whose repository brings nothing new: refused, unless it
