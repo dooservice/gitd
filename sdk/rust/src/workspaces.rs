@@ -3,9 +3,9 @@ use crate::error::Error;
 use crate::follow::Follow;
 use crate::proto::revision::Target as RevisionTarget;
 use crate::proto::{
-    CheckoutRequest, DescribeRequest, DescribeResponse, ListWarmRequest, PrepareRequest,
-    PublishRequest, PublishResponse, RemoveRequest, Revision, SealRequest, UpdateRequest,
-    WarmLayer, WorkspaceResult,
+    CheckoutRequest, DescribeRequest, DescribeResponse, ListRequest, ListWarmRequest,
+    ListedWorkspace, PrepareRequest, PublishRequest, PublishResponse, RemoveRequest, Revision,
+    SealRequest, UpdateRequest, WarmLayer, WorkspaceResult,
 };
 use crate::publish_options::PublishOptions;
 use crate::workspace_options::{CheckoutOptions, PrepareOptions, UpdateOptions};
@@ -116,6 +116,16 @@ impl Gitd {
             .remove(RemoveRequest { path: path.into() })
             .await?;
         Ok(())
+    }
+
+    /// Every workspace gitd made, described, with the branches published from each.
+    pub async fn list(&self) -> Result<Vec<ListedWorkspace>, Error> {
+        Ok(self
+            .workspaces()
+            .list(ListRequest {})
+            .await?
+            .into_inner()
+            .workspaces)
     }
 
     /// Seals what was installed in an overlay workspace as the warm layer `name` of its

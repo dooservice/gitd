@@ -37,6 +37,7 @@ No call takes a credential: gitd reads and publishes with the ones it keeps.
 | `compare(first, second, CompareOptions)`, `conflicts(sides, url)` | How two works differ; which pairs do not merge cleanly |
 | `publish(path, branch, PublishOptions { requested_by, pull_request, provenance, sandbox, update })` | Its commits pushed to a new branch, or to the branch it is on when `branch` is empty; with `update`, or a branch it published before, that branch moved forward; its pull request opened or updated |
 | `remove(path)` | Deleted; its pool stays |
+| `list()` | Every workspace gitd made, described, with the branches published from each |
 | `seal(path, name)`, `warm_layers(url)` | Warm layers: what installing dependencies wrote, for later workspaces to stand on |
 | `watch(paths)` | What happens to workspaces, as a stream |
 | `probe(url)` | Whether it can be read, its default branch and branches |
