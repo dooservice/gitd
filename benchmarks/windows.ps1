@@ -68,7 +68,7 @@ try {
     $served = Select-String -Path "$Root\gitd.log" -Pattern 'procedure=\S*Prepare took=(\S+)' | ForEach-Object { $_.Matches[0].Groups[1].Value }
     "- What gitd itself took for each prepare, as its log says: $($served -join ', ')."
     $largest = Get-ChildItem -Recurse -File "$Root\workspaces\agent-2" | Where-Object { $_.FullName -notmatch '\\.git\\' } | Sort-Object Length -Descending | Select-Object -First 1
-    $counts = fsutil file queryExtentsAndRefCounts $largest.FullName 2>&1 | Select-String -Pattern 'Ref(erence)?\s*Count\s*:\s*(0x)?([0-9a-fA-F]+)' | ForEach-Object { [Convert]::ToInt64($_.Matches[0].Groups[3].Value, $(if ($_.Matches[0].Groups[2].Value) { 16 } else { 10 })) }
+    $counts = fsutil file queryExtentsAndRefCounts $largest.FullName 2>&1 | Select-String -Pattern 'Ref:\s*0x([0-9a-fA-F]+)' | ForEach-Object { [Convert]::ToInt64($_.Matches[0].Groups[1].Value, 16) }
     $shared = ($counts | Measure-Object -Maximum).Maximum
     "- Blocks of the largest file of a workspace ({0:N0} KB) are shared by up to $shared files, as ReFS counts them." -f ($largest.Length / 1KB)
     $start = (Measure-Command { foreach ($i in 1..20) { git --version | Out-Null } }).TotalMilliseconds / 20
