@@ -2,14 +2,9 @@ package pool
 
 import (
 	"context"
-	"encoding/pem"
-	"net/http/httptest"
-	"net/url"
-	"os"
 	"os/exec"
 	"path/filepath"
 	"slices"
-	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -18,10 +13,11 @@ import (
 	"github.com/dooservice/gitd/internal/git"
 	"github.com/dooservice/gitd/internal/lock"
 	"github.com/dooservice/gitd/internal/repo"
+	"github.com/dooservice/gitd/internal/testhost"
 )
 
-// host is a repository served over HTTPS by git's own smart HTTP server, taking pushes, with
-// a pool of it that trusts the server's certificate and a token that opens it.
+// host is a repository served over HTTPS (testhost), with a pool of it that trusts the
+// server's certificate and a token that opens it.
 type host struct {
 	pools      *Pools
 	repository repo.Repo
@@ -32,38 +28,18 @@ type host struct {
 
 func newHost(t *testing.T) host {
 	t.Helper()
+	served := testhost.New(t)
 	root := t.TempDir()
-	served := filepath.Join(root, "served", "acme", "web")
-	gitIn(t, root, "init", "-q", "--bare", "-b", "main", served)
-	work := filepath.Join(root, "work")
-	gitIn(t, root, "clone", "-q", served, work)
-	write(t, filepath.Join(work, "README.md"), "hi\n")
-	gitIn(t, work, "add", "-A")
-	gitIn(t, work, "commit", "-q", "-m", "first")
-	gitIn(t, work, "push", "-q", "origin", "main")
-
-	runner := git.NewRunner("git")
-	server := httptest.NewTLSServer(runner.HTTPBackend(filepath.Join(root, "served"), []string{"http.receivepack=true"}))
-	t.Cleanup(server.Close)
-	address, _ := url.Parse(server.URL)
-	port, _ := strconv.Atoi(address.Port())
-	certificate := filepath.Join(root, "server.pem")
-	if err := os.WriteFile(certificate, pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: server.Certificate().Raw}), 0o644); err != nil {
-		t.Fatal(err)
-	}
-
-	repository := repo.Repo{Host: "127.0.0.1", Path: "acme/web"}
 	pools := filepath.Join(root, "pools")
-	gitIn(t, root, "clone", "-q", "--bare", served, repository.Dir(pools))
-	gitIn(t, repository.Dir(pools), "config", "http.sslCAInfo", certificate)
+	served.Pool(t, pools)
 	locks, _ := lock.NewLocks(filepath.Join(root, "locks"), time.Minute)
-	keys, err := credentials.NewKeys(filepath.Join(root, "state"), nil, repo.Hosts{"127.0.0.1": {HTTPSPort: port}}, nil)
+	keys, err := credentials.NewKeys(filepath.Join(root, "state"), nil, served.Hosts, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	return host{
-		pools: New(pools, runner, keys, locks, nil, 0), repository: repository, served: served, work: work,
-		token: []credentials.Credential{{Prefix: "https://127.0.0.1/acme", Token: "t"}},
+		pools: New(pools, git.NewRunner("git"), keys, locks, nil, 0), repository: served.Repository,
+		served: served.Served, work: served.Work, token: served.Token,
 	}
 }
 
