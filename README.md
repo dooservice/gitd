@@ -461,7 +461,8 @@ its network address when `[endpoint]` sets one, there with a key; the contract i
 [`proto/gitd/v1/gitd.proto`](proto/gitd/v1/gitd.proto). Any language with a
 Connect or gRPC client can call it, and `buf curl` can too. There are clients for
 [Python](sdk/python) (`pip install gitd`) and [TypeScript](sdk/typescript)
-(`npm install gitd-client`), on Linux, macOS and Windows; Go and Rust ones are next.
+(`npm install gitd-client`), on Linux, macOS and Windows, and for [Rust](sdk/rust)
+(`cargo add gitd-client`, from 0.14); a Go one is next.
 
 ## Install
 
@@ -488,7 +489,7 @@ Connect or gRPC client can call it, and `buf curl` can too. There are clients fo
 - **From source:** `make build` (Go, the version in `go.mod`); `make test`, `make lint`;
   `make generate` regenerates `gen/` from the `.proto` with `buf`.
 
-Pushing a tag such as `0.10.0` releases the binaries, the image and both clients. Guides
+Pushing a tag such as `0.10.0` releases the binaries, the image and the clients. Guides
 for each kind of sandbox are in [`docs/guides`](docs/guides).
 
 ## Contributing and security
