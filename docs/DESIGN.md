@@ -589,9 +589,11 @@ A client tells its users what happened from the reason, never by parsing the mes
 
 ## 10. Deployment
 
-- The binary is released from this repository: `gitd-linux-amd64` and `gitd-linux-arm64`
-  with their checksums, a GitHub release per tag, and the image `ghcr.io/dooservice/gitd`
-  for both platforms. The image serves by default and is the command line too.
+- The binary is released from this repository: `gitd-linux-amd64` and `gitd-linux-arm64`,
+  `gitd-darwin-amd64` and `gitd-darwin-arm64`, and `gitd-windows-amd64.exe` and
+  `gitd-windows-arm64.exe`, with their checksums, a GitHub release per tag, and the image
+  `ghcr.io/dooservice/gitd` for amd64 and arm64. The image serves by default and is the command line too.
+- On Windows, `gitd service install` runs it as a service (see `docs/guides/windows.md`).
 - `packaging/gitd.service`: user `gitd`, socket `/run/gitd/gitd.sock`, configuration
   `/etc/gitd/gitd.toml`, `ProtectSystem=strict`, `PrivateTmp` and write access only to its
   state. Write access to roots outside `/var/lib/gitd` is added with `ReadWritePaths=` in
