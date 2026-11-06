@@ -53,6 +53,7 @@ func (pools *Pools) Sync(
 	if err != nil {
 		return accessFailed(repository, err)
 	}
+	pools.defaults.forget(repository)
 	if existed {
 		err = pools.fetch(ctx, dir, access, want, false, report)
 	} else {

@@ -31,6 +31,7 @@ type Pools struct {
 	fetches   *lock.Queue
 	staleLock time.Duration
 	recent    *recentSyncs
+	defaults  *defaultBranches
 }
 
 // New returns the pools under dir.
@@ -50,6 +51,7 @@ func New(
 		fetches:   fetches,
 		staleLock: staleLock,
 		recent:    newRecentSyncs(10 * time.Second),
+		defaults:  newDefaultBranches(),
 	}
 }
 
@@ -85,6 +87,13 @@ func (pools *Pools) Has(ctx context.Context, repository repo.Repo, revision stri
 // DefaultBranch is the branch the pool's HEAD points at, as the repository named it when
 // the pool was created.
 func (pools *Pools) DefaultBranch(ctx context.Context, repository repo.Repo) string {
-	branch, _ := pools.runner.Branch(ctx, pools.Path(repository))
-	return strings.TrimSpace(branch)
+	if branch, ok := pools.defaults.get(repository); ok {
+		return branch
+	}
+	branch, ok := pools.runner.Branch(ctx, pools.Path(repository))
+	branch = strings.TrimSpace(branch)
+	if ok && branch != "" {
+		pools.defaults.set(repository, branch)
+	}
+	return branch
 }
