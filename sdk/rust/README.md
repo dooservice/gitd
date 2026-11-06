@@ -1,4 +1,4 @@
-# gitd for Rust
+# gitd-client for Rust
 
 A client for [gitd](https://github.com/dooservice/gitd): instant, secretless git checkouts
 for agent sandboxes. Your agents work in their own copy and publish a branch; they never
