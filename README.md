@@ -459,10 +459,17 @@ ssh_port = 2222       # its key goes in known_hosts as [git.example.com]:2222 ss
 gitd speaks ConnectRPC (gRPC, gRPC-Web and Connect over HTTP) on its Unix socket, and on
 its network address when `[endpoint]` sets one, there with a key; the contract is
 [`proto/gitd/v1/gitd.proto`](proto/gitd/v1/gitd.proto). Any language with a
-Connect or gRPC client can call it, and `buf curl` can too. There are clients for
-[Python](sdk/python) (`pip install gitd-client`) and [TypeScript](sdk/typescript)
-(`npm install gitd-client`), [Go](client) (`go get github.com/dooservice/gitd/client`) and
-[Rust](sdk/rust) (`cargo add gitd-client`), on Linux, macOS and Windows.
+Connect or gRPC client can call it, and `buf curl` can too.
+
+Every client is `gitd-client`, released with gitd's own version, on Linux, macOS and
+Windows:
+
+| | Client | Install | Published on |
+|---|---|---|---|
+| <img src="docs/icons/python.svg" width="20" height="20" alt="Python"> | [Python](sdk/python) | `pip install gitd-client` | [PyPI](https://pypi.org/project/gitd-client/) |
+| <img src="docs/icons/typescript.svg" width="20" height="20" alt="TypeScript"> | [TypeScript](sdk/typescript) | `npm install gitd-client` | [npm](https://www.npmjs.com/package/gitd-client) |
+| <img src="docs/icons/go.svg" width="20" height="20" alt="Go"> | [Go](client) | `go get github.com/dooservice/gitd/client` | [pkg.go.dev](https://pkg.go.dev/github.com/dooservice/gitd/client) |
+| <img src="docs/icons/rust.svg" width="20" height="20" alt="Rust"> | [Rust](sdk/rust) | `cargo add gitd-client` | [crates.io](https://crates.io/crates/gitd-client) |
 
 ## Install
 
