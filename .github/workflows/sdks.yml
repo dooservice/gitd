@@ -1,7 +1,8 @@
 name: sdks
 
-# Publishes the clients with each release: gitd on PyPI, gitd-client on npm. Both registries
-# trust this workflow by OIDC (trusted publishing), so no token is kept anywhere.
+# Publishes the clients with each release: gitd on PyPI, gitd-client on npm, and the Go
+# client under the module's own version. PyPI and npm trust this workflow by OIDC (trusted
+# publishing), so no token is kept anywhere.
 on:
   push:
     tags:
@@ -48,3 +49,18 @@ jobs:
         run: '[ "$(node -p "require(\"./package.json\").version")" = "${GITHUB_REF_NAME}" ]'
       - run: npm ci
       - run: npm publish --access public
+
+  # Go finds a module's versions by tags that start with v: 0.13.0 is also tagged v0.13.0,
+  # on the same commit, and the module proxy is asked for it so `go get` finds it at once.
+  go:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - name: Tag v${{ github.ref_name }}
+        run: |
+          git tag "v${GITHUB_REF_NAME}" "${GITHUB_SHA}"
+          git push origin "v${GITHUB_REF_NAME}"
+      - name: The module proxy has it
+        run: curl -fsS "https://proxy.golang.org/github.com/dooservice/gitd/@v/v${GITHUB_REF_NAME}.info"
