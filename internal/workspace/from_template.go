@@ -60,7 +60,7 @@ func (workspaces *Workspaces) finishMade(ctx context.Context, work job, commit, 
 		_ = workspaces.unmake(ctx, work.path)
 		return Result{}, err
 	}
-	made, layers := workspaces.made(ctx, work.path)
+	made, layers := workspaces.madeBy(workspaces.maker.Name(), work.path)
 	result := Result{Commit: commit, Branch: branch, Strategy: made, Layers: layers}
 	if err := workspaces.claim(ctx, work.path, work.repository); err != nil {
 		return Result{}, err
@@ -187,6 +187,11 @@ func (workspaces *Workspaces) made(ctx context.Context, path string) (gitdv1.Str
 	if name == "" {
 		name = strategy.Copy
 	}
+	return workspaces.madeBy(name, path)
+}
+
+// madeBy is a workspace made by name, as the answer says it, with its layers when by overlay.
+func (workspaces *Workspaces) madeBy(name strategy.Name, path string) (gitdv1.Strategy, *gitdv1.Layers) {
 	overlay, ok := workspaces.maker.(*strategy.OverlayMaker)
 	if !ok || name != strategy.Overlay {
 		return name.Proto(), nil
