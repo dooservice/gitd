@@ -12,9 +12,12 @@ import (
 	"github.com/dooservice/gitd/internal/repo"
 )
 
-// mergeIdentity is who a merge commit is by when the workspace names nobody: git takes
-// EMAIL only when user.email is not set, and the name from the account gitd runs as.
-const mergeIdentity = "EMAIL=gitd@localhost"
+// mergeName and mergeEmail are who a merge commit is by when the workspace names nobody:
+// gitd reads no global configuration, and the account it runs as may have no name.
+const (
+	mergeName  = "gitd"
+	mergeEmail = "gitd@localhost"
+)
 
 // merger merges a branch of a workspace's repository into the branch the workspace is on.
 // The pool brings the branch with gitd's credential and the whole history, which finding
@@ -58,7 +61,7 @@ func (merge merger) run(ctx context.Context) (Result, error) {
 		return Result{}, failure
 	}
 	if _, err := workspaces.runner.Run(ctx, git.Cmd{
-		Dir: merge.path, Env: []string{mergeIdentity},
+		Dir: merge.path, Env: merge.identity(ctx),
 		Args: []string{"merge", "--no-edit", "--end-of-options", "refs/remotes/origin/" + merge.branch},
 	}); err != nil {
 		return Result{}, merge.stopped(ctx, onto, err)
@@ -69,6 +72,20 @@ func (merge merger) run(ctx context.Context) (Result, error) {
 	}
 	strategy, layers := workspaces.made(ctx, merge.path)
 	return Result{Commit: commit, Branch: onto, Strategy: strategy, Layers: layers}, nil
+}
+
+// identity names gitd as the merge commit's author and committer for what the workspace's
+// own configuration leaves unset; what it sets, it keeps.
+func (merge merger) identity(ctx context.Context) []string {
+	config := filepath.Join(merge.path, ".git", "config")
+	var unset []string
+	if name, err := merge.workspaces.runner.Config(ctx, config, "user.name"); err != nil || name == "" {
+		unset = append(unset, "GIT_AUTHOR_NAME="+mergeName, "GIT_COMMITTER_NAME="+mergeName)
+	}
+	if email, err := merge.workspaces.runner.Config(ctx, config, "user.email"); err != nil || email == "" {
+		unset = append(unset, "GIT_AUTHOR_EMAIL="+mergeEmail, "GIT_COMMITTER_EMAIL="+mergeEmail)
+	}
+	return unset
 }
 
 // fetch brings the pool's branches into the workspace, and the whole history when the

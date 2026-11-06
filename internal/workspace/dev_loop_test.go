@@ -96,6 +96,9 @@ func TestAWorkspaceOnItsOwnBranchPublishesItTakesMainInAndPublishesAgain(t *test
 	if _, err := os.Stat(filepath.Join(loop.path, "main.go")); err != nil {
 		t.Fatal("main's new file is not in the workspace")
 	}
+	if by := testhost.Git(t, loop.path, "log", "-1", "--format=%an <%ae>"); by != mergeName+" <"+mergeEmail+">" {
+		t.Errorf("the merge commit is by %q; want gitd, as the workspace names nobody", by)
+	}
 
 	loop.publish(t)
 	if head := loop.host.Head(t, "agents/work"); head != merged.Commit {
