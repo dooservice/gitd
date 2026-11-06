@@ -5,8 +5,11 @@ for agent sandboxes. Your agents work in their own copy and publish a branch; th
 see your token.
 
 ```sh
-pip install gitd
+pip install gitd-client
 ```
+
+It is imported as `gitd`. Up to 0.13.0 it was published as `gitd`; from 0.14.0 it is
+`gitd-client`, the name every gitd client has.
 
 ```python
 from gitd import Gitd, GitdError
