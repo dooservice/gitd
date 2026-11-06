@@ -319,6 +319,22 @@ roots. `nosuid,nodev` holds for the mounted view; the filesystem holding the lay
 itself be `nosuid,nodev` (§5), so that a setuid file a sandbox leaves in its upper directory
 is harmless there too.
 
+### On Windows: a service and a group
+
+`gitd service install` runs gitd as LocalSystem, as systemd runs it on Linux, and gives the
+local group `gitd` what the socket's group has there:
+
+- The socket opens only to its owner, SYSTEM, Administrators and the group, with nothing
+  inherited from its directory.
+- The state is SYSTEM's and the Administrators', readable by the group: pools and templates
+  are read by the workspaces that borrow from them. Each root is changeable by the group,
+  and what gitd makes there inherits it.
+- The configuration, which holds credentials, and every file gitd keeps for itself
+  (connections, publishing settings) are SYSTEM's and the Administrators' only, or their
+  owner's when gitd runs in a terminal.
+
+Membership in the group is what a caller on the socket is on Linux: fully trusted.
+
 ### MCP tools say what they do
 
 Each tool says whether it only reads or destroys (a test keeps the annotations right), and
@@ -377,14 +393,16 @@ Known, and left to the deployment or to a later version:
    describes it, and on a written workspace while it reads its changes or conflicts;
    prepare, and changes on overlay, need no pause. Seal only once the sandbox has stopped,
    from one that ran only the install.
-7. Install gitd-mount for overlay workspaces, with its configuration matching gitd's state
+7. On Windows, install it with `gitd service install` and add to the group `gitd` only
+   the accounts that run the platform, never one a sandbox runs as.
+8. Install gitd-mount for overlay workspaces, with its configuration matching gitd's state
    and roots; it is the only part that runs as root.
-8. Keep gitd's state and roots on a `nosuid,nodev` filesystem, limit gitd's outbound
+9. Keep gitd's state and roots on a `nosuid,nodev` filesystem, limit gitd's outbound
    network to the git hosts it serves, and ship the audit log elsewhere.
-9. Serve the network address (`[endpoint]`) over TLS, or on a private network only; never
-   send a key over plain `http://` off the machine. Give each tenant its own key, from a
-   systemd credential, and limits; with tenants, give gitd-mount each tenant's templates,
-   layers and roots.
+10. Serve the network address (`[endpoint]`) over TLS, or on a private network only; never
+    send a key over plain `http://` off the machine. Give each tenant its own key, from a
+    systemd credential, and limits; with tenants, give gitd-mount each tenant's templates,
+    layers and roots.
 
 ## Review
 
