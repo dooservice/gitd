@@ -4,9 +4,9 @@
 milliseconds, takes almost no disk, and never sees a credential — on a server that may host
 the agents of many customers at once.
 
-**Where gitd is now (November 2026):** 0.15.0. It runs on Linux, macOS and Windows; in
+**Where gitd is now (November 2026):** 0.15.1. It runs on Linux, macOS and Windows; in
 Docker, any sandbox with a network, and Kubernetes; with clients for Python, TypeScript, Go
-and Rust; and on a developer's own machine with one command. Next: 0.15.1, then 1.0.
+and Rust; and on a developer's own machine with one command. Next: 1.0.
 
 This document says where gitd is, what each version brings, how and why it is built that
 way, what could go wrong and how it is handled, the order the work is done in, and how
@@ -752,14 +752,16 @@ without saying so, a list of the workspaces, and being told how to get copy-on-w
 The clients — Python, TypeScript, Go and Rust — and the MCP tools (`new_branch`,
 `merge_branch`, `list_workspaces`) have all of it.
 
-### Next: 0.15.1
+### 0.15.1
 
-- **Merging without the whole history.** A merge now brings the repository's whole history,
-  to find the commit both branches share; on a large repository that is hundreds of
-  megabytes the first time. It should deepen only as far as that commit.
-- **A faster list.** `List` starts some six git processes for each workspace, most of them
-  to know whether it was changed: with a hundred workspaces, seconds on Linux and tens of
-  seconds on Windows. They should run side by side.
+- **Merging without the whole history** ✓: the pool brings the branch's history back to
+  when the workspace was made, the commit both branches most likely share and one the
+  workspace holds; the whole history only when git finds no shared commit there. Tested
+  with a shallow pool whose older history stays out.
+- **A faster list** ✓: workspaces described side by side, with one git process less each.
+- **Fixed**: publishing again without `update`, or without a branch, now updates the pull
+  request of the branch published, instead of asking GitHub for another one; the e2e on
+  GitHub checks it.
 
 ---
 
@@ -862,7 +864,7 @@ benchmark, its docs and a release (principle 7).
 | 20 | 0.13 ✓ | A Go client; **release 0.13.0** | 19 |
 | 21 | 0.14 ✓ | A Rust client; **release 0.14.0** | 20 |
 | 22 | 0.15 ✓ | gitd on a developer's machine; **release 0.15.0** | 21 |
-| 23 | 0.15.1 | Merging without the whole history, a faster list | 22 |
+| 23 | 0.15.1 ✓ | Merging without the whole history, a faster list, the pull request of a publish again | 22 |
 | 24 | 1.0 · 0–2 | macOS ✓, Windows ✓ (0.12), guides ✓, stability drafted; release 1.0.0 when the owner declares it | 23 |
 
 **How the work is done.** Heavy runs (benchmarks, spikes, kind clusters) go on GitHub's
