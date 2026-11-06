@@ -2,6 +2,7 @@ package workspace
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"slices"
@@ -27,10 +28,16 @@ type devLoop struct {
 
 func newDevLoop(t *testing.T) devLoop {
 	t.Helper()
+	return newDevLoopWith(t, testhost.Host.Pool)
+}
+
+// newDevLoopWith is a devLoop whose pool is made by makePool.
+func newDevLoopWith(t *testing.T, makePool func(testhost.Host, *testing.T, string) string) devLoop {
+	t.Helper()
 	host := testhost.New(t)
 	root := t.TempDir()
 	pools, roots := filepath.Join(root, "pools"), filepath.Join(root, "workspaces")
-	host.Pool(t, pools)
+	makePool(host, t, pools)
 	if err := os.MkdirAll(roots, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -194,5 +201,35 @@ func TestThePullRequestOfAPublishWithNoBranchIsOfTheBranchPublishedAndUpdatedThe
 	}
 	if asked.GetBranch() != "" || asked.GetUpdate() {
 		t.Error("the caller's request was changed")
+	}
+}
+
+func TestAMergeFromAShallowPoolBringsOnlyTheHistorySinceTheWorkspaceWasMade(t *testing.T) {
+	loop := newDevLoopWith(t, func(host testhost.Host, t *testing.T, pools string) string {
+		for year := range 5 {
+			host.CommitAt(t, "old.go", fmt.Sprintf("old %d\n", year), fmt.Sprintf("%d-01-01T00:00:00Z", 2015+year))
+		}
+		host.CommitAt(t, "base.go", "base\n", "2024-01-01T00:00:00Z")
+		return host.ShallowPool(t, pools)
+	})
+	ctx := context.Background()
+	if _, err := loop.workspaces.Prepare(ctx, &gitdv1.PrepareRequest{
+		Url: loop.host.Repository.HTTPS(), Path: loop.path, NewBranch: "agents/work", Credentials: loop.token,
+	}, nil); err != nil {
+		t.Fatal(err)
+	}
+	pool := loop.host.Repository.Dir(loop.workspaces.pools.Dir)
+	for index := range 30 {
+		loop.host.CommitAt(t, "main.go", fmt.Sprintf("main %d\n", index), fmt.Sprintf("2025-01-01T00:%02d:00Z", index))
+	}
+	loop.commit(t, "a.go", "a\n")
+	if _, err := loop.workspaces.Update(ctx, &gitdv1.UpdateRequest{Path: loop.path, Merge: "main", Credentials: loop.token}, nil); err != nil {
+		t.Fatal(err)
+	}
+	if parents := strings.Fields(testhost.Git(t, loop.path, "rev-list", "--parents", "-n", "1", "HEAD")); len(parents) != 3 {
+		t.Fatalf("HEAD is %v; want a merge commit", parents)
+	}
+	if _, err := os.Stat(filepath.Join(pool, "shallow")); err != nil {
+		t.Error("the pool was given the whole history; want only what the merge needed")
 	}
 }
