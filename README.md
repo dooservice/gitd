@@ -79,6 +79,31 @@ To publish, give gitd a credential in `gitd.toml` (see [Credentials](#credential
 [`examples/openhands`](examples/openhands) runs an OpenHands agent the same way, and gitd
 opens its pull request from a GitHub App's bot; CI runs it on every push.
 
+On your own machine, Linux or macOS, as yourself:
+
+```sh
+curl -fsSL --create-dirs -o ~/.local/bin/gitd https://github.com/dooservice/gitd/releases/latest/download/gitd-linux-amd64
+chmod +x ~/.local/bin/gitd                  # gitd-darwin-arm64 on a Mac; ~/.local/bin on your PATH
+gitd up                                     # gitd down stops it, keeping everything
+gitd prepare https://github.com/OCA/web ~/gitd/workspaces/web
+```
+
+`gitd up` writes your configuration unless you have one, starts gitd as your user service
+(systemd's user instance on Linux, launchd on macOS) and waits until it answers; the
+command line then finds it with no `GITD_SOCKET`. With the GitHub CLI logged in, gitd reads
+its token each time it starts and never writes it down; without it, `gitd connect github`
+signs you in. Where workspaces are copied for want of root, it says the one step that makes
+them copy-on-write. With no user service manager, as in a container, it says how to run
+gitd in a terminal. On Windows it installs the service, from an administrator's terminal.
+
+| | Configuration | State | Socket |
+|---|---|---|---|
+| Linux | `$XDG_CONFIG_HOME/gitd/gitd.toml` (`~/.config`) | `$XDG_STATE_HOME/gitd` (`~/.local/state`) | `$XDG_RUNTIME_DIR/gitd/gitd.sock` |
+| macOS | `~/Library/Application Support/gitd/gitd.toml` | `~/Library/Application Support/gitd/state` | `~/Library/Application Support/gitd/gitd.sock` |
+
+Workspaces go under `~/gitd/workspaces`, on the same filesystem as the state, so that
+templates can be cloned into them.
+
 On a server, without Docker:
 
 ```sh
@@ -140,9 +165,11 @@ gitd connections list | remove ID | add-token PREFIX --token-env VAR | add-githu
 gitd publishing show | set PREFIX [--preset NAME] [--allow PATH] … | remove PREFIX
 gitd publishing preset list | set NAME [--protect P] [--keep P] [--max-files N] | remove NAME
 gitd mcp
+gitd up                              gitd down
 ```
 
-Every command takes `--socket` (default `$GITD_SOCKET`, then `/run/gitd/gitd.sock`) and
+Every command takes `--socket` (default `$GITD_SOCKET`, then the socket of the gitd `gitd up`
+runs for you when it is there, then `/run/gitd/gitd.sock`) and
 `--json`; `--url`, `--key-file` and `--ca-file` (or `$GITD_URL`, `$GITD_KEY_FILE`,
 `$GITD_CA_FILE`) call a gitd on the network instead, naming the caller's tenant. Progress
 shows on a terminal only.
@@ -473,6 +500,8 @@ Windows:
 
 ## Install
 
+- **On your machine:** `gitd up` runs gitd for you, started with your session; see
+  [Quick start](#quick-start).
 - **Binary:** `gitd-linux-amd64` or `gitd-linux-arm64` from the
   [releases](https://github.com/dooservice/gitd/releases), with its checksum; on macOS,
   `gitd-darwin-arm64` or `gitd-darwin-amd64`, where templates are cloned by APFS
@@ -491,8 +520,11 @@ Windows:
   [`packaging/gitd-mount.conf`](packaging/gitd-mount.conf) in `/etc/gitd/` (root's,
   matching gitd's state and roots), and enable
   [`gitd-mount.socket`](packaging/gitd-mount.socket). gitd says at start which way it makes
-  workspaces, and why. Keep gitd's state and roots on a `nosuid,nodev` filesystem, and read
-  [the threat model](docs/THREAT_MODEL.md) before giving workspaces to sandboxes.
+  workspaces, and why; `gitd up` prints these commands for your own gitd, with its user and
+  paths. On btrfs, or XFS with reflink, `strategy = "reflink"` in `[workspaces]` clones
+  templates instead, with no root, saving disk though not time. Keep gitd's state and roots
+  on a `nosuid,nodev` filesystem, and read [the threat model](docs/THREAT_MODEL.md) before
+  giving workspaces to sandboxes.
 - **From source:** `make build` (Go, the version in `go.mod`); `make test`, `make lint`;
   `make generate` regenerates `gen/` from the `.proto` with `buf`.
 
