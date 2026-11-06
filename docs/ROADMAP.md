@@ -631,6 +631,7 @@ publishes, and the pod never holds a credential.
 | Task | What | Done when |
 |---|---|---|
 | **1.0 · 0 macOS** ✓ | A darwin binary with a `clonefile` strategy (APFS's copy-on-write), for laptops | Workspaces on a Mac with almost no disk, measured. **Done**: templates cloned whole by `clonefile(2)`; on a GitHub macOS runner, ten workspaces of OCA/web in 0.159 s and 0.7 MB each, against 1.75 s and 38.1 MB for a shallow clone (`benchmarks/macos.sh`); darwin binaries in the release |
+| **1.0 · 0b Windows** ✓ | Windows binaries, workspaces cloned by blocks on a Dev Drive (ReFS), and gitd as a Windows service | Workspaces on Windows sharing their template's blocks, measured. **Done** in 0.12.0: block cloning file by file on ReFS, elsewhere a copy; `gitd service`; on a GitHub Windows Server 2025 runner, ten workspaces of OCA/web in 0.5–0.9 s each with their blocks shared by all eleven files (`benchmarks/windows.ps1`); windows binaries in the release |
 | **1.0 · 1 Guides** ✓ | One per sandbox: Docker, Kubernetes, E2B, Modal, Claude Code and Codex with bubblewrap | Each guide runs as written. **Done**: `docs/guides`; CI runs Docker's, Kubernetes', macOS's, the endpoint behind E2B's and Modal's, and the bubblewrap behind Claude Code's and Codex's — not E2B, Modal or the agents themselves, which need accounts |
 | **1.0 · 2 Stability** (drafted, not declared) | The contract declared stable; a deprecation policy | Documented. **Done so far**: `docs/STABILITY.md`, the promise and the deprecation policy, as a draft; CI refuses any change that breaks the contract against the last release. The project's owner declares it, and with it 1.0.0 |
 
@@ -652,6 +653,7 @@ Coding agents rarely need it; it waits until users ask.
 | CI runners | Local mount on the same host; the endpoint elsewhere | 0.7 / 0.9 |
 | Kubernetes, GKE Sandbox (gVisor), Kata Containers | CSI driver | 0.10 |
 | macOS laptops | `clonefile` | 1.0 |
+| Windows workstations and servers | Block cloning on a Dev Drive (ReFS); a copy elsewhere | 0.12 |
 
 ---
 
@@ -707,7 +709,7 @@ benchmark, its docs and a release (principle 7).
 | 15 | 0.8 · 6–8 ✓ | Warm layers, OpenHands, proof and docs; **release 0.8.0** | 13, 14 |
 | 16 | 0.9 · 0–6 ✓ | Endpoint, tokens, sandbox repositories, tenants, network, examples, AI review (a person's still due); **release 0.9.0** | 15 |
 | 17 | 0.10 · 0–2 ✓ | CSI node plugin, Helm chart, examples; **release 0.10.0**, with 1.0's macOS and guides | 16 |
-| 18 | 1.0 · 0–2 | macOS ✓, guides ✓, stability drafted; release 1.0.0 when the owner declares it | 16, 17 |
+| 18 | 1.0 · 0–2 | macOS ✓, Windows ✓ (0.12.0), guides ✓, stability drafted; release 1.0.0 when the owner declares it | 16, 17 |
 
 **How the work is done.** Heavy runs (benchmarks, spikes, kind clusters) go on GitHub's
 runners: gitd's repository is public, so they cost nothing, and anyone can run them again.
