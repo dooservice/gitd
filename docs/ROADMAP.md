@@ -4,6 +4,10 @@
 milliseconds, takes almost no disk, and never sees a credential — on a server that may host
 the agents of many customers at once.
 
+**Where gitd is now (November 2026):** 0.12.1. It runs on Linux, macOS and Windows; in
+Docker, any sandbox with a network, and Kubernetes; with clients for Python and TypeScript.
+Next: a Go client (0.13) and a Rust client (0.14), then 1.0.
+
 This document says where gitd is, what each version brings, how and why it is built that
 way, what could go wrong and how it is handled, the order the work is done in, and how
 gitd reaches the people it is for. It is kept up to date as versions ship and as
@@ -217,7 +221,7 @@ calls gitd in a few lines instead of writing a client.
 
 ---
 
-## 0.8 — publishing a company can trust, and what platforms plug into
+## 0.8 — publishing a company can trust, and what platforms plug into (released)
 
 ### Goal
 
@@ -473,7 +477,7 @@ It lands first as `examples/openhands`, run in CI, and is then proposed to OpenH
 
 ---
 
-## 0.9 — any sandbox with a network, and many tenants on one gitd
+## 0.9 — any sandbox with a network, and many tenants on one gitd (released)
 
 ### Goal
 
@@ -572,7 +576,7 @@ limits = { workspaces = 200, disk = "50GB", fetches = 2 }
 
 ---
 
-## 0.10 — Kubernetes: a CSI driver
+## 0.10 — Kubernetes: a CSI driver (released, with macOS)
 
 ### Goal
 
@@ -626,6 +630,88 @@ publishes, and the pod never holds a credential.
 
 ---
 
+## 0.11 — publishing again, and pull requests for submodules (released)
+
+- **Publishing again to the same branch** (`update`): the branch moves only as a
+  fast-forward, never forced, and the pull request open from it is updated instead of a
+  second one being opened.
+- **Pull requests for submodules**: each submodule a branch changes gets its own pull request
+  in its own repository, opened first and listed in the superproject's.
+- A publish without `update` to a branch that already exists is refused, as the contract
+  always said.
+
+Notes: [`docs/releases/0.11.0.md`](releases/0.11.0.md).
+
+---
+
+## 0.12 — Windows (released: 0.12.0, 0.12.1)
+
+### Goal
+
+gitd on Windows workstations and servers, as on Linux and macOS: a service started with the
+machine, workspaces sharing their template's disk, and the same contract.
+
+### What was done
+
+| Task | What | State |
+|---|---|---|
+| **0.12 · 0 Builds** ✓ | gitd compiles and its tests pass on Windows: file locks by `LockFileEx`, git's children ended by a job object, paths and long paths, private files by ACL | CI runs every test on Windows Server 2025 |
+| **0.12 · 1 Block cloning** ✓ | On a Dev Drive or any ReFS volume, templates cloned file by file by block cloning; elsewhere a copy, and `gitd info` says why | ReFS counts each block shared by the template and all ten workspaces in CI |
+| **0.12 · 2 Service** ✓ | `gitd service install/start/stop/status/uninstall`; the local group `gitd` reaches the socket, reads pools and templates, changes the workspaces; the configuration stays SYSTEM's and the Administrators' | Installed, started and answering in CI |
+| **0.12 · 3 Fewer git processes** ✓ (0.12.1) | A workspace from a template starts 5 git processes instead of 9 without a branch, 6 instead of 8 with one, on every system | Released in 0.12.1 |
+
+**Measured** (OCA/web, ten workspaces, GitHub's Windows Server 2025 runner): 0.5 to 0.9 s a
+workspace on a Dev Drive, against 1.1 to 1.5 s for `git clone --depth 1`, with no download.
+macOS, which clones a whole tree in one call, takes 0.17 s.
+
+### Still open
+
+- **Faster cloning on Windows.** Windows clones file by file, each a few calls to the
+  filesystem; the rest of a workspace's time is there. It waits for a measurement that
+  shows where the next saving is.
+
+Notes: [`0.12.0`](releases/0.12.0.md), [`0.12.1`](releases/0.12.1.md).
+
+---
+
+## 0.13 — a Go client (next)
+
+### Goal
+
+A platform written in Go calls gitd in a few lines, as Python and TypeScript ones do.
+
+### How it is built
+
+- The contract's Go code is already public (`gen/go/gitd/v1`); what is missing is the
+  client around it: the socket or a network address, a tenant's key, TLS, clear errors.
+  gitd's own command line has that client (`internal/client`), which Go does not let
+  anyone else import.
+- It moves into a module of its own, `sdk/go`, so a platform does not depend on everything
+  the daemon does, and is released with the same version as gitd and the other clients.
+
+**Done when:** `go get` of the module, a README with an example, and CI calling a gitd
+over the socket and over TLS from it, as it does from Python and TypeScript.
+
+---
+
+## 0.14 — a Rust client
+
+### Goal
+
+Agents written in Rust — Codex CLI and Goose among them — call gitd natively.
+
+### How it is built
+
+- Generated from the contract with `buf`, on `prost` and `tonic` (gitd also speaks gRPC);
+  the socket and the network address with TLS; a tenant's key on every call.
+- Published to crates.io with the same version as gitd. On Windows the socket needs a
+  connector of its own, as tokio has no Unix sockets there.
+
+**Done when:** the crate published, a README with an example, and CI calling a gitd from it
+on Linux, macOS and Windows.
+
+---
+
 ## 1.0 — everywhere developers are
 
 | Task | What | Done when |
@@ -634,6 +720,17 @@ publishes, and the pod never holds a credential.
 | **1.0 · 0b Windows** ✓ | Windows binaries, workspaces cloned by blocks on a Dev Drive (ReFS), and gitd as a Windows service | Workspaces on Windows sharing their template's blocks, measured. **Done** in 0.12.0: block cloning file by file on ReFS, elsewhere a copy; `gitd service`; on a GitHub Windows Server 2025 runner, ten workspaces of OCA/web in 0.5–0.9 s each with their blocks shared by all eleven files (`benchmarks/windows.ps1`); windows binaries in the release |
 | **1.0 · 1 Guides** ✓ | One per sandbox: Docker, Kubernetes, E2B, Modal, Claude Code and Codex with bubblewrap | Each guide runs as written. **Done**: `docs/guides`; CI runs Docker's, Kubernetes', macOS's, the endpoint behind E2B's and Modal's, and the bubblewrap behind Claude Code's and Codex's — not E2B, Modal or the agents themselves, which need accounts |
 | **1.0 · 2 Stability** (drafted, not declared) | The contract declared stable; a deprecation policy | Documented. **Done so far**: `docs/STABILITY.md`, the promise and the deprecation policy, as a draft; CI refuses any change that breaks the contract against the last release. The project's owner declares it, and with it 1.0.0 |
+
+**What 1.0 still needs.** 1.0.0 promises that the contract, the command line and the
+configuration stay as they are (`docs/STABILITY.md`). Before the owner declares it:
+
+- **A person's security review** of the endpoint, tokens, tenants and the Windows service,
+  still due since 0.9 · 6; so far only an AI agent has reviewed them.
+- **The clients for every language a platform uses** — Go (0.13) and Rust (0.14) — and all
+  of them tested by CI on Linux, macOS and Windows.
+- **Kubernetes beyond kind**: the Helm chart installed on a real cluster, and gVisor and
+  Kata tested.
+- **The stability promise declared**, from the draft.
 
 **After 1.0, on demand: git LFS.** Today a workspace holds LFS pointer files, and gitd says
 which (`lfs_patterns`). Supporting LFS means pools fetching LFS objects — another API, often
@@ -709,7 +806,11 @@ benchmark, its docs and a release (principle 7).
 | 15 | 0.8 · 6–8 ✓ | Warm layers, OpenHands, proof and docs; **release 0.8.0** | 13, 14 |
 | 16 | 0.9 · 0–6 ✓ | Endpoint, tokens, sandbox repositories, tenants, network, examples, AI review (a person's still due); **release 0.9.0** | 15 |
 | 17 | 0.10 · 0–2 ✓ | CSI node plugin, Helm chart, examples; **release 0.10.0**, with 1.0's macOS and guides | 16 |
-| 18 | 1.0 · 0–2 | macOS ✓, Windows ✓ (0.12.0), guides ✓, stability drafted; release 1.0.0 when the owner declares it | 16, 17 |
+| 18 | 0.11 ✓ | Publishing again to a branch, pull requests for submodules; **release 0.11.0** | 17 |
+| 19 | 0.12 · 0–3 ✓ | Windows: builds, block cloning, the service; fewer git processes; **releases 0.12.0 and 0.12.1** | 18 |
+| 20 | 0.13 | A Go client; **release 0.13.0** | 19 |
+| 21 | 0.14 | A Rust client; **release 0.14.0** | 20 |
+| 22 | 1.0 · 0–2 | macOS ✓, Windows ✓ (0.12), guides ✓, stability drafted; release 1.0.0 when the owner declares it | 21 |
 
 **How the work is done.** Heavy runs (benchmarks, spikes, kind clusters) go on GitHub's
 runners: gitd's repository is public, so they cost nothing, and anyone can run them again.
