@@ -35,13 +35,15 @@ impl Gitd {
             full_history: options.full_history,
             strategy: options.strategy.unwrap_or_default() as i32,
             warm: options.warm.unwrap_or_default(),
+            new_branch: options.new_branch.unwrap_or_default(),
             ..PrepareRequest::default()
         };
         let stream = self.workspaces().prepare(request).await?.into_inner();
         Follow::new(options.on_progress).result(stream).await
     }
 
-    /// Brings a workspace to the tip of its branch, or of the branch given.
+    /// Brings a workspace to the tip of its branch, or of the branch given; with `merge`,
+    /// merges that branch into the one it is on.
     pub async fn update(
         &self,
         path: impl Into<String>,
@@ -52,6 +54,7 @@ impl Gitd {
             branch: options.branch.unwrap_or_default(),
             with_submodules: options.submodules,
             credentials: Vec::new(),
+            merge: options.merge.unwrap_or_default(),
         };
         let stream = self.workspaces().update(request).await?.into_inner();
         Follow::new(options.on_progress).result(stream).await
@@ -83,9 +86,10 @@ impl Gitd {
             .into_inner())
     }
 
-    /// Pushes what was committed in a workspace to a new branch, with the credential gitd
-    /// keeps, and opens its pull request when the publishing settings or the options say
-    /// so; with `update`, moves an earlier publish's branch forward and updates its pull
+    /// Pushes what was committed in a workspace to a new branch, or to the branch it is on
+    /// when `branch` is empty, with the credential gitd keeps, and opens its pull request
+    /// when the publishing settings or the options say so; with `update`, or on a branch
+    /// this workspace published before, moves that branch forward and updates its pull
     /// request.
     pub async fn publish(
         &self,

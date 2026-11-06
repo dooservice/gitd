@@ -28,14 +28,14 @@ No call takes a credential: gitd reads and publishes with the ones it keeps.
 
 | Method | What it does |
 |---|---|
-| `prepare(url, path, PrepareOptions { branch, commit, submodules, full_history, strategy, warm, on_progress })` | A workspace of a repository at a path under gitd's roots |
-| `update(path, UpdateOptions { branch, submodules, on_progress })` | To the tip of its branch, or of the branch given |
+| `prepare(url, path, PrepareOptions { branch, commit, submodules, full_history, strategy, warm, new_branch, on_progress })` | A workspace of a repository at a path under gitd's roots, on a new branch of its own with `new_branch` |
+| `update(path, UpdateOptions { branch, merge, submodules, on_progress })` | To the tip of its branch, or of the branch given; with `merge`, that branch merged into the one it is on |
 | `checkout(path, commit, CheckoutOptions { submodules, on_progress })` | To a commit, as a rollback does |
 | `describe(path)` | Its repository, commit, branch, uncommitted changes and submodules |
 | `changes(path, include_ignored)` | Each file changed since gitd put it on its commit, with its lines |
 | `diff(path, DiffOptions { files, max_bytes, include_ignored })` | The unified diff of those changes, cut short at a size |
 | `compare(first, second, CompareOptions)`, `conflicts(sides, url)` | How two works differ; which pairs do not merge cleanly |
-| `publish(path, branch, PublishOptions { requested_by, pull_request, provenance, sandbox, update })` | Its commits pushed to a new branch, or with `update` an earlier publish's branch moved forward; its pull request opened or updated |
+| `publish(path, branch, PublishOptions { requested_by, pull_request, provenance, sandbox, update })` | Its commits pushed to a new branch, or to the branch it is on when `branch` is empty; with `update`, or a branch it published before, that branch moved forward; its pull request opened or updated |
 | `remove(path)` | Deleted; its pool stays |
 | `seal(path, name)`, `warm_layers(url)` | Warm layers: what installing dependencies wrote, for later workspaces to stand on |
 | `watch(paths)` | What happens to workspaces, as a stream |

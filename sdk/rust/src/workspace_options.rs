@@ -19,6 +19,9 @@ pub struct PrepareOptions {
     /// A warm layer to stand on, its dependencies installed already: the workspace is then
     /// made by overlay, at the commit the layer was sealed at, or not at all.
     pub warm: Option<String>,
+    /// A branch of its own to start the workspace on, made at the revision for the work
+    /// done in it: [`Gitd::publish`](crate::Gitd::publish) takes it when given no branch.
+    pub new_branch: Option<String>,
     /// Told what git is doing while the workspace is made.
     pub on_progress: Option<OnProgress>,
 }
@@ -28,6 +31,10 @@ pub struct PrepareOptions {
 pub struct UpdateOptions {
     /// The branch to follow; by default the one it follows.
     pub branch: Option<String>,
+    /// A branch of the repository to merge into the one the workspace is on instead, with a
+    /// merge commit: conflicts are refused with [`Reason::Conflict`](crate::Reason::Conflict)
+    /// and stay marked in the workspace, to be resolved and committed there.
+    pub merge: Option<String>,
     /// Bring the submodules along.
     pub submodules: bool,
     /// Told what git is doing meanwhile.
