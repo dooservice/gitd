@@ -10,8 +10,8 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	gitdv1 "github.com/dooservice/gitd/gen/go/gitd/v1"
 	"github.com/dooservice/gitd/client"
+	gitdv1 "github.com/dooservice/gitd/gen/go/gitd/v1"
 )
 
 // tools are gitd's operations as an agent calls them.

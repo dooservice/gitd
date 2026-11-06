@@ -8,8 +8,8 @@ import (
 	"os"
 	"strings"
 
-	gitdv1 "github.com/dooservice/gitd/gen/go/gitd/v1"
 	"github.com/dooservice/gitd/client"
+	gitdv1 "github.com/dooservice/gitd/gen/go/gitd/v1"
 )
 
 // gitdWorkspaces reaches one tenant's part of the gitd on the node, on its socket.
