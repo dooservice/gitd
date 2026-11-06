@@ -59,6 +59,8 @@ const (
 	WorkspaceServiceDescribeProcedure = "/gitd.v1.WorkspaceService/Describe"
 	// WorkspaceServiceRemoveProcedure is the fully-qualified name of the WorkspaceService's Remove RPC.
 	WorkspaceServiceRemoveProcedure = "/gitd.v1.WorkspaceService/Remove"
+	// WorkspaceServiceListProcedure is the fully-qualified name of the WorkspaceService's List RPC.
+	WorkspaceServiceListProcedure = "/gitd.v1.WorkspaceService/List"
 	// WorkspaceServiceAdoptProcedure is the fully-qualified name of the WorkspaceService's Adopt RPC.
 	WorkspaceServiceAdoptProcedure = "/gitd.v1.WorkspaceService/Adopt"
 	// WorkspaceServicePublishProcedure is the fully-qualified name of the WorkspaceService's Publish
@@ -147,7 +149,8 @@ const (
 type WorkspaceServiceClient interface {
 	// Create a workspace at a path, from the repository's pool, at a branch or a commit.
 	Prepare(context.Context, *connect.Request[v1.PrepareRequest]) (*connect.ServerStreamForClient[v1.PrepareResponse], error)
-	// Bring a workspace to the tip of its branch.
+	// Bring a workspace to the tip of its branch, or merge another branch of its repository
+	// into the one it is on.
 	Update(context.Context, *connect.Request[v1.UpdateRequest]) (*connect.ServerStreamForClient[v1.UpdateResponse], error)
 	// Move a workspace to a commit, as a rollback does; the pool fetches it when it lacks it.
 	Checkout(context.Context, *connect.Request[v1.CheckoutRequest]) (*connect.ServerStreamForClient[v1.CheckoutResponse], error)
@@ -157,6 +160,9 @@ type WorkspaceServiceClient interface {
 	Describe(context.Context, *connect.Request[v1.DescribeRequest]) (*connect.Response[v1.DescribeResponse], error)
 	// Delete a workspace. Its pool stays.
 	Remove(context.Context, *connect.Request[v1.RemoveRequest]) (*connect.Response[v1.RemoveResponse], error)
+	// Every workspace gitd made, with what Describe says of each and the branches published
+	// from it.
+	List(context.Context, *connect.Request[v1.ListRequest]) (*connect.Response[v1.ListResponse], error)
 	// Take an existing clone in, linking it to a pool without fetching anything.
 	Adopt(context.Context, *connect.Request[v1.AdoptRequest]) (*connect.ServerStreamForClient[v1.AdoptResponse], error)
 	// Push what was committed in a workspace to a new branch, with a token, so a pull or merge
@@ -237,6 +243,12 @@ func NewWorkspaceServiceClient(httpClient connect.HTTPClient, baseURL string, op
 			connect.WithSchema(workspaceServiceMethods.ByName("Remove")),
 			connect.WithClientOptions(opts...),
 		),
+		list: connect.NewClient[v1.ListRequest, v1.ListResponse](
+			httpClient,
+			baseURL+WorkspaceServiceListProcedure,
+			connect.WithSchema(workspaceServiceMethods.ByName("List")),
+			connect.WithClientOptions(opts...),
+		),
 		adopt: connect.NewClient[v1.AdoptRequest, v1.AdoptResponse](
 			httpClient,
 			baseURL+WorkspaceServiceAdoptProcedure,
@@ -302,6 +314,7 @@ type workspaceServiceClient struct {
 	syncSubmodules *connect.Client[v1.SyncSubmodulesRequest, v1.SyncSubmodulesResponse]
 	describe       *connect.Client[v1.DescribeRequest, v1.DescribeResponse]
 	remove         *connect.Client[v1.RemoveRequest, v1.RemoveResponse]
+	list           *connect.Client[v1.ListRequest, v1.ListResponse]
 	adopt          *connect.Client[v1.AdoptRequest, v1.AdoptResponse]
 	publish        *connect.Client[v1.PublishRequest, v1.PublishResponse]
 	changes        *connect.Client[v1.ChangesRequest, v1.ChangesResponse]
@@ -341,6 +354,11 @@ func (c *workspaceServiceClient) Describe(ctx context.Context, req *connect.Requ
 // Remove calls gitd.v1.WorkspaceService.Remove.
 func (c *workspaceServiceClient) Remove(ctx context.Context, req *connect.Request[v1.RemoveRequest]) (*connect.Response[v1.RemoveResponse], error) {
 	return c.remove.CallUnary(ctx, req)
+}
+
+// List calls gitd.v1.WorkspaceService.List.
+func (c *workspaceServiceClient) List(ctx context.Context, req *connect.Request[v1.ListRequest]) (*connect.Response[v1.ListResponse], error) {
+	return c.list.CallUnary(ctx, req)
 }
 
 // Adopt calls gitd.v1.WorkspaceService.Adopt.
@@ -392,7 +410,8 @@ func (c *workspaceServiceClient) ListWarm(ctx context.Context, req *connect.Requ
 type WorkspaceServiceHandler interface {
 	// Create a workspace at a path, from the repository's pool, at a branch or a commit.
 	Prepare(context.Context, *connect.Request[v1.PrepareRequest], *connect.ServerStream[v1.PrepareResponse]) error
-	// Bring a workspace to the tip of its branch.
+	// Bring a workspace to the tip of its branch, or merge another branch of its repository
+	// into the one it is on.
 	Update(context.Context, *connect.Request[v1.UpdateRequest], *connect.ServerStream[v1.UpdateResponse]) error
 	// Move a workspace to a commit, as a rollback does; the pool fetches it when it lacks it.
 	Checkout(context.Context, *connect.Request[v1.CheckoutRequest], *connect.ServerStream[v1.CheckoutResponse]) error
@@ -402,6 +421,9 @@ type WorkspaceServiceHandler interface {
 	Describe(context.Context, *connect.Request[v1.DescribeRequest]) (*connect.Response[v1.DescribeResponse], error)
 	// Delete a workspace. Its pool stays.
 	Remove(context.Context, *connect.Request[v1.RemoveRequest]) (*connect.Response[v1.RemoveResponse], error)
+	// Every workspace gitd made, with what Describe says of each and the branches published
+	// from it.
+	List(context.Context, *connect.Request[v1.ListRequest]) (*connect.Response[v1.ListResponse], error)
 	// Take an existing clone in, linking it to a pool without fetching anything.
 	Adopt(context.Context, *connect.Request[v1.AdoptRequest], *connect.ServerStream[v1.AdoptResponse]) error
 	// Push what was committed in a workspace to a new branch, with a token, so a pull or merge
@@ -478,6 +500,12 @@ func NewWorkspaceServiceHandler(svc WorkspaceServiceHandler, opts ...connect.Han
 		connect.WithSchema(workspaceServiceMethods.ByName("Remove")),
 		connect.WithHandlerOptions(opts...),
 	)
+	workspaceServiceListHandler := connect.NewUnaryHandler(
+		WorkspaceServiceListProcedure,
+		svc.List,
+		connect.WithSchema(workspaceServiceMethods.ByName("List")),
+		connect.WithHandlerOptions(opts...),
+	)
 	workspaceServiceAdoptHandler := connect.NewServerStreamHandler(
 		WorkspaceServiceAdoptProcedure,
 		svc.Adopt,
@@ -546,6 +574,8 @@ func NewWorkspaceServiceHandler(svc WorkspaceServiceHandler, opts ...connect.Han
 			workspaceServiceDescribeHandler.ServeHTTP(w, r)
 		case WorkspaceServiceRemoveProcedure:
 			workspaceServiceRemoveHandler.ServeHTTP(w, r)
+		case WorkspaceServiceListProcedure:
+			workspaceServiceListHandler.ServeHTTP(w, r)
 		case WorkspaceServiceAdoptProcedure:
 			workspaceServiceAdoptHandler.ServeHTTP(w, r)
 		case WorkspaceServicePublishProcedure:
@@ -595,6 +625,10 @@ func (UnimplementedWorkspaceServiceHandler) Describe(context.Context, *connect.R
 
 func (UnimplementedWorkspaceServiceHandler) Remove(context.Context, *connect.Request[v1.RemoveRequest]) (*connect.Response[v1.RemoveResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("gitd.v1.WorkspaceService.Remove is not implemented"))
+}
+
+func (UnimplementedWorkspaceServiceHandler) List(context.Context, *connect.Request[v1.ListRequest]) (*connect.Response[v1.ListResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("gitd.v1.WorkspaceService.List is not implemented"))
 }
 
 func (UnimplementedWorkspaceServiceHandler) Adopt(context.Context, *connect.Request[v1.AdoptRequest], *connect.ServerStream[v1.AdoptResponse]) error {

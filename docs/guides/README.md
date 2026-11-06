@@ -9,5 +9,10 @@
 | macOS laptops | A workspace cloned by APFS | [macos.md](macos.md) | yes, the macOS job |
 | Windows workstations and servers | A workspace cloned by blocks on a Dev Drive, or copied | [windows.md](windows.md) | yes, the Windows job |
 
+On a developer's own machine, Linux or macOS, `gitd up` runs gitd for them as a user
+service, with its configuration where their system keeps such things, and tells how to have
+workspaces made copy-on-write when they are copied (see the
+[quick start](../../README.md#quick-start)); on Windows it installs the service.
+
 In every case the sandbox gets its workspace and nothing else: no credential of the git
 host, no socket of gitd's. The platform publishes through gitd.

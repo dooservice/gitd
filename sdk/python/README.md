@@ -28,12 +28,13 @@ No call takes a credential: gitd reads and publishes with the ones it keeps.
 
 | Method | What it does |
 |---|---|
-| `prepare(url, path, *, branch, commit, submodules, full_history, strategy, on_progress)` | A workspace of a repository at a path under gitd's roots |
-| `update(path, *, branch, submodules, on_progress)` | To the tip of its branch, or of the branch given |
+| `prepare(url, path, *, branch, commit, submodules, full_history, strategy, warm, new_branch, on_progress)` | A workspace of a repository at a path under gitd's roots, on a new branch of its own with `new_branch` |
+| `update(path, *, branch, merge, submodules, on_progress)` | To the tip of its branch, or of the branch given; with `merge`, that branch merged into the one it is on |
 | `checkout(path, commit, *, submodules, on_progress)` | To a commit, as a rollback does |
 | `describe(path)` | Its repository, commit, branch, uncommitted changes and submodules |
-| `publish(path, branch, *, requested_by, pull_request, provenance, sandbox, update)` | Its commits pushed to a new branch, or with `update` an earlier publish's branch moved forward; its pull request opened or updated |
+| `publish(path, branch=None, *, requested_by, pull_request, provenance, sandbox, update)` | Its commits pushed to a new branch, or to the branch it is on when none is given; with `update`, or a branch it published before, that branch moved forward; its pull request opened or updated |
 | `remove(path)` | Deleted; its pool stays |
+| `list()` | Every workspace gitd made, described, with the branches published from each |
 | `probe(url)` | Whether it can be read, its default branch and branches |
 | `info()` | Which gitd answers, and how it makes workspaces here and why |
 | `audit(*, since, url, limit)` | Every publish, done or refused, newest first |

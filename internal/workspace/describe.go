@@ -90,6 +90,9 @@ func (workspaces *Workspaces) Remove(ctx context.Context, request *gitdv1.Remove
 	if err := workspaces.pools.ForgetBase(ctx, *held, path); err != nil {
 		return err
 	}
+	if err := workspaces.pools.ForgetPublished(ctx, *held, path); err != nil {
+		return err
+	}
 	if err := workspaces.pools.Forget(ctx, *held, path); err != nil {
 		return err
 	}

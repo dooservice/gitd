@@ -8,6 +8,9 @@ import (
 
 func TestTheSocketIsTheOneGivenThenTheVariableThenTheDefault(t *testing.T) {
 	t.Setenv(SocketVariable, "")
+	t.Setenv("HOME", t.TempDir())
+	t.Setenv("XDG_RUNTIME_DIR", "")
+	t.Setenv("XDG_STATE_HOME", "")
 	if got := (Options{}).socket(); got != config.DefaultSocket {
 		t.Errorf("with nothing set, %q; want %q", got, config.DefaultSocket)
 	}

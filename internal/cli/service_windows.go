@@ -5,6 +5,7 @@ package cli
 import (
 	"context"
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
 	"os/user"
@@ -52,27 +53,10 @@ func serviceCommand(app *app) *cobra.Command {
 			"and changing the workspaces. Run it from an administrator's terminal.",
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			settings, err := config.Load(configPath)
-			if err != nil {
-				return fmt.Errorf("reading %s: %w", configPath, err)
-			}
-			executable, err := os.Executable()
-			if err != nil {
+			if err := installService(app.stdout, configPath, member); err != nil {
 				return err
 			}
-			if member == "" {
-				if current, err := user.Current(); err == nil {
-					member = current.Username
-				}
-			}
-			absolute, err := filepath.Abs(configPath)
-			if err != nil {
-				return err
-			}
-			if err := winservice.Install(executable, absolute, member, settings.State, settings.Roots); err != nil {
-				return err
-			}
-			fmt.Fprintf(app.stdout, "installed the service %s; %s may use it once signed in again.\nStart it with: gitd service start\n", winservice.Name, member)
+			fmt.Fprintln(app.stdout, "Start it with: gitd service start")
 			return nil
 		},
 	}
@@ -103,4 +87,31 @@ func serviceCommand(app *app) *cobra.Command {
 	}
 	command.AddCommand(install, uninstall, start, stop, status)
 	return command
+}
+
+// installService installs gitd as the service serving with the configuration at
+// configPath, and lets member use it: the user running it when member is empty.
+func installService(out io.Writer, configPath, member string) error {
+	settings, err := config.Load(configPath)
+	if err != nil {
+		return fmt.Errorf("reading %s: %w", configPath, err)
+	}
+	executable, err := os.Executable()
+	if err != nil {
+		return err
+	}
+	if member == "" {
+		if current, err := user.Current(); err == nil {
+			member = current.Username
+		}
+	}
+	absolute, err := filepath.Abs(configPath)
+	if err != nil {
+		return err
+	}
+	if err := winservice.Install(executable, absolute, member, settings.State, settings.Roots); err != nil {
+		return err
+	}
+	fmt.Fprintf(out, "installed the service %s; %s may use it once signed in again.\n", winservice.Name, member)
+	return nil
 }

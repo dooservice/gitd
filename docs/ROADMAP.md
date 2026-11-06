@@ -4,9 +4,9 @@
 milliseconds, takes almost no disk, and never sees a credential — on a server that may host
 the agents of many customers at once.
 
-**Where gitd is now (November 2026):** 0.14.0. It runs on Linux, macOS and Windows; in
+**Where gitd is now (November 2026):** 0.15.0. It runs on Linux, macOS and Windows; in
 Docker, any sandbox with a network, and Kubernetes; with clients for Python, TypeScript, Go
-and Rust. Next: 1.0.
+and Rust; and on a developer's own machine with one command. Next: 0.15.1, then 1.0.
 
 This document says where gitd is, what each version brings, how and why it is built that
 way, what could go wrong and how it is handled, the order the work is done in, and how
@@ -730,6 +730,39 @@ on Linux, macOS and Windows.
 
 ---
 
+## 0.15 — gitd on a developer's machine
+
+### Goal
+
+What using gitd to work on gitd itself showed was missing: one command to run it, a branch
+of the workspace's own, taking main in without leaving "never forced", publishing again
+without saying so, a list of the workspaces, and being told how to get copy-on-write.
+
+### What was done (0.15.0)
+
+| Task | What | State |
+|---|---|---|
+| **0.15 · 0 `gitd up`** ✓ | `gitd up` and `gitd down`: a per-user configuration by each system's convention, gitd as the user's service (systemd's user instance, launchd, the Windows service), the GitHub CLI's token read at each start and never written; the command line finds the user's socket by itself | Run for real under systemd's user instance and without it; launchd and Windows built |
+| **0.15 · 1 A branch of its own** ✓ | `prepare --new-branch`; `publish PATH` publishes the branch the workspace is on | Tested against a git host on this machine |
+| **0.15 · 2 Taking main in** ✓ | `update --merge main`: the pool brings it with gitd's credential, the workspace merges it with a merge commit; conflicts stay marked, answered `REASON_CONFLICT` | Tested, conflicts included |
+| **0.15 · 3 Publishing again** ✓ | A branch the same workspace published moves forward without `update`, as gitd records outside the workspace; one another workspace published still needs it | Tested both ways |
+| **0.15 · 4 `gitd list`** ✓ | `List`: every workspace gitd made, described, with the branches published from it | Tested |
+| **0.15 · 5 Copy-on-write advice** ✓ | `gitd up` gives the exact steps for gitd-mount, or reflink where the disk allows it; `gitd info` a hint | Shown on Linux when gitd copies |
+
+The clients — Python, TypeScript, Go and Rust — and the MCP tools (`new_branch`,
+`merge_branch`, `list_workspaces`) have all of it.
+
+### Next: 0.15.1
+
+- **Merging without the whole history.** A merge now brings the repository's whole history,
+  to find the commit both branches share; on a large repository that is hundreds of
+  megabytes the first time. It should deepen only as far as that commit.
+- **A faster list.** `List` starts some six git processes for each workspace, most of them
+  to know whether it was changed: with a hundred workspaces, seconds on Linux and tens of
+  seconds on Windows. They should run side by side.
+
+---
+
 ## 1.0 — everywhere developers are
 
 | Task | What | Done when |
@@ -828,7 +861,9 @@ benchmark, its docs and a release (principle 7).
 | 19 | 0.12 · 0–3 ✓ | Windows: builds, block cloning, the service; fewer git processes; **releases 0.12.0 and 0.12.1** | 18 |
 | 20 | 0.13 ✓ | A Go client; **release 0.13.0** | 19 |
 | 21 | 0.14 ✓ | A Rust client; **release 0.14.0** | 20 |
-| 22 | 1.0 · 0–2 | macOS ✓, Windows ✓ (0.12), guides ✓, stability drafted; release 1.0.0 when the owner declares it | 21 |
+| 22 | 0.15 ✓ | gitd on a developer's machine; **release 0.15.0** | 21 |
+| 23 | 0.15.1 | Merging without the whole history, a faster list | 22 |
+| 24 | 1.0 · 0–2 | macOS ✓, Windows ✓ (0.12), guides ✓, stability drafted; release 1.0.0 when the owner declares it | 23 |
 
 **How the work is done.** Heavy runs (benchmarks, spikes, kind clusters) go on GitHub's
 runners: gitd's repository is public, so they cost nothing, and anyone can run them again.

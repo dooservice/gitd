@@ -26,7 +26,7 @@ func (tools *tools) register(server *mcp.Server) {
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "prepare_workspace",
 		Title:       "Prepare a workspace",
-		Description: "Make a workspace (a git checkout) of a repository at an absolute path under gitd's roots, at a branch, a commit or the default branch. Takes seconds after the first time. A workspace gitd already made at that path is moved instead.",
+		Description: "Make a workspace (a git checkout) of a repository at an absolute path under gitd's roots, at a branch, a commit or the default branch. Takes seconds after the first time. Give new_branch to start it on a branch of its own for your work, which publish_branch then takes. A workspace gitd already made at that path is moved instead.",
 		Annotations: &mcp.ToolAnnotations{IdempotentHint: true, DestructiveHint: no(), OpenWorldHint: yes()},
 	}, tools.prepare)
 	mcp.AddTool(server, &mcp.Tool{
@@ -35,6 +35,12 @@ func (tools *tools) register(server *mcp.Server) {
 		Description: "Bring a workspace to the tip of its branch, or of the branch given. Discards uncommitted changes in it.",
 		Annotations: &mcp.ToolAnnotations{IdempotentHint: true, DestructiveHint: yes(), OpenWorldHint: yes()},
 	}, tools.update)
+	mcp.AddTool(server, &mcp.Tool{
+		Name:        "merge_branch",
+		Title:       "Merge a branch into a workspace",
+		Description: "Merge a branch of the workspace's repository, such as main, into the branch the workspace is on, with a merge commit: to take in what others pushed before you publish again. gitd brings the branch with the credential it keeps; nothing is forced. Conflicts stop it and stay marked in the files, for you to resolve and commit.",
+		Annotations: &mcp.ToolAnnotations{DestructiveHint: no(), OpenWorldHint: yes()},
+	}, tools.merge)
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "checkout_commit",
 		Title:       "Check out a commit",
@@ -47,6 +53,12 @@ func (tools *tools) register(server *mcp.Server) {
 		Description: "Say what a workspace is on disk: its repository, commit, branch, whether it has uncommitted changes, and its submodules. Reads nothing from the network.",
 		Annotations: &mcp.ToolAnnotations{ReadOnlyHint: true, IdempotentHint: true, OpenWorldHint: no()},
 	}, tools.describe)
+	mcp.AddTool(server, &mcp.Tool{
+		Name:        "list_workspaces",
+		Title:       "List the workspaces",
+		Description: "List the workspaces gitd made: each one's path, repository, commit, branch, whether it has uncommitted changes, and the branches published from it. Reads nothing from the network.",
+		Annotations: &mcp.ToolAnnotations{ReadOnlyHint: true, IdempotentHint: true, OpenWorldHint: no()},
+	}, tools.list)
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "list_changes",
 		Title:       "List a workspace's changes",
@@ -62,7 +74,7 @@ func (tools *tools) register(server *mcp.Server) {
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "publish_branch",
 		Title:       "Publish a branch",
-		Description: "Push what was committed in a workspace to a new branch of its repository, and open its pull request when gitd's settings say so or you ask. To publish more work to a branch you published before, set update: the branch moves forward and its pull request is updated. gitd pushes with the credential it keeps; the push is never forced, and gitd may refuse a publish that breaks its rules, such as changing the CI or deleting tests. Commit your changes in the workspace first.",
+		Description: "Push what was committed in a workspace to a new branch of its repository, and open its pull request when gitd's settings say so or you ask. Leave branch empty to publish the branch the workspace is on, as new_branch started it. Publishing again to a branch this workspace published moves it forward and updates its pull request; set update to do so for a branch published otherwise. gitd pushes with the credential it keeps; the push is never forced, and gitd may refuse a publish that breaks its rules, such as changing the CI or deleting tests. Commit your changes in the workspace first.",
 		Annotations: &mcp.ToolAnnotations{DestructiveHint: no(), OpenWorldHint: yes()},
 	}, tools.publish)
 	mcp.AddTool(server, &mcp.Tool{
@@ -100,6 +112,12 @@ type prepareInput struct {
 	Commit      string `json:"commit,omitempty" jsonschema:"a commit to check out instead of a branch"`
 	Submodules  bool   `json:"submodules,omitempty" jsonschema:"check the submodules out too"`
 	FullHistory bool   `json:"full_history,omitempty" jsonschema:"bring the whole history, for git log and git blame"`
+	NewBranch   string `json:"new_branch,omitempty" jsonschema:"start the workspace on a new branch of this name, for your work"`
+}
+
+type mergeInput struct {
+	Path   string `json:"path" jsonschema:"absolute path of the workspace"`
+	Branch string `json:"branch" jsonschema:"the branch of the repository to merge in, e.g. main"`
 }
 
 type updateInput struct {
@@ -150,7 +168,7 @@ type diffOutput struct {
 type publishInput struct {
 	Path        string `json:"path,omitempty" jsonschema:"absolute path of the workspace; leave empty to publish from a sandbox instead"`
 	Sandbox     string `json:"sandbox,omitempty" jsonschema:"the sandbox repository a sandbox pushed to through gitd's endpoint, instead of a workspace; branch is then the branch it pushed"`
-	Branch      string `json:"branch" jsonschema:"the new branch to push to, which must not exist yet unless update is set"`
+	Branch      string `json:"branch,omitempty" jsonschema:"the new branch to push to, which must not exist yet unless update is set; default: the branch the workspace is on"`
 	Update      bool   `json:"update,omitempty" jsonschema:"the branch is one you published before: move it forward and update its pull request"`
 	PullRequest bool   `json:"pull_request,omitempty" jsonschema:"open a pull request even when gitd opens them only when asked"`
 	Title       string `json:"title,omitempty" jsonschema:"the pull request's title; default: the newest commit's subject"`
@@ -216,6 +234,18 @@ type describeOutput struct {
 	LFS        []string    `json:"lfs_patterns,omitempty" jsonschema:"files the repository keeps in git LFS: they are pointers here"`
 }
 
+type noInput struct{}
+
+type listOutput struct {
+	Workspaces []listedWorkspace `json:"workspaces"`
+}
+
+type listedWorkspace struct {
+	Path        string          `json:"path"`
+	Description *describeOutput `json:"description,omitempty" jsonschema:"what describe_workspace says of it; absent when gitd cannot read it now"`
+	Published   []string        `json:"published,omitempty" jsonschema:"the branches published from it"`
+}
+
 type published struct {
 	URL      string   `json:"url"`
 	Path     string   `json:"path,omitempty" jsonschema:"the submodule's path; empty for the workspace's own repository"`
@@ -265,7 +295,7 @@ type auditOutput struct {
 // Handlers.
 
 func (tools *tools) prepare(ctx context.Context, _ *mcp.CallToolRequest, in prepareInput) (*mcp.CallToolResult, workspaceOutput, error) {
-	request := &gitdv1.PrepareRequest{Url: in.URL, Path: in.Path, WithSubmodules: in.Submodules, FullHistory: in.FullHistory}
+	request := &gitdv1.PrepareRequest{Url: in.URL, Path: in.Path, WithSubmodules: in.Submodules, FullHistory: in.FullHistory, NewBranch: in.NewBranch}
 	switch {
 	case in.Branch != "" && in.Commit != "":
 		return nil, workspaceOutput{}, errors.New("give a branch or a commit, not both")
@@ -288,17 +318,43 @@ func (tools *tools) checkout(ctx context.Context, _ *mcp.CallToolRequest, in che
 	return nil, workspace(in.Path, result), refusal(err)
 }
 
+func (tools *tools) merge(ctx context.Context, _ *mcp.CallToolRequest, in mergeInput) (*mcp.CallToolResult, workspaceOutput, error) {
+	result, err := tools.gitd.Update(ctx, &gitdv1.UpdateRequest{Path: in.Path, Merge: in.Branch}, nil)
+	return nil, workspace(in.Path, result), refusal(err)
+}
+
 func (tools *tools) describe(ctx context.Context, _ *mcp.CallToolRequest, in pathInput) (*mcp.CallToolResult, describeOutput, error) {
 	answer, err := tools.gitd.Describe(ctx, in.Path)
 	if err != nil {
 		return nil, describeOutput{}, refusal(err)
 	}
+	return nil, described(answer), nil
+}
+
+func described(answer *gitdv1.DescribeResponse) describeOutput {
 	out := describeOutput{
 		URL: answer.GetUrl(), Commit: answer.GetCommit(), Branch: answer.GetBranch(), Modified: answer.GetModified(),
 		Strategy: made(answer.GetStrategy()), LFS: answer.GetLfsPatterns(),
 	}
 	for _, state := range answer.GetSubmodules() {
 		out.Submodules = append(out.Submodules, submodule{Path: state.GetPath(), URL: state.GetUrl(), Commit: state.GetCommit(), CheckedOut: state.GetCheckedOut()})
+	}
+	return out
+}
+
+func (tools *tools) list(ctx context.Context, _ *mcp.CallToolRequest, _ noInput) (*mcp.CallToolResult, listOutput, error) {
+	answer, err := tools.gitd.List(ctx)
+	if err != nil {
+		return nil, listOutput{}, refusal(err)
+	}
+	out := listOutput{Workspaces: []listedWorkspace{}}
+	for _, entry := range answer.GetWorkspaces() {
+		listed := listedWorkspace{Path: entry.GetPath(), Published: entry.GetPublished()}
+		if entry.GetDescription() != nil {
+			description := described(entry.GetDescription())
+			listed.Description = &description
+		}
+		out.Workspaces = append(out.Workspaces, listed)
 	}
 	return nil, out, nil
 }

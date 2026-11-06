@@ -60,6 +60,14 @@ export interface Description {
   lfsPatterns: string[];
 }
 
+/** A workspace gitd made, and the branches published from it, as gitd recorded them. */
+export interface ListedWorkspace {
+  path: string;
+  /** What it is on disk; absent when gitd could not describe it. */
+  description?: Description;
+  published: string[];
+}
+
 export interface Submodule {
   path: string;
   url: string;
@@ -257,11 +265,22 @@ export interface PrepareOptions extends Progressing {
    * by overlay, at the commit the layer was sealed at, or not at all.
    */
   warm?: string;
+  /**
+   * A branch of its own to start the workspace on, made at the revision for the work done
+   * in it: `publish` takes it when given no branch.
+   */
+  newBranch?: string;
 }
 
 export interface UpdateOptions extends Progressing {
   /** The branch to follow; default: the one it follows. */
   branch?: string;
+  /**
+   * A branch of the repository to merge into the one the workspace is on instead, with a
+   * merge commit: conflicts are refused with CONFLICT and stay marked in the workspace, to be
+   * resolved and committed there.
+   */
+  merge?: string;
   submodules?: boolean;
 }
 

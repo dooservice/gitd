@@ -118,6 +118,9 @@ func (workspaces *Workspaces) forgetWorkspace(ctx context.Context, repository re
 	if err := workspaces.pools.ForgetBase(ctx, repository, path); err != nil {
 		return err
 	}
+	if err := workspaces.pools.ForgetPublished(ctx, repository, path); err != nil {
+		return err
+	}
 	if err := workspaces.pools.Forget(ctx, repository, path); err != nil {
 		return err
 	}

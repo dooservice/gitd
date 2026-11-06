@@ -76,3 +76,13 @@ func (server *Server) Publish(
 	}
 	return connect.NewResponse(published), nil
 }
+
+func (server *Server) List(
+	ctx context.Context, _ *connect.Request[gitdv1.ListRequest],
+) (*connect.Response[gitdv1.ListResponse], error) {
+	listed, err := server.Workspaces.List(ctx)
+	if err != nil {
+		return nil, server.refuse(err)
+	}
+	return connect.NewResponse(listed), nil
+}

@@ -68,6 +68,14 @@ func (workspaces *Workspaces) Prepare(
 	if request.GetPoolInside() && (held != nil || work.submodules) {
 		return Result{}, git.Fail(git.Unsupported, "a workspace carries its pool when it is made, and without submodules")
 	}
+	if own := request.GetNewBranch(); own != "" {
+		if held != nil {
+			return Result{}, git.Fail(git.PathRefused, "%s is made already: a workspace starts on a branch of its own only when it is made", path)
+		}
+		if err := workspaces.validBranch(ctx, own); err != nil {
+			return Result{}, err
+		}
+	}
 	if err := workspaces.pools.Sync(ctx, repository, work.given, work.want(), reporter(report, repository)); err != nil {
 		return Result{}, err
 	}
@@ -82,6 +90,11 @@ func (workspaces *Workspaces) Prepare(
 	}
 	if err == nil && request.GetPoolInside() {
 		result.PoolObjects, err = workspaces.carryPool(ctx, path, repository)
+	}
+	if own := request.GetNewBranch(); err == nil && own != "" {
+		if err = workspaces.startOwnBranch(ctx, path, own, result.Commit); err == nil {
+			result.Branch = own
+		}
 	}
 	return result, err
 }

@@ -47,7 +47,8 @@ func New(socket string) *Client {
 // Options say which gitd to call and how: on its Unix socket, or at URL on the network
 // (https, or http on a private network), with Key naming the caller's tenant, and CAFile
 // the certificate authority of a gitd whose certificate the system does not trust. With
-// neither Socket nor URL, the socket is $GITD_SOCKET, then the system's default.
+// neither Socket nor URL, the socket is $GITD_SOCKET, then that of the gitd `gitd up` runs
+// for the user when it is there, then the system's default.
 type Options struct {
 	Socket string
 	URL    string
@@ -55,13 +56,19 @@ type Options struct {
 	CAFile string
 }
 
-// socket is the socket to call: the one given, else $GITD_SOCKET, else the system's default.
+// socket is the socket to call: the one given, else $GITD_SOCKET, else the user's own
+// gitd's when it is there, else the system's default.
 func (options Options) socket() string {
 	if options.Socket != "" {
 		return options.Socket
 	}
 	if from := os.Getenv(SocketVariable); from != "" {
 		return from
+	}
+	if user, ok := config.ForUser(); ok {
+		if info, err := os.Stat(user.Socket); err == nil && info.Mode()&os.ModeSocket != 0 {
+			return user.Socket
+		}
 	}
 	return config.DefaultSocket
 }
@@ -234,6 +241,12 @@ func (client *Client) Describe(ctx context.Context, path string) (*gitdv1.Descri
 		return nil, err
 	}
 	return answer.Msg, nil
+}
+
+// List is every workspace gitd made, with what Describe says of each and the branches
+// published from it.
+func (client *Client) List(ctx context.Context) (*gitdv1.ListResponse, error) {
+	return unary(ctx, client.Workspaces.List, &gitdv1.ListRequest{})
 }
 
 // Remove deletes a workspace.

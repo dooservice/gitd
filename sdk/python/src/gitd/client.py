@@ -12,7 +12,7 @@ from .comparison import Comparison, Conflict, Event, Side
 from .connection import Connection, OnProgress
 from .credentials_calls import Credentials
 from .endpoint_calls import Endpoint
-from .models import AuditEntry, Description, Info, Probe, Published, Strategy, Workspace
+from .models import AuditEntry, Description, Info, ListedWorkspace, Probe, Published, Strategy, Workspace
 from .publishing_calls import Publishing
 from .publishing_settings import Provenance, PullRequestOptions
 from .timestamps import Timestamp
@@ -75,13 +75,15 @@ class Gitd:
         full_history: bool = False,
         strategy: Strategy | None = None,
         warm: str = "",
+        new_branch: str = "",
         on_progress: OnProgress | None = None,
     ) -> Workspace:
         """Makes a workspace of a repository at a path under gitd's roots, at a commit, a
         branch, or the default branch. strategy is a preference: gitd falls back to copy when
         it cannot make one that way here. warm names a warm layer to stand on, its
         dependencies installed already: the workspace is then made by overlay, at the commit
-        the layer was sealed at, or not at all."""
+        the layer was sealed at, or not at all. new_branch starts the workspace on a branch
+        of its own, made there for the work: publish takes it when given no branch."""
         if commit:
             revision = messages.Revision(commit=commit)
         elif branch:
@@ -96,6 +98,7 @@ class Gitd:
             full_history=full_history,
             strategy=Strategy.preference(strategy),
             warm=warm,
+            new_branch=new_branch,
         )
         return Workspace.from_message(path, self.connection.follow(methods.PREPARE, request, on_progress))
 
@@ -104,11 +107,17 @@ class Gitd:
         path: str,
         *,
         branch: str | None = None,
+        merge: str | None = None,
         submodules: bool = False,
         on_progress: OnProgress | None = None,
     ) -> Workspace:
-        """Brings a workspace to the tip of its branch, or of the branch given."""
-        request = messages.UpdateRequest(path=path, branch=branch or "", with_submodules=submodules)
+        """Brings a workspace to the tip of its branch, or of the branch given. With merge,
+        merges that branch of the repository into the one the workspace is on instead, with a
+        merge commit; conflicts raise CONFLICT and stay marked in the workspace, to be
+        resolved and committed there."""
+        request = messages.UpdateRequest(
+            path=path, branch=branch or "", merge=merge or "", with_submodules=submodules
+        )
         return Workspace.from_message(path, self.connection.follow(methods.UPDATE, request, on_progress))
 
     def checkout(
@@ -131,7 +140,7 @@ class Gitd:
     def publish(
         self,
         path: str,
-        branch: str,
+        branch: str | None = None,
         *,
         requested_by: str = "",
         pull_request: PullRequestOptions | None = None,
@@ -139,18 +148,20 @@ class Gitd:
         sandbox: str = "",
         update: bool = False,
     ) -> Published:
-        """Pushes what was committed in a workspace to a new branch, with the credential gitd
-        keeps, and opens its pull request when the publishing settings or pull_request say
-        so. requested_by is who asked for the work, as their account on the host. With
-        sandbox, and path empty, publishes the branch a sandbox pushed through the endpoint.
+        """Pushes what was committed in a workspace to a new branch, or to the branch it is
+        on when none is given, with the credential gitd keeps, and opens its pull request
+        when the publishing settings or pull_request say so. requested_by is who asked for
+        the work, as their account on the host. With sandbox, and path empty, publishes the
+        branch a sandbox pushed through the endpoint.
 
         With update, the branch may exist from an earlier publish: it is moved forward, only
         ever as a fast-forward (BRANCH_EXISTS otherwise), and the pull request open from it is
-        updated rather than another opened. An update bringing nothing beyond what gitd
+        updated rather than another opened. A branch this workspace published before is
+        moved forward so without update. An update bringing nothing beyond what gitd
         published to the branch pushes nothing and still opens or updates the pull requests,
         so a publish whose pull request failed is retried by publishing again."""
         request: Any = messages.PublishRequest(
-            path=path, branch=branch, requested_by=requested_by, sandbox=sandbox, update=update
+            path=path, branch=branch or "", requested_by=requested_by, sandbox=sandbox, update=update
         )
         if pull_request is not None:
             request.pull_request.CopyFrom(pull_request.to_message())
@@ -228,6 +239,11 @@ class Gitd:
     def remove(self, path: str) -> None:
         """Deletes a workspace; its pool stays."""
         self.connection.call(methods.REMOVE, messages.RemoveRequest(path=path))
+
+    def list(self) -> list[ListedWorkspace]:
+        """Every workspace gitd made, described, with the branches published from each."""
+        response = self.connection.call(methods.LIST, messages.ListRequest())
+        return [ListedWorkspace.from_message(listed) for listed in response.workspaces]
 
     def audit(
         self,

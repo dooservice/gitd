@@ -16,7 +16,8 @@ option go_package = "github.com/dooservice/gitd/gen/go/gitd/v1;gitdv1";
 service WorkspaceService {
   // Create a workspace at a path, from the repository's pool, at a branch or a commit.
   rpc Prepare(PrepareRequest) returns (stream PrepareResponse);
-  // Bring a workspace to the tip of its branch.
+  // Bring a workspace to the tip of its branch, or merge another branch of its repository
+  // into the one it is on.
   rpc Update(UpdateRequest) returns (stream UpdateResponse);
   // Move a workspace to a commit, as a rollback does; the pool fetches it when it lacks it.
   rpc Checkout(CheckoutRequest) returns (stream CheckoutResponse);
@@ -26,6 +27,9 @@ service WorkspaceService {
   rpc Describe(DescribeRequest) returns (DescribeResponse);
   // Delete a workspace. Its pool stays.
   rpc Remove(RemoveRequest) returns (RemoveResponse);
+  // Every workspace gitd made, with what Describe says of each and the branches published
+  // from it.
+  rpc List(ListRequest) returns (ListResponse);
   // Take an existing clone in, linking it to a pool without fetching anything.
   rpc Adopt(AdoptRequest) returns (stream AdoptResponse);
   // Push what was committed in a workspace to a new branch, with a token, so a pull or merge
@@ -221,6 +225,9 @@ message GitFailure {
     // at all; with update, holding commits the publish does not have, which only a forced
     // push, never done, would drop. Nothing was pushed.
     REASON_BRANCH_EXISTS = 16;
+    // A merge stopped on conflicts. They are marked in the workspace, to be resolved and
+    // committed there; nothing else was changed.
+    REASON_CONFLICT = 17;
   }
   Reason reason = 1;
   // The last useful line git wrote, e.g. "remote: Repository not found.".
@@ -256,6 +263,11 @@ message PrepareRequest {
   // read-only (WorkspaceResult.pool_objects), so that it works wherever it is mounted. gitd
   // accepts it only while that is truly the pool's objects directory, mounted there.
   bool pool_inside = 9;
+  // Start the workspace on a branch of its own, made at the revision, for the work done in
+  // it: a name that is not a branch of the workspace yet. Publish takes it when no branch
+  // is given, and Update with merge brings the branch it was made from, or any other, into
+  // it.
+  string new_branch = 10;
 }
 
 // How a workspace was made.
@@ -289,6 +301,7 @@ message PrepareResponse {
 
 message WorkspaceResult {
   string commit = 1;
+  // The branch the workspace is on, empty when detached.
   string branch = 2;
   repeated PendingSubmodule pending_submodules = 3;
   // How the workspace was made, and its layers when by overlay.
@@ -309,6 +322,12 @@ message UpdateRequest {
   string branch = 2;
   bool with_submodules = 3;
   repeated Credential credentials = 4;
+  // A branch of the repository to merge into the branch the workspace is on, instead of
+  // moving it: gitd brings the branch into the pool with its own credential and merges it
+  // with a merge commit, nothing forced, so a branch published earlier still moves forward.
+  // Conflicts stop it with REASON_CONFLICT, marked in the workspace to be resolved and
+  // committed there. branch is ignored when merge is set.
+  string merge = 5;
 }
 
 message UpdateResponse {
@@ -375,6 +394,17 @@ message DescribeResponse {
 message RemoveRequest {
   string path = 1;
 }
+message ListRequest {}
+message ListResponse {
+  repeated ListedWorkspace workspaces = 1;
+}
+// A workspace as List answers it.
+message ListedWorkspace {
+  string path = 1;
+  DescribeResponse description = 2;
+  // The branches published from this workspace, as gitd recorded them.
+  repeated string published = 3;
+}
 
 message RemoveResponse {}
 
@@ -433,6 +463,7 @@ message PublishRequest {
   string path = 1;
   // A branch that does not exist yet, unless update is set: nothing is ever pushed over
   // one. It must start with `[publish] branch_prefix`, when the configuration sets one.
+  // Empty means the branch the workspace is on, as Prepare's new_branch starts it.
   string branch = 2;
   repeated Credential credentials = 3;
   // Who asked for the work, as their account on the git host, e.g. `josue`: written in the
@@ -451,7 +482,9 @@ message PublishRequest {
   // moved forward, only ever as a fast-forward, and a pull request already open from it is
   // updated rather than another opened. When the work brings nothing beyond what gitd
   // published to the branch, nothing is pushed and the pull requests are still opened or
-  // updated: a publish whose pull request failed is retried so.
+  // updated: a publish whose pull request failed is retried so. A branch this same workspace
+  // published before is updated so without asking, as gitd recorded the publish outside the
+  // workspace.
   bool update = 8;
 }
 

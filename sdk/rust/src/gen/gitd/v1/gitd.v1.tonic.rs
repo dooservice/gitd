@@ -231,6 +231,27 @@ pub mod workspace_service_client {
                 .insert(GrpcMethod::new("gitd.v1.WorkspaceService", "Remove"));
             self.inner.unary(req, path, codec).await
         }
+        pub async fn list(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ListRequest>,
+        ) -> std::result::Result<tonic::Response<super::ListResponse>, tonic::Status> {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/gitd.v1.WorkspaceService/List",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(GrpcMethod::new("gitd.v1.WorkspaceService", "List"));
+            self.inner.unary(req, path, codec).await
+        }
         pub async fn adopt(
             &mut self,
             request: impl tonic::IntoRequest<super::AdoptRequest>,

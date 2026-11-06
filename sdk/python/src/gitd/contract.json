@@ -291,6 +291,10 @@
                 {
                   "name": "REASON_BRANCH_EXISTS",
                   "number": 16
+                },
+                {
+                  "name": "REASON_CONFLICT",
+                  "number": 17
                 }
               ]
             }
@@ -364,6 +368,13 @@
               "label": "LABEL_OPTIONAL",
               "type": "TYPE_BOOL",
               "jsonName": "poolInside"
+            },
+            {
+              "name": "new_branch",
+              "number": 10,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "newBranch"
             }
           ]
         },
@@ -516,6 +527,13 @@
               "type": "TYPE_MESSAGE",
               "typeName": ".gitd.v1.Credential",
               "jsonName": "credentials"
+            },
+            {
+              "name": "merge",
+              "number": 5,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "merge"
             }
           ]
         },
@@ -770,6 +788,49 @@
               "label": "LABEL_OPTIONAL",
               "type": "TYPE_STRING",
               "jsonName": "path"
+            }
+          ]
+        },
+        {
+          "name": "ListRequest"
+        },
+        {
+          "name": "ListResponse",
+          "field": [
+            {
+              "name": "workspaces",
+              "number": 1,
+              "label": "LABEL_REPEATED",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".gitd.v1.ListedWorkspace",
+              "jsonName": "workspaces"
+            }
+          ]
+        },
+        {
+          "name": "ListedWorkspace",
+          "field": [
+            {
+              "name": "path",
+              "number": 1,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_STRING",
+              "jsonName": "path"
+            },
+            {
+              "name": "description",
+              "number": 2,
+              "label": "LABEL_OPTIONAL",
+              "type": "TYPE_MESSAGE",
+              "typeName": ".gitd.v1.DescribeResponse",
+              "jsonName": "description"
+            },
+            {
+              "name": "published",
+              "number": 3,
+              "label": "LABEL_REPEATED",
+              "type": "TYPE_STRING",
+              "jsonName": "published"
             }
           ]
         },
@@ -2999,6 +3060,11 @@
               "name": "Remove",
               "inputType": ".gitd.v1.RemoveRequest",
               "outputType": ".gitd.v1.RemoveResponse"
+            },
+            {
+              "name": "List",
+              "inputType": ".gitd.v1.ListRequest",
+              "outputType": ".gitd.v1.ListResponse"
             },
             {
               "name": "Adopt",

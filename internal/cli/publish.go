@@ -11,13 +11,15 @@ import (
 
 func publishCommand(app *app) *cobra.Command {
 	command := &cobra.Command{
-		Use:   "publish PATH BRANCH | publish --sandbox ID BRANCH",
+		Use:   "publish PATH [BRANCH] | publish --sandbox ID BRANCH",
 		Short: "Push what was committed in a workspace to a new branch",
-		Long: "Push what was committed in the workspace at PATH to a new branch BRANCH, from its\n" +
+		Long: "Push what was committed in the workspace at PATH to a new branch BRANCH, or to the\n" +
+			"branch the workspace is on when none is given, from its\n" +
 			"pool and with the credential gitd keeps, and open its pull request when the\n" +
 			"publishing settings or --pull-request say so. The workspace never sees the\n" +
 			"credential, and the push is never forced. With --update, move a branch an earlier\n" +
-			"publish made forward and update its pull request; with --submodules, open one in each\n" +
+			"publish made forward and update its pull request; a branch this same workspace\n" +
+			"published is moved so without it. With --submodules, open one in each\n" +
 			"submodule's repository too. With --sandbox, publish the branch BRANCH a sandbox\n" +
 			"pushed to its sandbox repository through gitd's endpoint instead.",
 		Args: cobra.RangeArgs(1, 2),
@@ -50,6 +52,8 @@ func publishCommand(app *app) *cobra.Command {
 			request.Branch = args[0]
 		case sandbox == "" && len(args) == 2:
 			request.Path, request.Branch = args[0], args[1]
+		case sandbox == "":
+			request.Path = args[0]
 		default:
 			return fmt.Errorf("give PATH and BRANCH, or --sandbox and BRANCH")
 		}
