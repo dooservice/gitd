@@ -48,6 +48,15 @@ func (merge merger) run(ctx context.Context) (Result, error) {
 	if err := merge.fetch(ctx); err != nil {
 		return Result{}, err
 	}
+	_, present, err := workspaces.runner.Resolve(ctx, merge.path, "refs/remotes/origin/"+merge.branch)
+	if err != nil {
+		return Result{}, err
+	}
+	if !present {
+		failure := git.Fail(git.NotFound, "%s is not a branch of the repository", merge.branch)
+		failure.Repository = merge.repository.HTTPS()
+		return Result{}, failure
+	}
 	if _, err := workspaces.runner.Run(ctx, git.Cmd{
 		Dir: merge.path, Env: []string{mergeIdentity},
 		Args: []string{"merge", "--no-edit", "--end-of-options", "refs/remotes/origin/" + merge.branch},

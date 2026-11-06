@@ -152,3 +152,17 @@ func TestAPublishMovesForwardWithoutAskingOnlyABranchThisWorkspacePublished(t *t
 		t.Fatalf("another workspace publishing to agents/one = %v; want BRANCH_EXISTS: only its own publishes move without asking", err)
 	}
 }
+
+func TestMergingABranchTheRepositoryHasNotIsNotFound(t *testing.T) {
+	loop := newDevLoop(t)
+	ctx := context.Background()
+	if _, err := loop.workspaces.Prepare(ctx, &gitdv1.PrepareRequest{
+		Url: loop.host.Repository.HTTPS(), Path: loop.path, NewBranch: "agents/work", Credentials: loop.token,
+	}, nil); err != nil {
+		t.Fatal(err)
+	}
+	_, err := loop.workspaces.Update(ctx, &gitdv1.UpdateRequest{Path: loop.path, Merge: "nope", Credentials: loop.token}, nil)
+	if failure, ok := git.AsFailure(err); !ok || failure.Reason != git.NotFound {
+		t.Fatalf("merging a branch that is not there = %v; want NOT_FOUND", err)
+	}
+}
