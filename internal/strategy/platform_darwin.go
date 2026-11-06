@@ -39,6 +39,9 @@ func clone(source, target string, info fs.FileInfo) error {
 	return os.Chtimes(target, info.ModTime(), info.ModTime())
 }
 
+// cloneWorkers is how many files are cloned at once: one, as gitd always has here.
+func cloneWorkers() int { return 1 }
+
 // cloneTree clones a whole template at once with clonefile(2), which keeps modification
 // times: one call, however many files.
 func cloneTree(template, dest string) (bool, error) {

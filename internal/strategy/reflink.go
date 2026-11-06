@@ -19,7 +19,8 @@ type ReflinkMaker struct{}
 func (ReflinkMaker) Name() Name { return Reflink }
 
 // Make clones the template into dest, built aside first by the caller's convention: on any
-// failure dest is removed.
+// failure dest is removed. Directories are made in order as the template is walked, and its
+// files cloned by cloneWorkers at once, each once its directory exists.
 func (ReflinkMaker) Make(ctx context.Context, template, dest string) error {
 	if _, err := os.Lstat(dest); err == nil {
 		return fmt.Errorf("%s already exists", dest)
@@ -30,12 +31,13 @@ func (ReflinkMaker) Make(ctx context.Context, template, dest string) error {
 		}
 		return err
 	}
+	files := newCloner(ctx, cloneWorkers())
 	err := filepath.WalkDir(template, func(path string, entry fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
-		if ctx.Err() != nil {
-			return ctx.Err()
+		if err := files.failed(); err != nil {
+			return err
 		}
 		relative, err := filepath.Rel(template, path)
 		if err != nil {
@@ -56,10 +58,13 @@ func (ReflinkMaker) Make(ctx context.Context, template, dest string) error {
 			}
 			return os.Symlink(link, target)
 		case info.Mode().IsRegular():
-			return clone(path, target, info)
+			files.add(path, target, info)
 		}
 		return nil
 	})
+	if waited := files.wait(); err == nil {
+		err = waited
+	}
 	if err != nil {
 		_ = os.RemoveAll(dest)
 	}
