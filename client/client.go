@@ -1,4 +1,5 @@
-// Package client calls a gitd on its Unix socket, for the command line and the MCP server.
+// Package client calls a gitd, on its Unix socket or on the network: for programs written in
+// Go, and for gitd's own command line and MCP server.
 //
 // It speaks the Connect protocol over HTTP/1.1, which the server answers besides gRPC, so
 // a stream of progress needs nothing more than the standard library.

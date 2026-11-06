@@ -11,7 +11,7 @@ import (
 	"connectrpc.com/connect"
 
 	gitdv1 "github.com/dooservice/gitd/gen/go/gitd/v1"
-	"github.com/dooservice/gitd/internal/client"
+	"github.com/dooservice/gitd/client"
 )
 
 // TestTwoTenantsOnOneGitdSeeNothingOfEachOther runs gitd with two tenants and tries, with

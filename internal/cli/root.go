@@ -18,7 +18,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/dooservice/gitd/internal/client"
+	"github.com/dooservice/gitd/client"
 	"github.com/dooservice/gitd/internal/config"
 )
 

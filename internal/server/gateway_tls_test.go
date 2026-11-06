@@ -17,7 +17,7 @@ import (
 
 	"connectrpc.com/connect"
 
-	"github.com/dooservice/gitd/internal/client"
+	"github.com/dooservice/gitd/client"
 )
 
 // selfSigned writes a certificate for 127.0.0.1 and its key, and answers their files.

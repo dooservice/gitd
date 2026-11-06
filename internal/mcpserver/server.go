@@ -11,7 +11,7 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
-	"github.com/dooservice/gitd/internal/client"
+	"github.com/dooservice/gitd/client"
 )
 
 // Serve answers MCP on stdin and stdout until ctx ends or the client goes away, calling
