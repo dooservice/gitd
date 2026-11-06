@@ -11,6 +11,7 @@ func subcommands() map[string]bool {
 		"init":             true,
 		"push":             true,
 		"update-ref":       true,
+		"merge":            true,
 		"check-ref-format": true,
 		"clone":            true,
 		"fetch":            true,

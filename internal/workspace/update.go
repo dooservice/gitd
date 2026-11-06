@@ -9,7 +9,7 @@ import (
 )
 
 // Update brings a workspace to the tip of a branch: the one asked for, or the one it
-// follows.
+// follows. With merge, it merges that branch into the one the workspace is on instead.
 func (workspaces *Workspaces) Update(
 	ctx context.Context, request *gitdv1.UpdateRequest, report Report,
 ) (Result, error) {
@@ -18,6 +18,12 @@ func (workspaces *Workspaces) Update(
 		return Result{}, err
 	}
 	defer release()
+	if merge := request.GetMerge(); merge != "" {
+		return merger{
+			workspaces: workspaces, path: path, repository: repository, branch: merge,
+			given: credentials.FromProto(request.GetCredentials()), report: report,
+		}.run(ctx)
+	}
 	branch := request.GetBranch()
 	if branch == "" {
 		if branch, err = workspaces.following(ctx, path); err != nil {
