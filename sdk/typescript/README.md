@@ -1,6 +1,6 @@
-# gitd-client
+# gitd-client for TypeScript
 
-TypeScript client for [gitd](https://github.com/dooservice/gitd): instant, secretless git
+A client for [gitd](https://github.com/dooservice/gitd): instant, secretless git
 checkouts for agent sandboxes.
 
 ```sh
