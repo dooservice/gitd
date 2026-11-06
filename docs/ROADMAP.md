@@ -675,7 +675,7 @@ Notes: [`0.12.0`](releases/0.12.0.md), [`0.12.1`](releases/0.12.1.md).
 
 ---
 
-## 0.13 — a Go client (next)
+## 0.13 — a Go client
 
 ### Goal
 
@@ -687,11 +687,18 @@ A platform written in Go calls gitd in a few lines, as Python and TypeScript one
   client around it: the socket or a network address, a tenant's key, TLS, clear errors.
   gitd's own command line has that client (`internal/client`), which Go does not let
   anyone else import.
-- It moves into a module of its own, `sdk/go`, so a platform does not depend on everything
-  the daemon does, and is released with the same version as gitd and the other clients.
+- It moves out of `internal/` into `github.com/dooservice/gitd/client`, in gitd's own module,
+  rather than a module of its own: a separate module would need the generated code twice, or
+  a released version of gitd's module to depend on. Go builds only the packages a program
+  imports, so a platform compiles the client, the contract's code, Connect and protobuf.
+- Go finds versions by tags starting with `v`, so each release is also tagged `v0.13.0`.
 
-**Done when:** `go get` of the module, a README with an example, and CI calling a gitd
-over the socket and over TLS from it, as it does from Python and TypeScript.
+**Done when:** `go get` of the package, a README with an example, and CI calling a gitd
+over the socket and over TLS from it. **Done**: `client/`, with its README and examples;
+`client.Open` finds the socket as the Python client does; the command line and the MCP
+server are built on it, so every CI job that runs them — over the socket, and over TLS in
+the network one — calls gitd through it; the release tags `v<version>` and asks the module
+proxy for it.
 
 ---
 
