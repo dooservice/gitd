@@ -169,3 +169,30 @@ func TestMergingABranchTheRepositoryHasNotIsNotFound(t *testing.T) {
 		t.Fatalf("merging a branch that is not there = %v; want NOT_FOUND", err)
 	}
 }
+
+func TestThePullRequestOfAPublishWithNoBranchIsOfTheBranchPublishedAndUpdatedTheSecondTime(t *testing.T) {
+	loop := newDevLoop(t)
+	ctx := context.Background()
+	opener := &openerKeeping{}
+	loop.workspaces.UsePublishing(Publishing{PullRequests: opener})
+	if _, err := loop.workspaces.Prepare(ctx, &gitdv1.PrepareRequest{
+		Url: loop.host.Repository.HTTPS(), Path: loop.path, NewBranch: "agents/work", Credentials: loop.token,
+	}, nil); err != nil {
+		t.Fatal(err)
+	}
+	asked := &gitdv1.PublishRequest{Path: loop.path, Credentials: loop.token, PullRequest: &gitdv1.PullRequestOptions{Open: true}}
+	for round, name := range []string{"a.go", "b.go"} {
+		loop.commit(t, name, name+"\n")
+		if _, err := loop.workspaces.Publish(ctx, asked); err != nil {
+			t.Fatal(err)
+		}
+		pullRequest := opener.all[len(opener.all)-1]
+		if pullRequest.Branch != "agents/work" || pullRequest.Update != (round == 1) {
+			t.Errorf("publish %d asked a pull request of %q, update %v; want agents/work, updated the second time",
+				round+1, pullRequest.Branch, pullRequest.Update)
+		}
+	}
+	if asked.GetBranch() != "" || asked.GetUpdate() {
+		t.Error("the caller's request was changed")
+	}
+}

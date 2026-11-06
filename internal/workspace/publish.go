@@ -8,6 +8,7 @@ import (
 	"github.com/dooservice/gitd/internal/credentials"
 	"github.com/dooservice/gitd/internal/git"
 	"github.com/dooservice/gitd/internal/repo"
+	"google.golang.org/protobuf/proto"
 )
 
 // Publish pushes what was committed in a workspace to a new branch of its repository, or,
@@ -70,6 +71,7 @@ func (workspaces *Workspaces) Publish(
 		}
 	}()
 	update, fresh := request.GetUpdate() || slices.Contains(workspaces.pools.Published(repository, path), branch), len(subjects) > 0
+	request = resolved(request, branch, update)
 	if !fresh {
 		if err := workspaces.nothingNew(ctx, repository, branch, update, "commit in the workspace first"); err != nil {
 			return nil, err
@@ -123,6 +125,15 @@ func (workspaces *Workspaces) Publish(
 	answer.Repository = &gitdv1.PublishedRepository{Url: repository.HTTPS(), Commit: commit, Subjects: subjects}
 	workspaces.openPullRequest(ctx, request, repository, rules, onBranch, answer)
 	return answer, nil
+}
+
+// resolved is the request as gitd carries it out: with the branch it publishes, the one the
+// workspace is on when none was given, and update set when the branch is one this
+// workspace published. What comes after, the pull request among it, reads these.
+func resolved(request *gitdv1.PublishRequest, branch string, update bool) *gitdv1.PublishRequest {
+	carried := proto.CloneOf(request)
+	carried.Branch, carried.Update = branch, update
+	return carried
 }
 
 // onOwnBranch is the branch the workspace at path is on, which a publish with no branch
