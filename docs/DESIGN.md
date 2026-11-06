@@ -201,7 +201,7 @@ credential was refused.
 cmd/gitd/                 start-up and signals
 internal/cli/             the command line (spf13/cobra), one file per command
 internal/daemon/          serving: the configuration read and every part put together
-internal/client/          a client of the socket, for the command line and MCP
+client/                   the Go client: for programs written in Go, the command line and MCP
 internal/mcpserver/       MCP tools over stdio, none of which takes a credential
 internal/config/          configuration (TOML): socket, roots, limits, hosts, known hosts, credentials
 internal/server/          ConnectRPC services on the socket, deadlines, error codes
