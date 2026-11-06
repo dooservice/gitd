@@ -13,7 +13,7 @@ From 1.0.0, within the same major version:
 | The contract, `proto/gitd/v1` | Services, methods, messages, fields and enum values keep their names, numbers and meaning. New ones may be added. **Holds today:** CI refuses any change `buf breaking` finds against the last release. |
 | The command line | Commands, their arguments and flags keep working and meaning the same; `--json` output keeps its fields. New commands, flags and fields may be added. |
 | The configuration, `gitd.toml` | Every key keeps its meaning and default. New keys may be added, with defaults that change nothing for a file that does not set them. |
-| The Python and TypeScript clients | Public classes, functions and their arguments keep working. New ones may be added. |
+| The Python, TypeScript, Go and Rust clients | Public classes, functions and their arguments keep working. New ones may be added. |
 | The MCP tools | Tool names and their arguments keep working. No tool will ever take a credential. |
 | The state directory | A gitd reads the state of every earlier release of its major version. |
 
