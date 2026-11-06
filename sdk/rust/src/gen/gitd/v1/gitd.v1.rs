@@ -144,6 +144,9 @@ pub mod git_failure {
         /// at all; with update, holding commits the publish does not have, which only a forced
         /// push, never done, would drop. Nothing was pushed.
         BranchExists = 16,
+        /// A merge stopped on conflicts. They are marked in the workspace, to be resolved and
+        /// committed there; nothing else was changed.
+        Conflict = 17,
     }
     impl Reason {
         /// String value of the enum field names used in the ProtoBuf definition.
@@ -169,6 +172,7 @@ pub mod git_failure {
                 Self::Unsupported => "REASON_UNSUPPORTED",
                 Self::LimitReached => "REASON_LIMIT_REACHED",
                 Self::BranchExists => "REASON_BRANCH_EXISTS",
+                Self::Conflict => "REASON_CONFLICT",
             }
         }
         /// Creates an enum from field names used in the ProtoBuf definition.
@@ -191,6 +195,7 @@ pub mod git_failure {
                 "REASON_UNSUPPORTED" => Some(Self::Unsupported),
                 "REASON_LIMIT_REACHED" => Some(Self::LimitReached),
                 "REASON_BRANCH_EXISTS" => Some(Self::BranchExists),
+                "REASON_CONFLICT" => Some(Self::Conflict),
                 _ => None,
             }
         }
@@ -237,6 +242,12 @@ pub struct PrepareRequest {
     /// accepts it only while that is truly the pool's objects directory, mounted there.
     #[prost(bool, tag="9")]
     pub pool_inside: bool,
+    /// Start the workspace on a branch of its own, made at the revision, for the work done in
+    /// it: a name that is not a branch of the workspace yet. Publish takes it when no branch
+    /// is given, and Update with merge brings the branch it was made from, or any other, into
+    /// it.
+    #[prost(string, tag="10")]
+    pub new_branch: ::prost::alloc::string::String,
 }
 impl ::prost::Name for PrepareRequest {
 const NAME: &'static str = "PrepareRequest";
@@ -283,6 +294,7 @@ fn full_name() -> ::prost::alloc::string::String { "gitd.v1.PrepareResponse".int
 pub struct WorkspaceResult {
     #[prost(string, tag="1")]
     pub commit: ::prost::alloc::string::String,
+    /// The branch the workspace is on, empty when detached.
     #[prost(string, tag="2")]
     pub branch: ::prost::alloc::string::String,
     #[prost(message, repeated, tag="3")]
@@ -317,6 +329,13 @@ pub struct UpdateRequest {
     pub with_submodules: bool,
     #[prost(message, repeated, tag="4")]
     pub credentials: ::prost::alloc::vec::Vec<Credential>,
+    /// A branch of the repository to merge into the branch the workspace is on, instead of
+    /// moving it: gitd brings the branch into the pool with its own credential and merges it
+    /// with a merge commit, nothing forced, so a branch published earlier still moves forward.
+    /// Conflicts stop it with REASON_CONFLICT, marked in the workspace to be resolved and
+    /// committed there. branch is ignored when merge is set.
+    #[prost(string, tag="5")]
+    pub merge: ::prost::alloc::string::String,
 }
 impl ::prost::Name for UpdateRequest {
 const NAME: &'static str = "UpdateRequest";
@@ -467,6 +486,37 @@ const NAME: &'static str = "RemoveRequest";
 const PACKAGE: &'static str = "gitd.v1";
 fn full_name() -> ::prost::alloc::string::String { "gitd.v1.RemoveRequest".into() }fn type_url() -> ::prost::alloc::string::String { "/gitd.v1.RemoveRequest".into() }}
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ListRequest {
+}
+impl ::prost::Name for ListRequest {
+const NAME: &'static str = "ListRequest";
+const PACKAGE: &'static str = "gitd.v1";
+fn full_name() -> ::prost::alloc::string::String { "gitd.v1.ListRequest".into() }fn type_url() -> ::prost::alloc::string::String { "/gitd.v1.ListRequest".into() }}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListResponse {
+    #[prost(message, repeated, tag="1")]
+    pub workspaces: ::prost::alloc::vec::Vec<ListedWorkspace>,
+}
+impl ::prost::Name for ListResponse {
+const NAME: &'static str = "ListResponse";
+const PACKAGE: &'static str = "gitd.v1";
+fn full_name() -> ::prost::alloc::string::String { "gitd.v1.ListResponse".into() }fn type_url() -> ::prost::alloc::string::String { "/gitd.v1.ListResponse".into() }}
+/// A workspace as List answers it.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListedWorkspace {
+    #[prost(string, tag="1")]
+    pub path: ::prost::alloc::string::String,
+    #[prost(message, optional, tag="2")]
+    pub description: ::core::option::Option<DescribeResponse>,
+    /// The branches published from this workspace, as gitd recorded them.
+    #[prost(string, repeated, tag="3")]
+    pub published: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+impl ::prost::Name for ListedWorkspace {
+const NAME: &'static str = "ListedWorkspace";
+const PACKAGE: &'static str = "gitd.v1";
+fn full_name() -> ::prost::alloc::string::String { "gitd.v1.ListedWorkspace".into() }fn type_url() -> ::prost::alloc::string::String { "/gitd.v1.ListedWorkspace".into() }}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct RemoveResponse {
 }
 impl ::prost::Name for RemoveResponse {
@@ -584,6 +634,7 @@ pub struct PublishRequest {
     pub path: ::prost::alloc::string::String,
     /// A branch that does not exist yet, unless update is set: nothing is ever pushed over
     /// one. It must start with `\[publish\] branch_prefix`, when the configuration sets one.
+    /// Empty means the branch the workspace is on, as Prepare's new_branch starts it.
     #[prost(string, tag="2")]
     pub branch: ::prost::alloc::string::String,
     #[prost(message, repeated, tag="3")]
@@ -608,7 +659,9 @@ pub struct PublishRequest {
     /// moved forward, only ever as a fast-forward, and a pull request already open from it is
     /// updated rather than another opened. When the work brings nothing beyond what gitd
     /// published to the branch, nothing is pushed and the pull requests are still opened or
-    /// updated: a publish whose pull request failed is retried so.
+    /// updated: a publish whose pull request failed is retried so. A branch this same workspace
+    /// published before is updated so without asking, as gitd recorded the publish outside the
+    /// workspace.
     #[prost(bool, tag="8")]
     pub update: bool,
 }
