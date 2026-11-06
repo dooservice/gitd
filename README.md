@@ -461,7 +461,8 @@ its network address when `[endpoint]` sets one, there with a key; the contract i
 [`proto/gitd/v1/gitd.proto`](proto/gitd/v1/gitd.proto). Any language with a
 Connect or gRPC client can call it, and `buf curl` can too. There are clients for
 [Python](sdk/python) (`pip install gitd`) and [TypeScript](sdk/typescript)
-(`npm install gitd-client`), on Linux, macOS and Windows; Go and Rust ones are next.
+(`npm install gitd-client`) and [Go](client) (`go get github.com/dooservice/gitd/client`),
+on Linux, macOS and Windows; a Rust one is next.
 
 ## Install
 
