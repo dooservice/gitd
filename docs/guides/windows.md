@@ -8,6 +8,15 @@ until written. On NTFS it copies the files.
 It needs [Git for Windows](https://git-scm.com/download/win) on the `PATH`, or its path as
 `git` in `gitd.toml`.
 
+## gitd up
+
+On Windows, gitd runs as a service for every member of the local group `gitd`. From an
+administrator's terminal, `gitd up` installs it with the configuration
+`C:\ProgramData\gitd\gitd.toml` (the defaults when there is none), starts it, and waits
+until it answers; `gitd down` stops and removes it, keeping the configuration, pools and
+workspaces. Run without an administrator's rights, `gitd up` only says so, unless the service
+already answers. The steps it takes are those below.
+
 ## As a service
 
 From an administrator's PowerShell:
