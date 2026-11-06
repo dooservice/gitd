@@ -233,7 +233,7 @@ dependencies = [
 
 [[package]]
 name = "gitd-client"
-version = "0.15.0"
+version = "0.15.1"
 dependencies = [
  "async-io",
  "futures-io",
