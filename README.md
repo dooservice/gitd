@@ -128,13 +128,15 @@ instance in Claude Code's `.mcp.json` or Cursor's `mcp.json`:
 
 | Tool | What it does |
 |---|---|
-| `prepare_workspace` | A workspace of a repository at a path under gitd's roots, at a branch or a commit |
+| `prepare_workspace` | A workspace of a repository at a path under gitd's roots, at a branch or a commit, on a branch of its own with `new_branch` |
 | `update_workspace` | To the tip of its branch |
+| `merge_branch` | A branch, such as main, merged into the one it is on; conflicts left marked |
+| `list_workspaces` | Every workspace gitd made, with the branches published from each |
 | `checkout_commit` | To a commit, as a rollback does |
 | `describe_workspace` | Its repository, commit, branch, uncommitted changes and submodules |
 | `list_changes` | Each file added, modified or deleted since gitd put it on its commit, with its lines |
 | `show_diff` | The unified diff of those changes, of some files or all, cut short at a size |
-| `publish_branch` | Its commits pushed to a new branch, for a pull request, or to one it published before; or what a sandbox pushed through the endpoint |
+| `publish_branch` | Its commits pushed to a new branch, or the one it is on, for a pull request; or to one it published before; or what a sandbox pushed through the endpoint |
 | `open_endpoint_access` | An address and a secret of gitd's own for a sandbox elsewhere to clone one repository from |
 | `remove_workspace` | Deleted; its pool stays |
 | `probe_repository` | Whether it can be read, its default branch and branches |
@@ -147,9 +149,10 @@ No tool takes a credential, and each says whether it only reads or destroys.
 `gitd` alone serves; every other command calls the gitd that serves.
 
 ```sh
-gitd prepare URL PATH [--branch B | --commit C] [--submodules] [--full-history] [--warm NAME]
-gitd update PATH [--branch B]        gitd checkout PATH COMMIT
-gitd describe PATH                   gitd publish PATH BRANCH
+gitd prepare URL PATH [--branch B | --commit C] [--new-branch B] [--submodules] [--full-history] [--warm NAME]
+gitd update PATH [--branch B | --merge B]   gitd checkout PATH COMMIT
+gitd describe PATH                   gitd publish PATH [BRANCH]
+gitd list
 gitd submodules PATH                 gitd remove PATH
 gitd probe URL                       gitd adopt PATH
 gitd info                            gitd retire [--unused 720h]
@@ -159,7 +162,7 @@ gitd watch [PATH…]                   gitd seal PATH NAME
 gitd warm URL                        gitd token issue URL [--for 1h] | list | revoke ID
 gitd publish --sandbox ID BRANCH
 gitd audit [--since 24h] [--repository URL] [--limit N]
-gitd publish PATH BRANCH [--requested-by LOGIN] [--pull-request] [--title T] [--draft] [--update] [--submodules]
+gitd publish PATH [BRANCH] [--requested-by LOGIN] [--pull-request] [--title T] [--draft] [--update] [--submodules]
 gitd connect github | github-app --name N [--org O]
 gitd connections list | remove ID | add-token PREFIX --token-env VAR | add-github-app
 gitd publishing show | set PREFIX [--preset NAME] [--allow PATH] … | remove PREFIX
