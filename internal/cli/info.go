@@ -19,7 +19,10 @@ func infoCommand(app *app) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			app.print(answer, func(out io.Writer) { describeGitd(out, answer) })
+			app.print(answer, func(out io.Writer) {
+				describeGitd(out, answer)
+				fmt.Fprint(out, copyOnWrite{answer: answer}.hint())
+			})
 			return nil
 		},
 	}

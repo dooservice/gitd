@@ -9,12 +9,16 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"os/user"
+	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/dooservice/gitd/client"
 	gitdv1 "github.com/dooservice/gitd/gen/go/gitd/v1"
 	"github.com/dooservice/gitd/internal/config"
+	"github.com/dooservice/gitd/internal/strategy"
 	"github.com/dooservice/gitd/internal/userservice"
 )
 
@@ -53,7 +57,7 @@ func (app *app) up(ctx context.Context) error {
 		return fmt.Errorf("%w; its log: %s", err, manager.Log())
 	}
 	app.print(answer, func(out io.Writer) {
-		gitd.describe(ctx, out, answer, service, running{log: manager.Log()})
+		gitd.describe(ctx, out, answer, service, running{log: manager.Log(), restart: "run gitd down && gitd up"})
 	})
 	return nil
 }
@@ -77,13 +81,13 @@ func (app *app) down() error {
 	return nil
 }
 
-// running is how the user's gitd runs: where its log is read.
+// running is how the user's gitd runs: where its log is read, and how it is restarted.
 type running struct {
-	log string
+	log, restart string
 }
 
 // inATerminal is gitd run in a terminal, where no manager runs it.
-var inATerminal = running{log: "the terminal it runs in"}
+var inATerminal = running{log: "the terminal it runs in", restart: "stop the gitd in your terminal and run it again"}
 
 // userGitd is gitd run for the person at this terminal: its places, whether its
 // configuration was written now, the configuration as read, and the GitHub CLI's path when
@@ -170,8 +174,8 @@ func (gitd userGitd) inTerminal(out io.Writer, service userservice.Service, why 
 	}
 }
 
-// describe says what gitd info says, where things are, and which credential GitHub is read
-// with.
+// describe says what gitd info says, where things are, which credential GitHub is read
+// with, and how workspaces could be made copy-on-write when they are copied.
 func (gitd userGitd) describe(ctx context.Context, out io.Writer, answer *gitdv1.InfoResponse, service userservice.Service, how running) {
 	describeGitd(out, answer)
 	fmt.Fprintln(out)
@@ -192,4 +196,37 @@ func (gitd userGitd) describe(ctx context.Context, out io.Writer, answer *gitdv1
 	} else if connections, err := client.New(gitd.settings.Socket).ListConnections(ctx); err == nil && len(connections.GetConnections()) == 0 {
 		fmt.Fprintln(out, "\ngitd holds no credential yet. To publish to GitHub, sign in: gitd connect github")
 	}
+	if steps := (copyOnWrite{answer: answer}).steps(gitd.machine(answer, how.restart)); steps != "" {
+		fmt.Fprint(out, "\n"+steps)
+	}
+}
+
+// machine is what the advice on copy-on-write needs of this machine: whether the state's
+// filesystem clones files is probed only where it would be advised.
+func (gitd userGitd) machine(answer *gitdv1.InfoResponse, restart string) localMachine {
+	machine := localMachine{
+		system: runtime.GOOS, arch: runtime.GOARCH, user: mountUser(), version: answer.GetVersion(),
+		config: gitd.places.Config, state: gitd.settings.State, restart: restart,
+	}
+	if len(gitd.settings.Roots) > 0 {
+		machine.root = gitd.settings.Roots[0]
+	}
+	if machine.system == "linux" && (copyOnWrite{answer: answer}).unprivileged() {
+		maker, _ := strategy.Detect(strategy.Reflink, gitd.settings.State, gitd.settings.Roots)
+		machine.reflink = maker != nil
+	}
+	return machine
+}
+
+// mountUser is how gitd-mount's configuration names this user: by name when it is a plain
+// one, else by number.
+func mountUser() string {
+	current, err := user.Current()
+	if err != nil {
+		return strconv.Itoa(os.Getuid())
+	}
+	if current.Username != "" && strings.Trim(current.Username, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-") == "" {
+		return current.Username
+	}
+	return current.Uid
 }
