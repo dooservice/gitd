@@ -20,6 +20,10 @@ type Want struct {
 	Full     bool
 	Branches []string
 	Commits  []string
+	// Since, when set, brings the branches' history back to this time, as git's
+	// --shallow-since reads it, instead of their tips only: what a merge needs to find the
+	// commit two branches share, without the whole history.
+	Since string
 }
 
 // Everything is the whole history of every branch.
@@ -35,6 +39,11 @@ func OnlyBranch(branch string) Want {
 	return Want{Branches: []string{branch}}
 }
 
+// BranchSince is one branch with its history back to since.
+func BranchSince(branch, since string) Want {
+	return Want{Branches: []string{branch}, Since: since}
+}
+
 // OnlyCommit is one commit and what it points at.
 func OnlyCommit(commit string) Want {
 	return Want{Commits: []string{commit}}
@@ -42,6 +51,9 @@ func OnlyCommit(commit string) Want {
 
 // satisfied is whether the pool at dir already holds what is wanted, recently enough.
 func (pools *Pools) satisfied(ctx context.Context, repository repo.Repo, dir string, want Want) bool {
+	if want.Since != "" {
+		return false
+	}
 	if want.Full {
 		return !exists(filepath.Join(dir, "shallow")) && pools.recent.current(repository, "*")
 	}
