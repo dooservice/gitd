@@ -236,6 +236,12 @@ func (client *Client) Describe(ctx context.Context, path string) (*gitdv1.Descri
 	return answer.Msg, nil
 }
 
+// List is every workspace gitd made, with what Describe says of each and the branches
+// published from it.
+func (client *Client) List(ctx context.Context) (*gitdv1.ListResponse, error) {
+	return unary(ctx, client.Workspaces.List, &gitdv1.ListRequest{})
+}
+
 // Remove deletes a workspace.
 func (client *Client) Remove(ctx context.Context, path string) error {
 	_, err := client.Workspaces.Remove(ctx, connect.NewRequest(&gitdv1.RemoveRequest{Path: path}))
