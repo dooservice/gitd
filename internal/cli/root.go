@@ -41,12 +41,6 @@ type app struct {
 // $GITD_KEY, when there is one. A gitd that cannot be reached that way fails the first call.
 func (app *app) client() *client.Client {
 	options := client.Options{Socket: app.socket, URL: app.address, CAFile: app.caFile}
-	if options.Socket == "" {
-		options.Socket = os.Getenv("GITD_SOCKET")
-	}
-	if options.Socket == "" {
-		options.Socket = config.DefaultSocket
-	}
 	if options.URL == "" {
 		options.URL = os.Getenv("GITD_URL")
 	}
