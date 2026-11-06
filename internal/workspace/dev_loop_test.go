@@ -233,3 +233,30 @@ func TestAMergeFromAShallowPoolBringsOnlyTheHistorySinceTheWorkspaceWasMade(t *t
 		t.Error("the pool was given the whole history; want only what the merge needed")
 	}
 }
+
+func TestListAnswersEveryWorkspaceInTheOrderOfItsPath(t *testing.T) {
+	loop := newDevLoop(t)
+	ctx := context.Background()
+	names := []string{"agent-3", "agent-1", "agent-2", "agent-5", "agent-4"}
+	for _, name := range names {
+		if _, err := loop.workspaces.Prepare(ctx, &gitdv1.PrepareRequest{
+			Url: loop.host.Repository.HTTPS(), Path: filepath.Join(filepath.Dir(loop.path), name), Credentials: loop.token,
+		}, nil); err != nil {
+			t.Fatal(err)
+		}
+	}
+	listed, err := loop.workspaces.List(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got []string
+	for _, entry := range listed.GetWorkspaces() {
+		if entry.GetDescription().GetUrl() != loop.host.Repository.HTTPS() {
+			t.Errorf("%s is listed without its description", entry.GetPath())
+		}
+		got = append(got, filepath.Base(entry.GetPath()))
+	}
+	if want := []string{"agent-1", "agent-2", "agent-3", "agent-4", "agent-5"}; !slices.Equal(got, want) {
+		t.Errorf("listed %v; want %v", got, want)
+	}
+}
