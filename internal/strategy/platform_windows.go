@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"runtime"
+	"syscall"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
@@ -68,7 +70,8 @@ func heldElsewhere(uint64) bool { return false }
 // cloning needs both files on one ReFS volume, the target as long as the source and with the
 // same integrity setting, and whole clusters: the last one is rounded up, which the target's
 // length then cuts back. The target is opened to read as well as write, which setting its
-// integrity needs.
+// integrity needs. Everything is done on the two open handles: a template has thousands of
+// files, and each call saved counts.
 func clone(source, target string, info fs.FileInfo) error {
 	in, err := os.Open(source)
 	if err != nil {
@@ -83,28 +86,40 @@ func clone(source, target string, info fs.FileInfo) error {
 	if err != nil {
 		return err
 	}
-	if err := duplicate(windows.Handle(in.Fd()), out, info.Size(), integrity); err != nil {
-		_ = out.Close()
+	err = duplicate(windows.Handle(in.Fd()), out, info, integrity)
+	if err == nil {
+		modified := windows.NsecToFiletime(info.ModTime().UnixNano())
+		err = windows.SetFileTime(windows.Handle(out.Fd()), nil, nil, &modified)
+	}
+	if closed := out.Close(); err == nil {
+		err = closed
+	}
+	if err != nil {
 		_ = os.Remove(target)
 		if errors.Is(err, windows.ERROR_NOT_SUPPORTED) || errors.Is(err, windows.ERROR_INVALID_FUNCTION) || errors.Is(err, windows.ERROR_NOT_SAME_DEVICE) {
 			return fmt.Errorf("%w: %v", ErrUnsupported, err)
 		}
-		return err
 	}
-	if err := out.Close(); err != nil {
-		return err
-	}
-	return os.Chtimes(target, info.ModTime(), info.ModTime())
+	return err
 }
 
-func duplicate(source windows.Handle, out *os.File, size int64, integrity integrityInformation) error {
+// duplicate clones source's blocks into out. A file without integrity streams needs none set
+// on its clone, which a new file on the same volume starts without; an empty file has no
+// blocks to clone.
+func duplicate(source windows.Handle, out *os.File, info fs.FileInfo, integrity integrityInformation) error {
 	target := windows.Handle(out.Fd())
-	setting := setIntegrityInformation{ChecksumAlgorithm: integrity.ChecksumAlgorithm, Flags: integrity.Flags}
 	var returned uint32
-	if err := windows.DeviceIoControl(target, fsctlSetIntegrityInformation, (*byte)(unsafe.Pointer(&setting)), uint32(unsafe.Sizeof(setting)), nil, 0, &returned, nil); err != nil {
-		return err
+	if integrity.ChecksumAlgorithm != 0 || integrity.Flags != 0 {
+		setting := setIntegrityInformation{ChecksumAlgorithm: integrity.ChecksumAlgorithm, Flags: integrity.Flags}
+		if err := windows.DeviceIoControl(target, fsctlSetIntegrityInformation, (*byte)(unsafe.Pointer(&setting)), uint32(unsafe.Sizeof(setting)), nil, 0, &returned, nil); err != nil {
+			return err
+		}
 	}
-	if sparse(source) {
+	size := info.Size()
+	if size == 0 {
+		return nil
+	}
+	if attributes, ok := info.Sys().(*syscall.Win32FileAttributeData); ok && attributes.FileAttributes&windows.FILE_ATTRIBUTE_SPARSE_FILE != 0 {
 		if err := windows.DeviceIoControl(target, fsctlSetSparse, nil, 0, nil, 0, &returned, nil); err != nil {
 			return err
 		}
@@ -136,10 +151,9 @@ func integrityOf(handle windows.Handle) (integrityInformation, error) {
 	return information, err
 }
 
-func sparse(handle windows.Handle) bool {
-	var info windows.ByHandleFileInformation
-	return windows.GetFileInformationByHandle(handle, &info) == nil && info.FileAttributes&windows.FILE_ATTRIBUTE_SPARSE_FILE != 0
-}
+// cloneWorkers is how many files are cloned at once: on Windows each clone waits on several
+// calls to the filesystem, which run better side by side.
+func cloneWorkers() int { return min(4*runtime.NumCPU(), 32) }
 
 // cloneTree clones a whole template at once where the system can; on Windows every file is
 // cloned on its own.
